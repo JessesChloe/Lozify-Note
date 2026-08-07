@@ -40,13 +40,14 @@ class NoteRepositoryImpl @Inject constructor(
 
     override fun getAllNotes(): Flow<List<Note>> {
         return noteDao.getAllNotes().map { noteEntities ->
+            // Build complete notes with tags for each entity
             noteEntities.map { noteEntity ->
-                buildCompleteNote(noteEntity.id)
+                val tags = tagDao.getTagsForNote(noteEntity.id)
+                // Use first() to get current tag list synchronously
+                noteEntity.toDomainModel().copy(
+                    tags = kotlinx.coroutines.runBlocking { tags.first() }.toDomainModels()
+                )
             }
-        }.map { noteFlows ->
-            // Combine all individual note flows into single list
-            // For simplicity in MVP, we return basic notes without full relations
-            noteFlows
         }
     }
 

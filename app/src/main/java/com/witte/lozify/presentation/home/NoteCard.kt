@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.ClickableText
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -28,6 +29,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextLayoutResult
+import com.witte.lozify.core.common.TagUtils
 
 /**
  * NoteCard component for displaying a single note with expand/collapse functionality.
@@ -39,20 +41,33 @@ import androidx.compose.ui.text.TextLayoutResult
  * - Auto-collapse for content exceeding 5 lines
  * - Blue "展开" clickable text to expand content
  *
+ * Stage 4: Now supports #tag blue highlighting using TagUtils.
+ *
  * @param content The note content text
  * @param timestamp Display timestamp (e.g., "2分钟前")
  * @param onMoreClick Callback when more options icon is clicked
+ * @param onTagClick Optional callback when a tag is clicked (tag name without #)
  */
 @Composable
 fun NoteCard(
     content: String,
     timestamp: String,
     onMoreClick: () -> Unit,
+    onTagClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var showExpandButton by remember { mutableStateOf(false) }
     val maxCollapsedLines = 5
+
+    // Stage 4: Build AnnotatedString with blue-highlighted tags
+    val annotatedContent = remember(content) {
+        TagUtils.buildAnnotatedStringWithTags(
+            content = content,
+            tagColor = Color(0xFF4C88FF),
+            onTagClick = onTagClick
+        )
+    }
 
     Box(
         modifier = modifier
@@ -88,18 +103,29 @@ fun NoteCard(
                 }
             }
 
-            // Content with expand/collapse logic
+            // Content with tag highlighting and expand/collapse logic
             Column {
-                Text(
-                    text = content,
-                    fontSize = 16.sp,
-                    color = Color(0xFF333333),
-                    lineHeight = 24.sp,
+                // Stage 4: Use ClickableText for tag interactions
+                ClickableText(
+                    text = annotatedContent,
+                    style = androidx.compose.ui.text.TextStyle(
+                        fontSize = 16.sp,
+                        color = Color(0xFF333333),
+                        lineHeight = 24.sp
+                    ),
                     maxLines = if (isExpanded) Int.MAX_VALUE else maxCollapsedLines,
                     overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
                     onTextLayout = { textLayoutResult: TextLayoutResult ->
                         if (!isExpanded && textLayoutResult.hasVisualOverflow) {
                             showExpandButton = true
+                        }
+                    },
+                    onClick = { offset ->
+                        // Handle tag clicks if callback provided
+                        onTagClick?.let { callback ->
+                            TagUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
+                                callback(tagName)
+                            }
                         }
                     },
                     modifier = Modifier.fillMaxWidth()

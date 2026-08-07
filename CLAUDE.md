@@ -201,7 +201,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **1** | Data Layer | ✅ Completed | 2026-08-07 | 2026-08-07 | Room entities, DAOs, repositories, domain models, Gradle build fix |
 | **2** | Basic Display | ✅ Completed | 2026-08-07 | 2026-08-07 | NoteCard, HomeScreen, FAB, expand/collapse interaction |
 | **3** | Editor Foundation | ✅ Completed | 2026-08-07 | 2026-08-07 | ViewModel, ModalBottomSheet editor, Room integration, EmptyState |
-| **4** | Tag System | ⚪ Not Started | - | - | #tag parsing, blue highlight, tag extraction, database integration |
+| **4** | Tag System | ✅ Completed | 2026-08-08 | 2026-08-08 | #tag parsing, blue highlight, tag extraction, database integration, filter bug fix |
 | **5** | Tag Filtering | ⚪ Not Started | - | - | Side drawer, tag list, feed filtering by tag |
 | **6** | Multi-Image | ⚪ Not Started | - | - | Image picker, compression, 3-column grid, AttachmentEntity integration |
 | **7** | Rich Formatting | ⚪ Not Started | - | - | Bold, underline, highlight, checkboxes, AnnotatedString rendering |

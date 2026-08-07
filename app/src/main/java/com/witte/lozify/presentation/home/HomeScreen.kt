@@ -50,6 +50,7 @@ import java.time.Instant
  * HomeScreen - Main feed displaying note cards in waterfall layout.
  *
  * Stage 3: Real database integration with Room + ViewModel.
+ * Stage 4: Added tag filtering with horizontal scrollable tag bar.
  * Displays empty state when no notes, otherwise shows note list.
  * Includes editor bottom sheet for creating new notes.
  */
@@ -73,7 +74,12 @@ fun HomeScreen(
         editorViewModel.events.collect { event ->
             when (event) {
                 is EditorViewModel.EditorEvent.NoteSaved -> {
-                    snackbarHostState.showSnackbar("笔记已保存")
+                    val message = if (event.tagCount > 0) {
+                        "笔记已保存 (${event.tagCount} 个标签)"
+                    } else {
+                        "笔记已保存"
+                    }
+                    snackbarHostState.showSnackbar(message)
                 }
                 is EditorViewModel.EditorEvent.SaveError -> {
                     snackbarHostState.showSnackbar("保存失败: ${event.message}")
@@ -140,28 +146,40 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Statistics widget placeholder
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-                    .background(Color(0xFFF0F0F0))
-                    .padding(horizontal = 16.dp),
-                contentAlignment = Alignment.CenterStart
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Stage 4: Tag filter bar (only show when tags exist)
+            if (uiState.allTags.isNotEmpty()) {
+                TagFilterBar(
+                    tags = uiState.allTags,
+                    selectedTag = uiState.selectedTag,
+                    onTagSelected = { tagId ->
+                        homeViewModel.selectTag(tagId)
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            } else {
+                // Statistics widget placeholder (when no tags)
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(44.dp)
+                        .background(Color(0xFFF0F0F0))
+                        .padding(horizontal = 16.dp),
+                    contentAlignment = Alignment.CenterStart
                 ) {
-                    Text(
-                        text = "📊",
-                        fontSize = 16.sp
-                    )
-                    Text(
-                        text = "统计挂件占位区 (Stage 10 实现)",
-                        fontSize = 12.sp,
-                        color = Color(0xFF999999)
-                    )
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "📊",
+                            fontSize = 16.sp
+                        )
+                        Text(
+                            text = "统计挂件占位区 (Stage 10 实现)",
+                            fontSize = 12.sp,
+                            color = Color(0xFF999999)
+                        )
+                    }
                 }
             }
 
@@ -194,6 +212,11 @@ fun HomeScreen(
                                     scope.launch {
                                         snackbarHostState.showSnackbar("更多操作 (Stage 9 实现)")
                                     }
+                                },
+                                onTagClick = { tagName ->
+                                    // Stage 4: Filter by clicked tag
+                                    val tag = uiState.allTags.find { it.name == tagName }
+                                    tag?.let { homeViewModel.selectTag(it.id) }
                                 }
                             )
                         }
