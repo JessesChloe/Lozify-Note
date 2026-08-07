@@ -1,0 +1,414 @@
+-- Merging decision tree log ---
+manifest
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:2:1-22:12
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:2:1-22:12
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:2:1-22:12
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:2:1-22:12
+MERGED from [androidx.hilt:hilt-navigation-compose:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\fe191b45df0fc08c0e339afea3734005\transformed\hilt-navigation-compose-1.2.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\9e3f5effb1b8add2e0afed8281012e54\transformed\hilt-navigation-1.2.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-common:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\fc8b7df5792442f13b112589dadaca9b\transformed\navigation-common-2.7.7\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-runtime:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\8ef48c2ca043e4f637eb3f306b2a4863\transformed\navigation-runtime-2.7.7\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\f8ea0cd4cc462b89e2ec2e35344515b1\transformed\navigation-common-ktx-2.7.7\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\aed407336ae7ac35579cd7bf56464cc2\transformed\navigation-runtime-ktx-2.7.7\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.navigation:navigation-compose:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\d2cb3a644a5ceaa622ba0fd3704010c5\transformed\navigation-compose-2.7.7\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material3:material3-android:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\a1d603147041fb00f29f9822576c0a00\transformed\material3-release\AndroidManifest.xml:17:1-22:12
+MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c3b909d2df5a4edad5271d11c4673dcd\transformed\coil-compose-2.6.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-compose-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\ded5cb8c7d0fa6502f206d0ebf03075d\transformed\coil-compose-base-2.6.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-ripple-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\41498643cd7a1725210357bcbdb20f51\transformed\material-ripple-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\711f02faac8d781ff3def5a62b347301\transformed\material-icons-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.material:material-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\059b8de801be5a92a71c5e7b3ad8824e\transformed\material-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\2ea5537e84ff951ae1bd10ab6572a61d\transformed\animation-core-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.animation:animation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\cdf7158c20852abf1f743763eee6d831\transformed\animation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\5bb691a2c6702d544615b4b6029e3a3b\transformed\foundation-layout-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.foundation:foundation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\e1772c5bd4462868a256694741cde39d\transformed\foundation-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d95994a993e8547b941e52672cf3cfaf\transformed\ui-tooling-data-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\6df694840179a9f1a63e18c0a44526ef\transformed\ui-unit-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ba84dfcda79a7b1ad1dbbdfc9b5e898d\transformed\ui-geometry-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-util-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\3323a48d57444e33314e295d08918b3a\transformed\ui-util-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-text-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\7f689f02f43b33951c292490ef29ab44\transformed\ui-text-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\c9c0a2484c927c5a5b818217e61e0d9b\transformed\ui-tooling-preview-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\73ff3813802c6a234a899fad9491d67d\transformed\ui-graphics-release\AndroidManifest.xml:2:1-7:12
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\witte\.gradle\caches\8.9\transforms\07718f84a71fd62643d569dd6b75edb9\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:17:1-23:12
+MERGED from [com.google.dagger:hilt-android:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\fac20f73556de09f6948d21c63b151d4\transformed\hilt-android-2.51.1\AndroidManifest.xml:16:1-19:12
+MERGED from [androidx.fragment:fragment:1.5.1] C:\Users\witte\.gradle\caches\8.9\transforms\a0f82540775db26e3ce96f6dfba04c7f\transformed\fragment-1.5.1\AndroidManifest.xml:17:1-24:12
+MERGED from [io.coil-kt:coil:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c52988d7d1e553802dab73871579ff5e\transformed\coil-2.6.0\AndroidManifest.xml:2:1-7:12
+MERGED from [io.coil-kt:coil-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\658394d395039d90268c84d5055acc80\transformed\coil-base-2.6.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\edab569050f93541319e671fd4b49b83\transformed\loader-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:17:1-35:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b7e3796fd0d214ca4cb999bfb7f0c980\transformed\lifecycle-livedata-core-ktx-2.8.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\fc420cb4cf5ac11a88a6b5cc856e1dc0\transformed\lifecycle-livedata-2.8.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\888a6b75a0a262183bf06150bacd4913\transformed\lifecycle-viewmodel-2.8.1\AndroidManifest.xml:2:1-5:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\60a4817bcadb00dbc9742567991e03e8\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\0a862a1d11659b89a006b9337c7f2726\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\2e46b9d619930a84b6c9c72c9edab6f9\transformed\savedstate-1.2.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\0672e67672b909f193831abb21757b76\transformed\lifecycle-runtime-release\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\7a845152588b225f683e871291fcaa05\transformed\lifecycle-livedata-core-2.8.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\d30f7191356d4cd54ae1b9e4abacca9a\transformed\lifecycle-viewmodel-ktx-2.8.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b1c0913f614781d7d77e30c7cfb59dda\transformed\lifecycle-viewmodel-savedstate-2.8.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\f90214d62ad52b63182e1987dd45c8c2\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\682345f2c7462314addcab2418c352a2\transformed\lifecycle-runtime-ktx-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\24897e1a743cdd8e046ec94427e3e3e3\transformed\lifecycle-viewmodel-compose-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d5e47381dd4d6f8eff3063fc3c9048e5\transformed\ui-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:17:1-28:12
+MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\446f5e30268bc026ad57746a609e5ba9\transformed\activity-compose-1.9.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity-ktx:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\8f3972122ba7a5f72637a532649af03f\transformed\activity-ktx-1.9.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.activity:activity:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\5e1e4d6bf329097f1d845bce0e7e7c0c\transformed\activity-1.9.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\718f11b4486b7f9e8fcfebd586cbe61c\transformed\viewpager-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\a9f29fc7b24fe2114d28ad3875aaff99\transformed\autofill-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\16064d7d6490c8edc9b5ea2e541dc604\transformed\customview-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\4dd40eb5958077aae3ab03cebabdd201\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\5b348f7e17820270ab97c3fdefb348bf\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\f1e96c60a31ea08b22f89063d511936c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:17:1-30:12
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\e0ff9f87089426c88024c433380a2c97\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:17:1-23:12
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\ef41efea916213056dd71abe8b302127\transformed\core-ktx-1.13.1\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:17:1-31:12
+MERGED from [androidx.room:room-ktx:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\b9026f2c848312120ae1677c5cb45e23\transformed\room-ktx-2.6.1\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\227b9602e1ca9b57262a9ccd55fe9d74\transformed\runtime-saveable-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.compose.runtime:runtime-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ddcf4b36550e1978415f851bb82a8c90\transformed\runtime-release\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\23fd4ec0f6931b8137f0b9df35b35edf\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.sqlite:sqlite:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\619e297b75d7b2a016fe6f37ea29a1ed\transformed\sqlite-2.4.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\3aa67c22b70e03151aff0c9ec1d9ac4a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:2:1-7:12
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\73d371012ca3122988f80eef723f853c\transformed\core-runtime-2.2.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\529745dcdea88b54a43f54a3dfb87a30\transformed\interpolator-1.0.0\AndroidManifest.xml:17:1-22:12
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\2ef89bb4af93a6f84e955e5c4c7e1728\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:17:1-27:12
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:17:1-55:12
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:17:1-33:12
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\fde7c39281b71fdfe1017fdd36654f0d\transformed\tracing-1.0.0\AndroidManifest.xml:17:1-24:12
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] C:\Users\witte\.gradle\caches\8.9\transforms\0a70c12b23fea66cbb75f248be770f6d\transformed\exifinterface-1.3.7\AndroidManifest.xml:17:1-24:12
+MERGED from [com.google.dagger:dagger-lint-aar:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d87639285b017dd2342d71f42c9f497\transformed\dagger-lint-aar-2.51.1\AndroidManifest.xml:16:1-19:12
+	package
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+	android:versionName
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+	android:versionCode
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+	xmlns:android
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:2:11-69
+application
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:4:5-20:19
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:4:5-20:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:23:5-33:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:22:5-26:19
+MERGED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:28:5-89
+MERGED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:28:5-89
+MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:23:5-29:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\2ef89bb4af93a6f84e955e5c4c7e1728\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\2ef89bb4af93a6f84e955e5c4c7e1728\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:24:5-25:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:23:5-53:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:25:5-31:19
+	android:extractNativeLibs
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+	android:appComponentFactory
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+	android:supportsRtl
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:9:9-35
+	android:label
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:8:9-41
+	android:icon
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:7:9-58
+	android:allowBackup
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:6:9-35
+	android:theme
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:10:9-44
+	android:name
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:5:9-42
+activity#com.witte.lozify.presentation.main.MainActivity
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:11:9-19:20
+	android:exported
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:13:13-36
+	android:theme
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:14:13-48
+	android:name
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:12:13-59
+intent-filter#action:name:android.intent.action.MAIN+category:name:android.intent.category.LAUNCHER
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:15:13-18:29
+action#android.intent.action.MAIN
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:16:17-69
+	android:name
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:16:25-66
+category#android.intent.category.LAUNCHER
+ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:17:17-77
+	android:name
+		ADDED from D:\Code\Lozify\app\src\main\AndroidManifest.xml:17:27-74
+uses-sdk
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml reason: use-sdk injection requested
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+MERGED from [androidx.hilt:hilt-navigation-compose:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\fe191b45df0fc08c0e339afea3734005\transformed\hilt-navigation-compose-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation-compose:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\fe191b45df0fc08c0e339afea3734005\transformed\hilt-navigation-compose-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\9e3f5effb1b8add2e0afed8281012e54\transformed\hilt-navigation-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.hilt:hilt-navigation:1.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\9e3f5effb1b8add2e0afed8281012e54\transformed\hilt-navigation-1.2.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-common:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\fc8b7df5792442f13b112589dadaca9b\transformed\navigation-common-2.7.7\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\fc8b7df5792442f13b112589dadaca9b\transformed\navigation-common-2.7.7\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\8ef48c2ca043e4f637eb3f306b2a4863\transformed\navigation-runtime-2.7.7\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-runtime:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\8ef48c2ca043e4f637eb3f306b2a4863\transformed\navigation-runtime-2.7.7\AndroidManifest.xml:20:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\f8ea0cd4cc462b89e2ec2e35344515b1\transformed\navigation-common-ktx-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-common-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\f8ea0cd4cc462b89e2ec2e35344515b1\transformed\navigation-common-ktx-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\aed407336ae7ac35579cd7bf56464cc2\transformed\navigation-runtime-ktx-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-runtime-ktx:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\aed407336ae7ac35579cd7bf56464cc2\transformed\navigation-runtime-ktx-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\d2cb3a644a5ceaa622ba0fd3704010c5\transformed\navigation-compose-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.navigation:navigation-compose:2.7.7] C:\Users\witte\.gradle\caches\8.9\transforms\d2cb3a644a5ceaa622ba0fd3704010c5\transformed\navigation-compose-2.7.7\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material3:material3-android:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\a1d603147041fb00f29f9822576c0a00\transformed\material3-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.material3:material3-android:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\a1d603147041fb00f29f9822576c0a00\transformed\material3-release\AndroidManifest.xml:20:5-44
+MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c3b909d2df5a4edad5271d11c4673dcd\transformed\coil-compose-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c3b909d2df5a4edad5271d11c4673dcd\transformed\coil-compose-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\ded5cb8c7d0fa6502f206d0ebf03075d\transformed\coil-compose-base-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-compose-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\ded5cb8c7d0fa6502f206d0ebf03075d\transformed\coil-compose-base-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\41498643cd7a1725210357bcbdb20f51\transformed\material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-ripple-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\41498643cd7a1725210357bcbdb20f51\transformed\material-ripple-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\711f02faac8d781ff3def5a62b347301\transformed\material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-icons-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\711f02faac8d781ff3def5a62b347301\transformed\material-icons-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\059b8de801be5a92a71c5e7b3ad8824e\transformed\material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.material:material-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\059b8de801be5a92a71c5e7b3ad8824e\transformed\material-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\2ea5537e84ff951ae1bd10ab6572a61d\transformed\animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-core-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\2ea5537e84ff951ae1bd10ab6572a61d\transformed\animation-core-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\cdf7158c20852abf1f743763eee6d831\transformed\animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.animation:animation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\cdf7158c20852abf1f743763eee6d831\transformed\animation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\5bb691a2c6702d544615b4b6029e3a3b\transformed\foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-layout-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\5bb691a2c6702d544615b4b6029e3a3b\transformed\foundation-layout-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\e1772c5bd4462868a256694741cde39d\transformed\foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.foundation:foundation-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\e1772c5bd4462868a256694741cde39d\transformed\foundation-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d95994a993e8547b941e52672cf3cfaf\transformed\ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-data-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d95994a993e8547b941e52672cf3cfaf\transformed\ui-tooling-data-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\6df694840179a9f1a63e18c0a44526ef\transformed\ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-unit-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\6df694840179a9f1a63e18c0a44526ef\transformed\ui-unit-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ba84dfcda79a7b1ad1dbbdfc9b5e898d\transformed\ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-geometry-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ba84dfcda79a7b1ad1dbbdfc9b5e898d\transformed\ui-geometry-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\3323a48d57444e33314e295d08918b3a\transformed\ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-util-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\3323a48d57444e33314e295d08918b3a\transformed\ui-util-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\7f689f02f43b33951c292490ef29ab44\transformed\ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-text-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\7f689f02f43b33951c292490ef29ab44\transformed\ui-text-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\c9c0a2484c927c5a5b818217e61e0d9b\transformed\ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-preview-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\c9c0a2484c927c5a5b818217e61e0d9b\transformed\ui-tooling-preview-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\73ff3813802c6a234a899fad9491d67d\transformed\ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-graphics-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\73ff3813802c6a234a899fad9491d67d\transformed\ui-graphics-release\AndroidManifest.xml:5:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\witte\.gradle\caches\8.9\transforms\07718f84a71fd62643d569dd6b75edb9\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.accompanist:accompanist-drawablepainter:0.32.0] C:\Users\witte\.gradle\caches\8.9\transforms\07718f84a71fd62643d569dd6b75edb9\transformed\accompanist-drawablepainter-0.32.0\AndroidManifest.xml:21:5-44
+MERGED from [com.google.dagger:hilt-android:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\fac20f73556de09f6948d21c63b151d4\transformed\hilt-android-2.51.1\AndroidManifest.xml:18:3-42
+MERGED from [com.google.dagger:hilt-android:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\fac20f73556de09f6948d21c63b151d4\transformed\hilt-android-2.51.1\AndroidManifest.xml:18:3-42
+MERGED from [androidx.fragment:fragment:1.5.1] C:\Users\witte\.gradle\caches\8.9\transforms\a0f82540775db26e3ce96f6dfba04c7f\transformed\fragment-1.5.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.fragment:fragment:1.5.1] C:\Users\witte\.gradle\caches\8.9\transforms\a0f82540775db26e3ce96f6dfba04c7f\transformed\fragment-1.5.1\AndroidManifest.xml:20:5-22:41
+MERGED from [io.coil-kt:coil:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c52988d7d1e553802dab73871579ff5e\transformed\coil-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\c52988d7d1e553802dab73871579ff5e\transformed\coil-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\658394d395039d90268c84d5055acc80\transformed\coil-base-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [io.coil-kt:coil-base:2.6.0] C:\Users\witte\.gradle\caches\8.9\transforms\658394d395039d90268c84d5055acc80\transformed\coil-base-2.6.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\edab569050f93541319e671fd4b49b83\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.loader:loader:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\edab569050f93541319e671fd4b49b83\transformed\loader-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b7e3796fd0d214ca4cb999bfb7f0c980\transformed\lifecycle-livedata-core-ktx-2.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b7e3796fd0d214ca4cb999bfb7f0c980\transformed\lifecycle-livedata-core-ktx-2.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\fc420cb4cf5ac11a88a6b5cc856e1dc0\transformed\lifecycle-livedata-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\fc420cb4cf5ac11a88a6b5cc856e1dc0\transformed\lifecycle-livedata-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\888a6b75a0a262183bf06150bacd4913\transformed\lifecycle-viewmodel-2.8.1\AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\888a6b75a0a262183bf06150bacd4913\transformed\lifecycle-viewmodel-2.8.1\AndroidManifest.xml:4:5-43
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\60a4817bcadb00dbc9742567991e03e8\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\60a4817bcadb00dbc9742567991e03e8\transformed\lifecycle-viewmodel-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\0a862a1d11659b89a006b9337c7f2726\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate-ktx:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\0a862a1d11659b89a006b9337c7f2726\transformed\savedstate-ktx-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\2e46b9d619930a84b6c9c72c9edab6f9\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.savedstate:savedstate:1.2.1] C:\Users\witte\.gradle\caches\8.9\transforms\2e46b9d619930a84b6c9c72c9edab6f9\transformed\savedstate-1.2.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\0672e67672b909f193831abb21757b76\transformed\lifecycle-runtime-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\0672e67672b909f193831abb21757b76\transformed\lifecycle-runtime-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\7a845152588b225f683e871291fcaa05\transformed\lifecycle-livedata-core-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-livedata-core:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\7a845152588b225f683e871291fcaa05\transformed\lifecycle-livedata-core-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\d30f7191356d4cd54ae1b9e4abacca9a\transformed\lifecycle-viewmodel-ktx-2.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-ktx:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\d30f7191356d4cd54ae1b9e4abacca9a\transformed\lifecycle-viewmodel-ktx-2.8.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b1c0913f614781d7d77e30c7cfb59dda\transformed\lifecycle-viewmodel-savedstate-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-savedstate:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\b1c0913f614781d7d77e30c7cfb59dda\transformed\lifecycle-viewmodel-savedstate-2.8.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\f90214d62ad52b63182e1987dd45c8c2\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\f90214d62ad52b63182e1987dd45c8c2\transformed\lifecycle-runtime-compose-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\682345f2c7462314addcab2418c352a2\transformed\lifecycle-runtime-ktx-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-runtime-ktx-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\682345f2c7462314addcab2418c352a2\transformed\lifecycle-runtime-ktx-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\24897e1a743cdd8e046ec94427e3e3e3\transformed\lifecycle-viewmodel-compose-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.lifecycle:lifecycle-viewmodel-compose-android:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\24897e1a743cdd8e046ec94427e3e3e3\transformed\lifecycle-viewmodel-compose-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d5e47381dd4d6f8eff3063fc3c9048e5\transformed\ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\d5e47381dd4d6f8eff3063fc3c9048e5\transformed\ui-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\446f5e30268bc026ad57746a609e5ba9\transformed\activity-compose-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-compose:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\446f5e30268bc026ad57746a609e5ba9\transformed\activity-compose-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\8f3972122ba7a5f72637a532649af03f\transformed\activity-ktx-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity-ktx:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\8f3972122ba7a5f72637a532649af03f\transformed\activity-ktx-1.9.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.activity:activity:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\5e1e4d6bf329097f1d845bce0e7e7c0c\transformed\activity-1.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.activity:activity:1.9.0] C:\Users\witte\.gradle\caches\8.9\transforms\5e1e4d6bf329097f1d845bce0e7e7c0c\transformed\activity-1.9.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\718f11b4486b7f9e8fcfebd586cbe61c\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.viewpager:viewpager:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\718f11b4486b7f9e8fcfebd586cbe61c\transformed\viewpager-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\a9f29fc7b24fe2114d28ad3875aaff99\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.autofill:autofill:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\a9f29fc7b24fe2114d28ad3875aaff99\transformed\autofill-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\16064d7d6490c8edc9b5ea2e541dc604\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\16064d7d6490c8edc9b5ea2e541dc604\transformed\customview-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\4dd40eb5958077aae3ab03cebabdd201\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.appcompat:appcompat-resources:1.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\4dd40eb5958077aae3ab03cebabdd201\transformed\appcompat-resources-1.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\5b348f7e17820270ab97c3fdefb348bf\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable-animated:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\5b348f7e17820270ab97c3fdefb348bf\transformed\vectordrawable-animated-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\f1e96c60a31ea08b22f89063d511936c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.vectordrawable:vectordrawable:1.1.0] C:\Users\witte\.gradle\caches\8.9\transforms\f1e96c60a31ea08b22f89063d511936c\transformed\vectordrawable-1.1.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\e0ff9f87089426c88024c433380a2c97\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.customview:customview-poolingcontainer:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\e0ff9f87089426c88024c433380a2c97\transformed\customview-poolingcontainer-1.0.0\AndroidManifest.xml:20:5-21:38
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\ef41efea916213056dd71abe8b302127\transformed\core-ktx-1.13.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.core:core-ktx:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\ef41efea916213056dd71abe8b302127\transformed\core-ktx-1.13.1\AndroidManifest.xml:5:5-44
+MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.room:room-ktx:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\b9026f2c848312120ae1677c5cb45e23\transformed\room-ktx-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.room:room-ktx:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\b9026f2c848312120ae1677c5cb45e23\transformed\room-ktx-2.6.1\AndroidManifest.xml:20:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\227b9602e1ca9b57262a9ccd55fe9d74\transformed\runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-saveable-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\227b9602e1ca9b57262a9ccd55fe9d74\transformed\runtime-saveable-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ddcf4b36550e1978415f851bb82a8c90\transformed\runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.compose.runtime:runtime-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\ddcf4b36550e1978415f851bb82a8c90\transformed\runtime-release\AndroidManifest.xml:5:5-44
+MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\23fd4ec0f6931b8137f0b9df35b35edf\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite-framework:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\23fd4ec0f6931b8137f0b9df35b35edf\transformed\sqlite-framework-2.4.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\619e297b75d7b2a016fe6f37ea29a1ed\transformed\sqlite-2.4.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.sqlite:sqlite:2.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\619e297b75d7b2a016fe6f37ea29a1ed\transformed\sqlite-2.4.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\3aa67c22b70e03151aff0c9ec1d9ac4a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.annotation:annotation-experimental:1.4.0] C:\Users\witte\.gradle\caches\8.9\transforms\3aa67c22b70e03151aff0c9ec1d9ac4a\transformed\annotation-experimental-1.4.0\AndroidManifest.xml:5:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\73d371012ca3122988f80eef723f853c\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.arch.core:core-runtime:2.2.0] C:\Users\witte\.gradle\caches\8.9\transforms\73d371012ca3122988f80eef723f853c\transformed\core-runtime-2.2.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\529745dcdea88b54a43f54a3dfb87a30\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.interpolator:interpolator:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\529745dcdea88b54a43f54a3dfb87a30\transformed\interpolator-1.0.0\AndroidManifest.xml:20:5-44
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\2ef89bb4af93a6f84e955e5c4c7e1728\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.versionedparcelable:versionedparcelable:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\2ef89bb4af93a6f84e955e5c4c7e1728\transformed\versionedparcelable-1.1.1\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:21:5-44
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:21:5-23:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\fde7c39281b71fdfe1017fdd36654f0d\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.tracing:tracing:1.0.0] C:\Users\witte\.gradle\caches\8.9\transforms\fde7c39281b71fdfe1017fdd36654f0d\transformed\tracing-1.0.0\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] C:\Users\witte\.gradle\caches\8.9\transforms\0a70c12b23fea66cbb75f248be770f6d\transformed\exifinterface-1.3.7\AndroidManifest.xml:20:5-22:41
+MERGED from [androidx.exifinterface:exifinterface:1.3.7] C:\Users\witte\.gradle\caches\8.9\transforms\0a70c12b23fea66cbb75f248be770f6d\transformed\exifinterface-1.3.7\AndroidManifest.xml:20:5-22:41
+MERGED from [com.google.dagger:dagger-lint-aar:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d87639285b017dd2342d71f42c9f497\transformed\dagger-lint-aar-2.51.1\AndroidManifest.xml:18:3-42
+MERGED from [com.google.dagger:dagger-lint-aar:2.51.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d87639285b017dd2342d71f42c9f497\transformed\dagger-lint-aar-2.51.1\AndroidManifest.xml:18:3-42
+	android:targetSdkVersion
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+	android:minSdkVersion
+		INJECTED from D:\Code\Lozify\app\src\main\AndroidManifest.xml
+provider#androidx.startup.InitializationProvider
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:24:9-32:20
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+MERGED from [androidx.startup:startup-runtime:1.1.1] C:\Users\witte\.gradle\caches\8.9\transforms\c209c9248fd01aa6c7844a05f17519b4\transformed\startup-runtime-1.1.1\AndroidManifest.xml:26:9-30:34
+	tools:node
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:28:13-31
+	android:authorities
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+	android:exported
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+meta-data#androidx.emoji2.text.EmojiCompatInitializer
+ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+meta-data#androidx.lifecycle.ProcessLifecycleInitializer
+ADDED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:30:17-78
+activity#androidx.activity.ComponentActivity
+ADDED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:24:13-63
+activity#androidx.compose.ui.tooling.PreviewActivity
+ADDED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+	android:exported
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+	android:name
+		ADDED from [androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+permission#com.witte.lozify.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+	android:protectionLevel
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+uses-permission#${applicationId}.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+uses-permission#com.witte.lozify.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION
+ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+	android:name
+		ADDED from [androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+service#androidx.room.MultiInstanceInvalidationService
+ADDED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+	android:exported
+		ADDED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+	tools:ignore
+		ADDED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:28:13-60
+	android:directBootAware
+		ADDED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+	android:name
+		ADDED from [androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+meta-data#androidx.profileinstaller.ProfileInstallerInitializer
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+	android:value
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+receiver#androidx.profileinstaller.ProfileInstallReceiver
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+	android:enabled
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+	android:exported
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+	android:permission
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+	android:directBootAware
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+intent-filter#action:name:androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+action#androidx.profileinstaller.action.INSTALL_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+intent-filter#action:name:androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+action#androidx.profileinstaller.action.SKIP_FILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+intent-filter#action:name:androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+action#androidx.profileinstaller.action.SAVE_PROFILE
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+intent-filter#action:name:androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+action#androidx.profileinstaller.action.BENCHMARK_OPERATION
+ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+	android:name
+		ADDED from [androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92

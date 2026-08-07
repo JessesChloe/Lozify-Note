@@ -1,0 +1,150 @@
+1<?xml version="1.0" encoding="utf-8"?>
+2<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+3    package="com.witte.lozify"
+4    android:versionCode="1"
+5    android:versionName="1.0.0" >
+6
+7    <uses-sdk
+8        android:minSdkVersion="26"
+9        android:targetSdkVersion="35" />
+10
+11    <permission
+11-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:22:5-24:47
+12        android:name="com.witte.lozify.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION"
+12-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:23:9-81
+13        android:protectionLevel="signature" />
+13-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:24:9-44
+14
+15    <uses-permission android:name="com.witte.lozify.DYNAMIC_RECEIVER_NOT_EXPORTED_PERMISSION" />
+15-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:5-97
+15-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:26:22-94
+16
+17    <application
+17-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:4:5-20:19
+18        android:name="com.witte.lozify.LozifyApplication"
+18-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:5:9-42
+19        android:allowBackup="true"
+19-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:6:9-35
+20        android:appComponentFactory="androidx.core.app.CoreComponentFactory"
+20-->[androidx.core:core:1.13.1] C:\Users\witte\.gradle\caches\8.9\transforms\11c3375850afb790508214491c44605d\transformed\core-1.13.1\AndroidManifest.xml:28:18-86
+21        android:debuggable="true"
+22        android:extractNativeLibs="false"
+23        android:icon="@android:drawable/sym_def_app_icon"
+23-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:7:9-58
+24        android:label="@string/app_name"
+24-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:8:9-41
+25        android:supportsRtl="true"
+25-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:9:9-35
+26        android:testOnly="true"
+27        android:theme="@style/Theme.Lozify" >
+27-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:10:9-44
+28        <activity
+28-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:11:9-19:20
+29            android:name="com.witte.lozify.presentation.main.MainActivity"
+29-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:12:13-59
+30            android:exported="true"
+30-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:13:13-36
+31            android:theme="@style/Theme.Lozify" >
+31-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:14:13-48
+32            <intent-filter>
+32-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:15:13-18:29
+33                <action android:name="android.intent.action.MAIN" />
+33-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:16:17-69
+33-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:16:25-66
+34
+35                <category android:name="android.intent.category.LAUNCHER" />
+35-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:17:17-77
+35-->D:\Code\Lozify\app\src\main\AndroidManifest.xml:17:27-74
+36            </intent-filter>
+37        </activity>
+38
+39        <provider
+39-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:24:9-32:20
+40            android:name="androidx.startup.InitializationProvider"
+40-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:25:13-67
+41            android:authorities="com.witte.lozify.androidx-startup"
+41-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:26:13-68
+42            android:exported="false" >
+42-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:27:13-37
+43            <meta-data
+43-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:29:13-31:52
+44                android:name="androidx.emoji2.text.EmojiCompatInitializer"
+44-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:30:17-75
+45                android:value="androidx.startup" />
+45-->[androidx.emoji2:emoji2:1.3.0] C:\Users\witte\.gradle\caches\8.9\transforms\7095b693a1f085dc890e4aaa282523cd\transformed\emoji2-1.3.0\AndroidManifest.xml:31:17-49
+46            <meta-data
+46-->[androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:29:13-31:52
+47                android:name="androidx.lifecycle.ProcessLifecycleInitializer"
+47-->[androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:30:17-78
+48                android:value="androidx.startup" />
+48-->[androidx.lifecycle:lifecycle-process:2.8.1] C:\Users\witte\.gradle\caches\8.9\transforms\cea2b202acb4b31f68f935735b424cec\transformed\lifecycle-process-2.8.1\AndroidManifest.xml:31:17-49
+49            <meta-data
+49-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:29:13-31:52
+50                android:name="androidx.profileinstaller.ProfileInstallerInitializer"
+50-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:30:17-85
+51                android:value="androidx.startup" />
+51-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:31:17-49
+52        </provider>
+53
+54        <activity
+54-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:23:9-25:39
+55            android:name="androidx.activity.ComponentActivity"
+55-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:24:13-63
+56            android:exported="true" />
+56-->[androidx.compose.ui:ui-test-manifest:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\a1eb0521cb085842037e4eb241390acd\transformed\ui-test-manifest-1.6.8\AndroidManifest.xml:25:13-36
+57        <activity
+57-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:23:9-25:39
+58            android:name="androidx.compose.ui.tooling.PreviewActivity"
+58-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:24:13-71
+59            android:exported="true" />
+59-->[androidx.compose.ui:ui-tooling-android:1.6.8] C:\Users\witte\.gradle\caches\8.9\transforms\671f4e38b021b7afdd72c6239c370a38\transformed\ui-tooling-release\AndroidManifest.xml:25:13-36
+60
+61        <service
+61-->[androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:24:9-28:63
+62            android:name="androidx.room.MultiInstanceInvalidationService"
+62-->[androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:25:13-74
+63            android:directBootAware="true"
+63-->[androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:26:13-43
+64            android:exported="false" />
+64-->[androidx.room:room-runtime:2.6.1] C:\Users\witte\.gradle\caches\8.9\transforms\2d752ccb4ee5cd47d87b451f03aea456\transformed\room-runtime-2.6.1\AndroidManifest.xml:27:13-37
+65
+66        <receiver
+66-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:34:9-52:20
+67            android:name="androidx.profileinstaller.ProfileInstallReceiver"
+67-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:35:13-76
+68            android:directBootAware="false"
+68-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:36:13-44
+69            android:enabled="true"
+69-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:37:13-35
+70            android:exported="true"
+70-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:38:13-36
+71            android:permission="android.permission.DUMP" >
+71-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:39:13-57
+72            <intent-filter>
+72-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:40:13-42:29
+73                <action android:name="androidx.profileinstaller.action.INSTALL_PROFILE" />
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:17-91
+73-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:41:25-88
+74            </intent-filter>
+75            <intent-filter>
+75-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:43:13-45:29
+76                <action android:name="androidx.profileinstaller.action.SKIP_FILE" />
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:17-85
+76-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:44:25-82
+77            </intent-filter>
+78            <intent-filter>
+78-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:46:13-48:29
+79                <action android:name="androidx.profileinstaller.action.SAVE_PROFILE" />
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:17-88
+79-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:47:25-85
+80            </intent-filter>
+81            <intent-filter>
+81-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:49:13-51:29
+82                <action android:name="androidx.profileinstaller.action.BENCHMARK_OPERATION" />
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:17-95
+82-->[androidx.profileinstaller:profileinstaller:1.3.1] C:\Users\witte\.gradle\caches\8.9\transforms\308fdd7eaf72a8417a7a92b46579d30c\transformed\profileinstaller-1.3.1\AndroidManifest.xml:50:25-92
+83            </intent-filter>
+84        </receiver>
+85    </application>
+86
+87</manifest>
