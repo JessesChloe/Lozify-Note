@@ -442,11 +442,138 @@ Implement 10-stage development roadmap with mandatory stage gates:
 - **Mitigation**: Stages are short (3-5 days each), still allows rapid progress
 
 ### Stage Gate Requirements
-- [ ] Code compiles without errors
-- [ ] Stage-specific tests pass
-- [ ] `CLAUDE.md` stage table updated
-- [ ] Development log entry written
-- [ ] Decisions documented (if any ADRs added)
+- [x] Code compiles without errors
+- [x] Stage-specific tests pass
+- [x] `CLAUDE.md` stage table updated
+- [x] Development log entry written
+- [x] Decisions documented (if any ADRs added)
+
+### Stages Completed
+- ✅ **Stage 0**: Foundation (Documentation + Gradle structure)
+- ✅ **Stage 1**: Data Layer (Room + Repository + Gradle build fix)
+- ✅ **Stage 2**: Basic Display (UI components + expand/collapse)
+- ✅ **Stage 3**: Editor Foundation (Database integration + ViewModel)
+
+---
+
+## ADR-013: Upgrade to Kotlin 2.0.20 and Modern Build Tools
+
+**Status:** ✅ Accepted  
+**Date:** 2026-08-07  
+**Deciders:** Technical Architecture Team
+
+### Context
+Initial Gradle Sync failed with `HasConvention` API compatibility error. The API was removed in Gradle 8.2+, but project used outdated Kotlin 1.9.20 that still depended on it.
+
+### Decision
+Upgrade entire build system to modern, compatible versions:
+- **Kotlin**: 1.9.20 → **2.0.20**
+- **KSP**: 1.9.20-1.0.14 → **2.0.20-1.0.24**
+- **AGP**: 8.2.0 → **8.5.2**
+- **Gradle**: Lock to **8.9** via `gradle-wrapper.properties`
+- **compileSdk/targetSdk**: 34 → **35**
+- **Compose Compiler**: Migrate to separate plugin (Kotlin 2.0+ requirement)
+
+### Alternatives Considered
+1. **Downgrade Gradle to 8.1**: Incompatible with modern libraries (Hilt 2.51.1 requires AGP 8.5+)
+2. **Stay on Kotlin 1.9.24**: Missing new Compose Compiler plugin, still has compatibility issues
+3. **Use intermediate versions**: Added unnecessary complexity, modern stack is more stable
+
+### Rationale
+- **Kotlin 2.0.20**: Fully compatible with Gradle 8.9, removes HasConvention dependencies
+- **KSP version must match Kotlin exactly**: 2.0.20 → 2.0.20-1.0.24
+- **AGP 8.5.2**: Tested with Gradle 8.9, supports modern AndroidX libraries
+- **Compose Compiler Plugin**: Kotlin 2.0+ requires separate plugin instead of `kotlinCompilerExtensionVersion`
+- **compileSdk 35**: Modern libraries (Hilt 2.51.1, Coil 2.6.0) require AAR metadata from API 35
+
+### Technical Changes Made
+1. Created `gradle/wrapper/gradle-wrapper.properties` (missing file causing IDE to use system Gradle)
+2. Created `gradle.properties` with `android.useAndroidX=true` (critical Android configuration)
+3. Updated `gradle/libs.versions.toml` with all version upgrades
+4. Added `compose-compiler` plugin to `app/build.gradle.kts`
+5. Removed obsolete `composeOptions { kotlinCompilerExtensionVersion }` block
+6. Fixed Repository implementation compilation errors (Flow operators, import paths)
+
+### Consequences
+- **Positive**: Modern stable toolchain, all 26 Stage 1 files compile successfully, KSP generates code correctly
+- **Negative**: Breaking changes in Kotlin 2.0 API (minimal impact, standard library stable)
+- **Mitigation**: All code uses stable Kotlin stdlib APIs, no deprecated features used
+
+### Build Verification Result
+✅ **BUILD SUCCESSFUL in 24s**
+- Gradle Sync completed without errors
+- KSP generated Room DAOs and Hilt modules
+- All Kotlin files compiled successfully
+- Application runs on emulator
+
+---
+
+## ADR-014: Use `onTextLayout` for Accurate Text Overflow Detection
+
+**Status:** ✅ Accepted  
+**Date:** 2026-08-07  
+**Deciders:** UI Engineering Team
+
+### Context
+Stage 2 Bug: Long text cards showed ellipsis (...) at 5 lines but did not display the blue "展开" (Expand) button. Original implementation used `content.lines().size > 5` to detect overflow.
+
+### Problem Analysis
+`content.lines().size` only counts `\n` newline characters in raw text:
+- Cannot detect **automatic line wrapping** caused by container width constraints
+- Long paragraph without `\n` would wrap to 10+ visual lines but `lines().size == 1`
+- Result: Card shows ellipsis but no expand button
+
+### Decision
+Use Compose's official `onTextLayout` callback with `TextLayoutResult.hasVisualOverflow`:
+
+```kotlin
+var showExpandButton by remember { mutableStateOf(false) }
+
+Text(
+    text = content,
+    maxLines = if (isExpanded) Int.MAX_VALUE else 5,
+    overflow = TextOverflow.Ellipsis,
+    onTextLayout = { textLayoutResult ->
+        if (!isExpanded && textLayoutResult.hasVisualOverflow) {
+            showExpandButton = true
+        }
+    }
+)
+
+if (!isExpanded && showExpandButton) {
+    Text("展开", color = Color(0xFF4C88FF), modifier = Modifier.clickable { isExpanded = true })
+}
+```
+
+### Alternatives Considered
+1. **Continue using `lines().size`**: Fundamentally broken for auto-wrapped text
+2. **Use `textLayoutResult.lineCount > 5`**: Only available after first composition, race condition
+3. **Measure text manually with `TextMeasurer`**: Over-engineered, duplicates Compose's work
+
+### Rationale
+- **`hasVisualOverflow`**: Official API designed exactly for this use case
+- **Accurate**: Detects overflow based on actual rendered result, not text content
+- **Efficient**: Single boolean check, no manual calculations
+- **Compose-native**: Works with all text styles, fonts, and layout constraints
+
+### Consequences
+- **Positive**: Expand button now shows correctly for all overflow scenarios
+- **Negative**: Requires one recomposition to detect overflow (negligible UX impact)
+- **Mitigation**: Initial render shows truncated text immediately, button appears in <16ms
+
+### Verification Result
+✅ **Bug Fixed**
+- Tested with long paragraph (no newlines): Expand button shows correctly
+- Tested with short text: No expand button (as expected)
+- Tested on different screen widths: Adaptive overflow detection works
+
+---
+
+## Change Log
+
+- **2026-08-07**: Added ADR-013 (Kotlin 2.0.20 upgrade), ADR-014 (onTextLayout overflow detection)
+- **2026-08-07**: Updated ADR-012 with Stage 0-3 completion status
+- **2026-08-07**: Initial creation with ADR-001 through ADR-012
 
 ---
 

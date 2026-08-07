@@ -198,9 +198,9 @@ chore(gradle): update Compose BOM to 2024.02.00
 | Stage | Name | Status | Start Date | End Date | Deliverables |
 |-------|------|--------|------------|----------|--------------|
 | **0** | Foundation | ✅ Completed | 2026-08-07 | 2026-08-07 | Documentation, Gradle structure, package hierarchy |
-| **1** | Data Layer | ✅ Completed | 2026-08-07 | 2026-08-07 | Room entities, DAOs, repositories, domain models, unit tests |
-| **2** | Basic Display | 🟡 In Progress | 2026-08-07 | - | HomeScreen with cards, FAB placeholder, Material3 theme |
-| **3** | Editor Foundation | ⚪ Not Started | - | - | Bottom sheet editor, plain text input/save |
+| **1** | Data Layer | ✅ Completed | 2026-08-07 | 2026-08-07 | Room entities, DAOs, repositories, domain models, Gradle build fix |
+| **2** | Basic Display | ✅ Completed | 2026-08-07 | 2026-08-07 | NoteCard, HomeScreen, FAB, expand/collapse interaction |
+| **3** | Editor Foundation | ✅ Completed | 2026-08-07 | 2026-08-07 | ViewModel, ModalBottomSheet editor, Room integration, EmptyState |
 | **4** | Tag System | ⚪ Not Started | - | - | #tag parsing, blue highlight, tag extraction, database integration |
 | **5** | Tag Filtering | ⚪ Not Started | - | - | Side drawer, tag list, feed filtering by tag |
 | **6** | Multi-Image | ⚪ Not Started | - | - | Image picker, compression, 3-column grid, AttachmentEntity integration |

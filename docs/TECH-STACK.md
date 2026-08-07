@@ -5,21 +5,22 @@
 **Project Type:** Android Native Application  
 **Package Namespace:** `com.witte.lozify`  
 **Minimum SDK:** 26 (Android 8.0 Oreo)  
-**Target SDK:** 34 (Android 14)  
-**Compile SDK:** 34  
+**Target SDK:** 35 (Android 15)  
+**Compile SDK:** 35  
 **JVM Target:** 17
 
 ## 2. Core Technologies
 
 ### 2.1 Programming Language
-- **Kotlin** 1.9.20+
+- **Kotlin** 2.0.20
   - Null safety by default
   - Coroutines for async operations
   - Flow for reactive streams
   - Extension functions for clean APIs
+  - New Compose Compiler Plugin architecture
 
 ### 2.2 UI Framework
-- **Jetpack Compose** (BOM 2024.01.00+)
+- **Jetpack Compose** (BOM 2024.06.00)
   - Declarative UI paradigm
   - Material3 design system
   - State management via ViewModel
