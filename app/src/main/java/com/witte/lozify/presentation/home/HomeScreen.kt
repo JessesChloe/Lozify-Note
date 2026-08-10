@@ -244,6 +244,7 @@ fun HomeScreen(
                     ) {
                         items(uiState.notes, key = { it.id }) { note ->
                             NoteCard(
+                                noteId = note.id,
                                 content = note.content,
                                 timestamp = formatTimestamp(note.createdAt),
                                 isPinned = note.isPinned,
@@ -264,6 +265,10 @@ fun HomeScreen(
                                     scope.launch {
                                         snackbarHostState.showSnackbar("笔记已删除")
                                     }
+                                },
+                                onCheckboxToggle = { noteId, newContent ->
+                                    // Stage 7 Bug Fix: Update note content when checkbox is toggled
+                                    homeViewModel.updateNoteContent(noteId, newContent)
                                 },
                                 onTagClick = { tagName ->
                                     // Stage 4: Filter by clicked tag

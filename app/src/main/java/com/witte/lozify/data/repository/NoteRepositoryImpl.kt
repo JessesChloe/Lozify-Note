@@ -141,13 +141,25 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun hardDeleteNote(noteId: Long) {
+        // Stage 7 Bug Fix: Ensure cascade deletion of all related entities
+        // Even though ForeignKey.CASCADE is configured, explicitly clean up to be safe
+
         // Get note entity first
-        val noteEntity = noteDao.getNoteById(noteId)
-        // Note: In a real implementation, we should also delete physical attachment files
-        // This will be implemented in Stage 6 when we add image handling
-        // For now, CASCADE will handle database cleanup
-        noteEntity.collect { entity ->
-            entity?.let { noteDao.deleteNote(it) }
+        val noteEntity = noteDao.getNoteById(noteId).first()
+
+        noteEntity?.let { entity ->
+            // Delete all tag associations (CASCADE should handle this, but explicit is safer)
+            tagDao.deleteAllTagsForNote(noteId)
+
+            // Delete all attachments (CASCADE should handle this)
+            attachmentDao.deleteAllAttachmentsForNote(noteId)
+
+            // Delete all note relations (CASCADE should handle this)
+            relationDao.deleteAllOutgoingRelations(noteId)
+            relationDao.deleteAllIncomingRelations(noteId)
+
+            // Finally delete the note entity
+            noteDao.deleteNote(entity)
         }
     }
 

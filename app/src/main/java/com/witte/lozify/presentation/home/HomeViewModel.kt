@@ -151,4 +151,23 @@ class HomeViewModel @Inject constructor(
             noteRepository.softDeleteNote(noteId)
         }
     }
+
+    /**
+     * Stage 7 Bug Fix: Update note content (for checkbox toggles).
+     *
+     * @param noteId ID of the note to update
+     * @param newContent New content text
+     */
+    fun updateNoteContent(noteId: Long, newContent: String) {
+        viewModelScope.launch {
+            val note = noteRepository.getNoteById(noteId)
+            kotlinx.coroutines.flow.firstOrNull(note)?.let { currentNote ->
+                val updatedNote = currentNote.copy(
+                    content = newContent,
+                    updatedAt = java.time.Instant.now()
+                )
+                noteRepository.updateNote(updatedNote)
+            }
+        }
+    }
 }

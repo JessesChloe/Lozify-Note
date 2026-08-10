@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -53,7 +55,9 @@ import java.io.File
  * Stage 5: Added isPinned indicator, onEditClick, onDeleteClick, onTogglePinClick callbacks.
  * Stage 6: Added image attachments rendering in 3-column grid below content.
  * Stage 7: Enhanced with full rich text formatting support (bold, underline, highlight, checkbox).
+ * Stage 7 Bug Fix: Added interactive checkbox support - clicking checkbox updates note content.
  *
+ * @param noteId The note ID for checkbox updates
  * @param content The note content text
  * @param timestamp Display timestamp (e.g., "2分钟前")
  * @param isPinned Whether the note is pinned
@@ -62,10 +66,12 @@ import java.io.File
  * @param onTogglePinClick Callback when pin/unpin is clicked
  * @param onEditClick Callback when edit is clicked
  * @param onDeleteClick Callback when delete is clicked
+ * @param onCheckboxToggle Callback when checkbox is toggled (noteId, newContent)
  * @param onTagClick Optional callback when a tag is clicked (tag name without #)
  */
 @Composable
 fun NoteCard(
+    noteId: Long,
     content: String,
     timestamp: String,
     isPinned: Boolean = false,
@@ -74,6 +80,7 @@ fun NoteCard(
     onTogglePinClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
+    onCheckboxToggle: (Long, String) -> Unit,
     onTagClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
@@ -82,10 +89,34 @@ fun NoteCard(
     var showMenu by remember { mutableStateOf(false) }
     val maxCollapsedLines = 5
 
-    // Stage 7: Build AnnotatedString with full rich text formatting
-    val annotatedContent = remember(content) {
+    // Stage 7: Parse content into lines and separate checkbox items from regular content
+    val contentLines = remember(content) {
+        content.split("\n")
+    }
+
+    val checkboxItems = remember(content) {
+        contentLines.mapIndexedNotNull { index, line ->
+            val checkboxMatch = Regex("""^- \[([ x])\] (.+)$""").find(line)
+            checkboxMatch?.let {
+                CheckboxItem(
+                    lineIndex = index,
+                    isChecked = it.groupValues[1] == "x",
+                    text = it.groupValues[2]
+                )
+            }
+        }
+    }
+
+    val nonCheckboxContent = remember(content) {
+        contentLines.filterIndexed { index, line ->
+            !line.matches(Regex("""^- \[([ x])\] .+$"""))
+        }.joinToString("\n")
+    }
+
+    // Build AnnotatedString for non-checkbox content
+    val annotatedContent = remember(nonCheckboxContent) {
         RichTextUtils.buildAnnotatedStringWithFormatting(
-            content = content,
+            content = nonCheckboxContent,
             tagColor = Color(0xFF4C88FF),
             onTagClick = onTagClick
         )
@@ -193,31 +224,73 @@ fun NoteCard(
 
             // Content with tag highlighting and expand/collapse logic
             Column {
-                // Stage 4: Use ClickableText for tag interactions
-                ClickableText(
-                    text = annotatedContent,
-                    style = androidx.compose.ui.text.TextStyle(
-                        fontSize = 16.sp,
-                        color = Color(0xFF333333),
-                        lineHeight = 24.sp
-                    ),
-                    maxLines = if (isExpanded) Int.MAX_VALUE else maxCollapsedLines,
-                    overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
-                    onTextLayout = { textLayoutResult: TextLayoutResult ->
-                        if (!isExpanded && textLayoutResult.hasVisualOverflow) {
-                            showExpandButton = true
-                        }
-                    },
-                    onClick = { offset ->
-                        // Handle tag clicks if callback provided
-                        onTagClick?.let { callback ->
-                            RichTextUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
-                                callback(tagName)
+                // Stage 7 Bug Fix: Render interactive checkboxes
+                checkboxItems.forEach { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Checkbox(
+                            checked = item.isChecked,
+                            onCheckedChange = { isChecked ->
+                                // Toggle checkbox in content
+                                val newContent = contentLines.mapIndexed { index, line ->
+                                    if (index == item.lineIndex) {
+                                        if (isChecked) {
+                                            line.replace("- [ ]", "- [x]")
+                                        } else {
+                                            line.replace("- [x]", "- [ ]")
+                                        }
+                                    } else {
+                                        line
+                                    }
+                                }.joinToString("\n")
+                                onCheckboxToggle(noteId, newContent)
+                            },
+                            colors = CheckboxDefaults.colors(
+                                checkedColor = Color(0xFF00C853),
+                                uncheckedColor = Color(0xFF9CA3AF)
+                            )
+                        )
+                        Text(
+                            text = item.text,
+                            fontSize = 16.sp,
+                            color = Color(0xFF333333),
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                // Render non-checkbox content with formatting
+                if (nonCheckboxContent.isNotBlank()) {
+                    ClickableText(
+                        text = annotatedContent,
+                        style = androidx.compose.ui.text.TextStyle(
+                            fontSize = 16.sp,
+                            color = Color(0xFF333333),
+                            lineHeight = 24.sp
+                        ),
+                        maxLines = if (isExpanded) Int.MAX_VALUE else maxCollapsedLines,
+                        overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
+                        onTextLayout = { textLayoutResult: TextLayoutResult ->
+                            if (!isExpanded && textLayoutResult.hasVisualOverflow) {
+                                showExpandButton = true
                             }
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        },
+                        onClick = { offset ->
+                            // Handle tag clicks if callback provided
+                            onTagClick?.let { callback ->
+                                RichTextUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
+                                    callback(tagName)
+                                }
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 // Show "展开" link only when content has overflow and not expanded
                 if (!isExpanded && showExpandButton) {
@@ -270,3 +343,16 @@ fun NoteCard(
         }
     }
 }
+
+/**
+ * Data class representing a checkbox item in note content.
+ *
+ * @param lineIndex Index of the line in original content
+ * @param isChecked Whether the checkbox is checked
+ * @param text Text content after the checkbox marker
+ */
+private data class CheckboxItem(
+    val lineIndex: Int,
+    val isChecked: Boolean,
+    val text: String
+)

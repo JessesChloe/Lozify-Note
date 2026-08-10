@@ -98,23 +98,20 @@ fun NoteEditorBottomSheet(
     }
 
     // Stage 7: Helper function to apply formatting with bounds checking
+    // Bug Fix: Removed overly aggressive validation that blocked multiline formatting
     fun applyFormatting(formatType: RichTextUtils.FormatType) {
         val currentText = textFieldValue.text
         val selection = textFieldValue.selection
 
-        // Validate selection bounds
-        val safeStart = selection.start.coerceIn(0, currentText.length)
-        val safeEnd = selection.end.coerceIn(0, currentText.length)
-
-        if (safeStart > safeEnd) {
-            // Invalid selection, abort
+        // Basic bounds validation only
+        if (selection.start < 0 || selection.end > currentText.length || selection.start > selection.end) {
             return
         }
 
         val newText = RichTextUtils.insertFormatting(
             content = currentText,
-            selectionStart = safeStart,
-            selectionEnd = safeEnd,
+            selectionStart = selection.start,
+            selectionEnd = selection.end,
             formatType = formatType
         )
 
@@ -127,12 +124,12 @@ fun NoteEditorBottomSheet(
             RichTextUtils.FormatType.CHECKBOX_CHECKED -> 6 // "- [x] "
         }
 
-        val newCursorPos = if (safeStart == safeEnd) {
+        val newCursorPos = if (selection.start == selection.end) {
             // No selection: place cursor between markers
-            safeStart + markerLength
+            selection.start + markerLength
         } else {
             // Has selection: place cursor after closing marker
-            safeEnd + markerLength * 2
+            selection.end + markerLength * 2
         }
 
         // Ensure cursor position is within bounds
