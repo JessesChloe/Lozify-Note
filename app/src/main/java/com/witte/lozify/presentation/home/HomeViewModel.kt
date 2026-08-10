@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -160,8 +161,8 @@ class HomeViewModel @Inject constructor(
      */
     fun updateNoteContent(noteId: Long, newContent: String) {
         viewModelScope.launch {
-            val note = noteRepository.getNoteById(noteId)
-            kotlinx.coroutines.flow.firstOrNull(note)?.let { currentNote ->
+            val noteFlow = noteRepository.getNoteById(noteId)
+            noteFlow.firstOrNull()?.let { currentNote ->
                 val updatedNote = currentNote.copy(
                     content = newContent,
                     updatedAt = java.time.Instant.now()

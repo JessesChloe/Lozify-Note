@@ -47,6 +47,8 @@ public final class NoteRelationDao_Impl implements NoteRelationDao {
 
   private final SharedSQLiteStatement __preparedStmtOfDeleteAllOutgoingRelations;
 
+  private final SharedSQLiteStatement __preparedStmtOfDeleteAllIncomingRelations;
+
   private final SharedSQLiteStatement __preparedStmtOfDeleteRelationByNoteIds;
 
   public NoteRelationDao_Impl(@NonNull final RoomDatabase __db) {
@@ -91,6 +93,14 @@ public final class NoteRelationDao_Impl implements NoteRelationDao {
       @NonNull
       public String createQuery() {
         final String _query = "DELETE FROM note_relations WHERE from_note_id = ?";
+        return _query;
+      }
+    };
+    this.__preparedStmtOfDeleteAllIncomingRelations = new SharedSQLiteStatement(__db) {
+      @Override
+      @NonNull
+      public String createQuery() {
+        final String _query = "DELETE FROM note_relations WHERE to_note_id = ?";
         return _query;
       }
     };
@@ -182,6 +192,32 @@ public final class NoteRelationDao_Impl implements NoteRelationDao {
           }
         } finally {
           __preparedStmtOfDeleteAllOutgoingRelations.release(_stmt);
+        }
+      }
+    }, $completion);
+  }
+
+  @Override
+  public Object deleteAllIncomingRelations(final long noteId,
+      final Continuation<? super Unit> $completion) {
+    return CoroutinesRoom.execute(__db, true, new Callable<Unit>() {
+      @Override
+      @NonNull
+      public Unit call() throws Exception {
+        final SupportSQLiteStatement _stmt = __preparedStmtOfDeleteAllIncomingRelations.acquire();
+        int _argIndex = 1;
+        _stmt.bindLong(_argIndex, noteId);
+        try {
+          __db.beginTransaction();
+          try {
+            _stmt.executeUpdateDelete();
+            __db.setTransactionSuccessful();
+            return Unit.INSTANCE;
+          } finally {
+            __db.endTransaction();
+          }
+        } finally {
+          __preparedStmtOfDeleteAllIncomingRelations.release(_stmt);
         }
       }
     }, $completion);

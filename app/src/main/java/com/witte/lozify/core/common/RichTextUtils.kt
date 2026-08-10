@@ -72,18 +72,18 @@ object RichTextUtils {
             // Parse all formatting markers and build clean text
             val allMarkers = mutableListOf<FormatMarker>()
 
-            // Find bold markers
-            Regex("""\*\*(.+?)\*\*""").findAll(processedContent).forEach { match ->
+            // Find bold markers ((?s) enables DOTALL mode - allows . to match newlines)
+            Regex("""\*\*(?s)(.+?)\*\*""").findAll(processedContent).forEach { match ->
                 allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.BOLD, match.groupValues[1]))
             }
 
-            // Find underline markers
-            Regex("""__(.+?)__""").findAll(processedContent).forEach { match ->
+            // Find underline markers ((?s) enables DOTALL mode)
+            Regex("""__(?s)(.+?)__""").findAll(processedContent).forEach { match ->
                 allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.UNDERLINE, match.groupValues[1]))
             }
 
-            // Find highlight markers
-            Regex("""==(.+?)==""").findAll(processedContent).forEach { match ->
+            // Find highlight markers ((?s) enables DOTALL mode)
+            Regex("""==(?s)(.+?)==""").findAll(processedContent).forEach { match ->
                 allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.HIGHLIGHT, match.groupValues[1]))
             }
 
@@ -252,9 +252,9 @@ object RichTextUtils {
      */
     fun stripFormatting(content: String): String {
         return content
-            .replace(Regex("""\*\*(.+?)\*\*"""), "$1")  // Bold
-            .replace(Regex("""__(.+?)__"""), "$1")      // Underline
-            .replace(Regex("""==(.+?)=="""), "$1")      // Highlight
+            .replace(Regex("""\*\*(?s)(.+?)\*\*"""), "$1")  // Bold (DOTALL mode)
+            .replace(Regex("""__(?s)(.+?)__"""), "$1")      // Underline (DOTALL mode)
+            .replace(Regex("""==(?s)(.+?)=="""), "$1")      // Highlight (DOTALL mode)
             .replace(Regex("""^- \[([ x])\] """, RegexOption.MULTILINE), "") // Checkbox
     }
 
@@ -265,9 +265,9 @@ object RichTextUtils {
      */
     fun countFormatting(content: String): Map<FormatType, Int> {
         return mapOf(
-            FormatType.BOLD to Regex("""\*\*(.+?)\*\*""").findAll(content).count(),
-            FormatType.UNDERLINE to Regex("""__(.+?)__""").findAll(content).count(),
-            FormatType.HIGHLIGHT to Regex("""==(.+?)==""").findAll(content).count(),
+            FormatType.BOLD to Regex("""\*\*(?s)(.+?)\*\*""").findAll(content).count(),
+            FormatType.UNDERLINE to Regex("""__(?s)(.+?)__""").findAll(content).count(),
+            FormatType.HIGHLIGHT to Regex("""==(?s)(.+?)==""").findAll(content).count(),
             FormatType.CHECKBOX_UNCHECKED to Regex("""^- \[ \]""", RegexOption.MULTILINE).findAll(content).count(),
             FormatType.CHECKBOX_CHECKED to Regex("""^- \[x\]""", RegexOption.MULTILINE).findAll(content).count()
         )

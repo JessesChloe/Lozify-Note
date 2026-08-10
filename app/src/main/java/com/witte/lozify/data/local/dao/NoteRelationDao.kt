@@ -80,6 +80,13 @@ interface NoteRelationDao {
     suspend fun deleteAllOutgoingRelations(noteId: Long)
 
     /**
+     * Delete all incoming relations to a note (backlinks).
+     * Stage 7 Bug Fix: Used in cascade deletion when hard-deleting a note.
+     */
+    @Query("DELETE FROM note_relations WHERE to_note_id = :noteId")
+    suspend fun deleteAllIncomingRelations(noteId: Long)
+
+    /**
      * Delete a specific relation by note IDs.
      */
     @Query("DELETE FROM note_relations WHERE from_note_id = :fromNoteId AND to_note_id = :toNoteId")
