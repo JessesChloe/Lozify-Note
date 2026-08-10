@@ -35,7 +35,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextLayoutResult
 import coil.compose.AsyncImage
-import com.witte.lozify.core.common.TagUtils
+import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Attachment
 import java.io.File
 
@@ -49,9 +49,10 @@ import java.io.File
  * - Auto-collapse for content exceeding 5 lines
  * - Blue "展开" clickable text to expand content
  *
- * Stage 4: Now supports #tag blue highlighting using TagUtils.
+ * Stage 4: Now supports #tag blue highlighting using RichTextUtils.
  * Stage 5: Added isPinned indicator, onEditClick, onDeleteClick, onTogglePinClick callbacks.
  * Stage 6: Added image attachments rendering in 3-column grid below content.
+ * Stage 7: Enhanced with full rich text formatting support (bold, underline, highlight, checkbox).
  *
  * @param content The note content text
  * @param timestamp Display timestamp (e.g., "2分钟前")
@@ -81,9 +82,9 @@ fun NoteCard(
     var showMenu by remember { mutableStateOf(false) }
     val maxCollapsedLines = 5
 
-    // Stage 4: Build AnnotatedString with blue-highlighted tags
+    // Stage 7: Build AnnotatedString with full rich text formatting
     val annotatedContent = remember(content) {
-        TagUtils.buildAnnotatedStringWithTags(
+        RichTextUtils.buildAnnotatedStringWithFormatting(
             content = content,
             tagColor = Color(0xFF4C88FF),
             onTagClick = onTagClick
@@ -210,7 +211,7 @@ fun NoteCard(
                     onClick = { offset ->
                         // Handle tag clicks if callback provided
                         onTagClick?.let { callback ->
-                            TagUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
+                            RichTextUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
                                 callback(tagName)
                             }
                         }
