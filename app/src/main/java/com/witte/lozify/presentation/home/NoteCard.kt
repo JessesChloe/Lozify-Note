@@ -6,10 +6,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -23,13 +27,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextLayoutResult
+import coil.compose.AsyncImage
 import com.witte.lozify.core.common.TagUtils
+import com.witte.lozify.domain.model.Attachment
+import java.io.File
 
 /**
  * NoteCard component for displaying a single note with expand/collapse functionality.
@@ -37,27 +45,40 @@ import com.witte.lozify.core.common.TagUtils
  * Features:
  * - White background with 12dp rounded corners
  * - Timestamp display in gray
- * - More options menu icon
+ * - More options dropdown menu (pin/edit/delete)
  * - Auto-collapse for content exceeding 5 lines
  * - Blue "展开" clickable text to expand content
  *
  * Stage 4: Now supports #tag blue highlighting using TagUtils.
+ * Stage 5: Added isPinned indicator, onEditClick, onDeleteClick, onTogglePinClick callbacks.
+ * Stage 6: Added image attachments rendering in 3-column grid below content.
  *
  * @param content The note content text
  * @param timestamp Display timestamp (e.g., "2分钟前")
- * @param onMoreClick Callback when more options icon is clicked
+ * @param isPinned Whether the note is pinned
+ * @param attachments List of image attachments to display
+ * @param filesDir Application files directory for resolving image paths
+ * @param onTogglePinClick Callback when pin/unpin is clicked
+ * @param onEditClick Callback when edit is clicked
+ * @param onDeleteClick Callback when delete is clicked
  * @param onTagClick Optional callback when a tag is clicked (tag name without #)
  */
 @Composable
 fun NoteCard(
     content: String,
     timestamp: String,
-    onMoreClick: () -> Unit,
+    isPinned: Boolean = false,
+    attachments: List<Attachment> = emptyList(),
+    filesDir: File? = null,
+    onTogglePinClick: () -> Unit,
+    onEditClick: () -> Unit,
+    onDeleteClick: () -> Unit,
     onTagClick: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var showExpandButton by remember { mutableStateOf(false) }
+    var showMenu by remember { mutableStateOf(false) }
     val maxCollapsedLines = 5
 
     // Stage 4: Build AnnotatedString with blue-highlighted tags
@@ -79,27 +100,93 @@ fun NoteCard(
         Column(
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            // Header: Timestamp + More Icon
+            // Header: Pinned indicator + Timestamp + More Icon with Menu
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = timestamp,
-                    fontSize = 12.sp,
-                    color = Color(0xFF999999)
-                )
-
-                IconButton(
-                    onClick = onMoreClick,
-                    modifier = Modifier.padding(0.dp)
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    Icon(
-                        painter = painterResource(android.R.drawable.ic_menu_more),
-                        contentDescription = "更多操作",
-                        tint = Color(0xFF999999)
+                    // Stage 5: Pin indicator
+                    if (isPinned) {
+                        Text(
+                            text = "📌",
+                            fontSize = 12.sp
+                        )
+                    }
+                    Text(
+                        text = timestamp,
+                        fontSize = 12.sp,
+                        color = Color(0xFF999999)
                     )
+                }
+
+                Box {
+                    IconButton(
+                        onClick = { showMenu = true },
+                        modifier = Modifier.padding(0.dp)
+                    ) {
+                        Icon(
+                            painter = painterResource(android.R.drawable.ic_menu_more),
+                            contentDescription = "更多操作",
+                            tint = Color(0xFF999999)
+                        )
+                    }
+
+                    // Stage 5: Dropdown menu for card operations
+                    DropdownMenu(
+                        expanded = showMenu,
+                        onDismissRequest = { showMenu = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = if (isPinned) "📌" else "📍")
+                                    Text(text = if (isPinned) "取消置顶" else "置顶")
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onTogglePinClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "✏️")
+                                    Text(text = "编辑")
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onEditClick()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(text = "🗑️")
+                                    Text(text = "删除")
+                                }
+                            },
+                            onClick = {
+                                showMenu = false
+                                onDeleteClick()
+                            }
+                        )
+                    }
                 }
             }
 
@@ -142,6 +229,41 @@ fun NoteCard(
                             .padding(top = 4.dp)
                             .clickable { isExpanded = true }
                     )
+                }
+            }
+
+            // Stage 6: Image attachments in 3-column grid (non-scrolling)
+            if (attachments.isNotEmpty() && filesDir != null) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp)
+                ) {
+                    // Chunk attachments into rows of 3
+                    attachments.chunked(3).forEach { rowAttachments ->
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            rowAttachments.forEach { attachment ->
+                                val imageFile = File(filesDir, attachment.filePath)
+                                AsyncImage(
+                                    model = imageFile,
+                                    contentDescription = "附件图片",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier
+                                        .weight(1f)
+                                        .aspectRatio(1f)
+                                        .clip(RoundedCornerShape(8.dp))
+                                )
+                            }
+                            // Fill empty slots with spacers to maintain grid alignment
+                            repeat(3 - rowAttachments.size) {
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+                        }
+                    }
                 }
             }
         }

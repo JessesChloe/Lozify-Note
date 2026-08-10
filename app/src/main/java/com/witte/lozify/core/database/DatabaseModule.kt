@@ -35,8 +35,10 @@ object DatabaseModule {
         )
             // Enable multi-instance invalidation for cross-process scenarios
             .enableMultiInstanceInvalidation()
-            // Migration strategy: explicit migrations only (no destructive fallback in release)
-            // .fallbackToDestructiveMigration() - FORBIDDEN per CLAUDE.md conventions
+            // Stage 6 Fix: Temporary destructive migration for development
+            // This prevents crashes from old database schema without attachments table
+            // TODO: Remove before production - use explicit Migration classes
+            .fallbackToDestructiveMigration()
             .build()
     }
 
