@@ -80,13 +80,15 @@ class TagRepositoryImpl @Inject constructor(
     }
 
     override suspend fun setTagsForNote(noteId: Long, tagIds: List<Long>) {
+        // Stage 5 Bug Fix: Remove manual increment/decrement
+        // TagDao.getAllTags() now uses real-time COUNT(*) from cross-ref table
+
         // Remove all existing associations
         tagDao.deleteAllTagsForNote(noteId)
 
         // Add new associations
         tagIds.forEach { tagId ->
             tagDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId, tagId))
-            tagDao.incrementUsageCount(tagId)
         }
     }
 

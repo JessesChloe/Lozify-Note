@@ -31,12 +31,15 @@ class HomeViewModel @Inject constructor(
 
     /**
      * UI state representing the home screen data.
+     *
+     * Stage 5: Added searchQuery for real-time search.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
         val allTags: List<Tag> = emptyList(),
         val selectedTag: Tag? = null,
-        val isLoading: Boolean = false
+        val isLoading: Boolean = false,
+        val searchQuery: String = ""
     )
 
     /**
@@ -45,21 +48,28 @@ class HomeViewModel @Inject constructor(
     private val _selectedTagId = MutableStateFlow<Long?>(null)
 
     /**
-     * Reactive state flow combining notes, tags, and filter state.
-     * Automatically updates UI when database changes or filter changes.
+     * Stage 5: Search query for real-time content filtering.
+     */
+    private val _searchQuery = MutableStateFlow("")
+
+    /**
+     * Reactive state flow combining notes, tags, filter state, and search query.
+     * Automatically updates UI when database changes, filter changes, or search query changes.
      *
      * Stage 4 Bug Fix: Added content-based fallback matching to ensure tags
      * are always detected even if database cross-ref is missing.
+     * Stage 5: Added real-time search filtering.
      */
     val uiState: StateFlow<HomeUiState> = combine(
         noteRepository.getAllNotes(),
         tagRepository.getAllTags(),
-        _selectedTagId
-    ) { allNotes, allTags, selectedTagId ->
-        val filteredNotes = if (selectedTagId == null) {
+        _selectedTagId,
+        _searchQuery
+    ) { allNotes, allTags, selectedTagId, searchQuery ->
+        // Stage 4: Filter by tag
+        var filteredNotes = if (selectedTagId == null) {
             allNotes
         } else {
-            // Stage 4: Filter notes by selected tag with DUAL INSURANCE
             val selectedTag = allTags.find { it.id == selectedTagId }
             allNotes.filter { note ->
                 // Primary: Check if note.tags contains the selected tag ID
@@ -74,11 +84,19 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+        // Stage 5: Further filter by search query
+        if (searchQuery.isNotBlank()) {
+            filteredNotes = filteredNotes.filter { note ->
+                note.content.contains(searchQuery, ignoreCase = true)
+            }
+        }
+
         HomeUiState(
             notes = filteredNotes,
             allTags = allTags,
             selectedTag = allTags.find { it.id == selectedTagId },
-            isLoading = false
+            isLoading = false,
+            searchQuery = searchQuery
         )
     }.stateIn(
         scope = viewModelScope,
@@ -100,6 +118,20 @@ class HomeViewModel @Inject constructor(
      */
     fun clearTagFilter() {
         _selectedTagId.value = null
+    }
+
+    /**
+     * Stage 5: Update search query for real-time filtering.
+     */
+    fun updateSearchQuery(query: String) {
+        _searchQuery.value = query
+    }
+
+    /**
+     * Stage 5: Clear search query.
+     */
+    fun clearSearch() {
+        _searchQuery.value = ""
     }
 
     /**

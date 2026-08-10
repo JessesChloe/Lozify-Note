@@ -1,6 +1,7 @@
 package com.witte.lozify.presentation.home;
 
 import com.witte.lozify.domain.repository.NoteRepository;
+import com.witte.lozify.domain.repository.TagRepository;
 import dagger.internal.DaggerGenerated;
 import dagger.internal.Factory;
 import dagger.internal.QualifierMetadata;
@@ -25,20 +26,26 @@ import javax.inject.Provider;
 public final class HomeViewModel_Factory implements Factory<HomeViewModel> {
   private final Provider<NoteRepository> noteRepositoryProvider;
 
-  public HomeViewModel_Factory(Provider<NoteRepository> noteRepositoryProvider) {
+  private final Provider<TagRepository> tagRepositoryProvider;
+
+  public HomeViewModel_Factory(Provider<NoteRepository> noteRepositoryProvider,
+      Provider<TagRepository> tagRepositoryProvider) {
     this.noteRepositoryProvider = noteRepositoryProvider;
+    this.tagRepositoryProvider = tagRepositoryProvider;
   }
 
   @Override
   public HomeViewModel get() {
-    return newInstance(noteRepositoryProvider.get());
+    return newInstance(noteRepositoryProvider.get(), tagRepositoryProvider.get());
   }
 
-  public static HomeViewModel_Factory create(Provider<NoteRepository> noteRepositoryProvider) {
-    return new HomeViewModel_Factory(noteRepositoryProvider);
+  public static HomeViewModel_Factory create(Provider<NoteRepository> noteRepositoryProvider,
+      Provider<TagRepository> tagRepositoryProvider) {
+    return new HomeViewModel_Factory(noteRepositoryProvider, tagRepositoryProvider);
   }
 
-  public static HomeViewModel newInstance(NoteRepository noteRepository) {
-    return new HomeViewModel(noteRepository);
+  public static HomeViewModel newInstance(NoteRepository noteRepository,
+      TagRepository tagRepository) {
+    return new HomeViewModel(noteRepository, tagRepository);
   }
 }

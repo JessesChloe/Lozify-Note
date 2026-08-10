@@ -342,18 +342,30 @@ public final class TagDao_Impl implements TagDao {
 
   @Override
   public Flow<List<TagEntity>> getAllTags() {
-    final String _sql = "SELECT * FROM tags ORDER BY usage_count DESC, name ASC";
+    final String _sql = "\n"
+            + "        SELECT\n"
+            + "            tags.id,\n"
+            + "            tags.name,\n"
+            + "            tags.created_at,\n"
+            + "            COUNT(DISTINCT note_tag_cross_ref.note_id) as usage_count\n"
+            + "        FROM tags\n"
+            + "        LEFT JOIN note_tag_cross_ref ON tags.id = note_tag_cross_ref.tag_id\n"
+            + "        LEFT JOIN notes ON note_tag_cross_ref.note_id = notes.id AND notes.is_deleted = 0\n"
+            + "        GROUP BY tags.id\n"
+            + "        ORDER BY usage_count DESC, tags.name ASC\n"
+            + "    ";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
-    return CoroutinesRoom.createFlow(__db, false, new String[] {"tags"}, new Callable<List<TagEntity>>() {
+    return CoroutinesRoom.createFlow(__db, false, new String[] {"tags", "note_tag_cross_ref",
+        "notes"}, new Callable<List<TagEntity>>() {
       @Override
       @NonNull
       public List<TagEntity> call() throws Exception {
         final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
         try {
-          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
-          final int _cursorIndexOfName = CursorUtil.getColumnIndexOrThrow(_cursor, "name");
-          final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "created_at");
-          final int _cursorIndexOfUsageCount = CursorUtil.getColumnIndexOrThrow(_cursor, "usage_count");
+          final int _cursorIndexOfId = 0;
+          final int _cursorIndexOfName = 1;
+          final int _cursorIndexOfCreatedAt = 2;
+          final int _cursorIndexOfUsageCount = 3;
           final List<TagEntity> _result = new ArrayList<TagEntity>(_cursor.getCount());
           while (_cursor.moveToNext()) {
             final TagEntity _item;

@@ -4,7 +4,7 @@
             "outputFile": "com.witte.lozify.app-mergeDebugResources-60:/values-uk/values-uk.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\a1d603147041fb00f29f9822576c0a00\\transformed\\material3-release\\res\\values-uk\\values-uk.xml",
+                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\6c662a376972f77c937d4bad217a8449\\transformed\\material3-release\\res\\values-uk\\values-uk.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -21,24 +21,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\11c3375850afb790508214491c44605d\\transformed\\core-1.13.1\\res\\values-uk\\values-uk.xml",
-                    "from": {
-                        "startLines": "2,3,4,5,6,7,8,9",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "55,155,257,358,459,564,669,782",
-                        "endColumns": "99,101,100,100,104,104,112,100",
-                        "endOffsets": "150,252,353,454,559,664,777,878"
-                    },
-                    "to": {
-                        "startLines": "2,3,4,5,6,7,8,79",
-                        "startColumns": "4,4,4,4,4,4,4,4",
-                        "startOffsets": "105,205,307,408,509,614,719,8204",
-                        "endColumns": "99,101,100,100,104,104,112,100",
-                        "endOffsets": "200,302,403,504,609,714,827,8300"
-                    }
-                },
-                {
-                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\d5e47381dd4d6f8eff3063fc3c9048e5\\transformed\\ui-release\\res\\values-uk\\values-uk.xml",
+                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\eb68107b542f367adb71510c9a10a715\\transformed\\ui-release\\res\\values-uk\\values-uk.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4,4",
@@ -55,7 +38,7 @@
                     }
                 },
                 {
-                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\e1772c5bd4462868a256694741cde39d\\transformed\\foundation-release\\res\\values-uk\\values-uk.xml",
+                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\6b2c58896e47b025044daab427c1d832\\transformed\\foundation-release\\res\\values-uk\\values-uk.xml",
                     "from": {
                         "startLines": "2,3",
                         "startColumns": "4,4",
@@ -69,6 +52,23 @@
                         "startOffsets": "8578,8675",
                         "endColumns": "96,99",
                         "endOffsets": "8670,8770"
+                    }
+                },
+                {
+                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\8744a36ee8a96610c828fc6476d35db0\\transformed\\core-1.13.1\\res\\values-uk\\values-uk.xml",
+                    "from": {
+                        "startLines": "2,3,4,5,6,7,8,9",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "55,155,257,358,459,564,669,782",
+                        "endColumns": "99,101,100,100,104,104,112,100",
+                        "endOffsets": "150,252,353,454,559,664,777,878"
+                    },
+                    "to": {
+                        "startLines": "2,3,4,5,6,7,8,79",
+                        "startColumns": "4,4,4,4,4,4,4,4",
+                        "startOffsets": "105,205,307,408,509,614,719,8204",
+                        "endColumns": "99,101,100,100,104,104,112,100",
+                        "endOffsets": "200,302,403,504,609,714,827,8300"
                     }
                 }
             ]

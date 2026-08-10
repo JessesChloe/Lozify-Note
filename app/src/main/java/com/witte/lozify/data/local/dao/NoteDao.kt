@@ -8,6 +8,7 @@ import androidx.room.Query
 import androidx.room.Transaction
 import androidx.room.Update
 import com.witte.lozify.data.local.entity.NoteEntity
+import com.witte.lozify.data.local.model.NoteWithTagsAndAttachments
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -31,6 +32,18 @@ interface NoteDao {
     fun getAllNotes(): Flow<List<NoteEntity>>
 
     /**
+     * Stage 6 Fix: Get all notes with tags and attachments using Room @Relation.
+     * This replaces the fragile combine(List<Flow>) pattern.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM notes
+        WHERE is_deleted = 0
+        ORDER BY is_pinned DESC, created_at DESC
+    """)
+    fun getAllNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
+
+    /**
      * Get a single note by ID.
      */
     @Query("SELECT * FROM notes WHERE id = :noteId")
@@ -47,6 +60,17 @@ interface NoteDao {
     fun searchNotes(searchQuery: String): Flow<List<NoteEntity>>
 
     /**
+     * Stage 6 Fix: Search notes with tags and attachments using Room @Relation.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM notes
+        WHERE is_deleted = 0 AND content LIKE '%' || :searchQuery || '%'
+        ORDER BY is_pinned DESC, created_at DESC
+    """)
+    fun searchNotesWithRelations(searchQuery: String): Flow<List<NoteWithTagsAndAttachments>>
+
+    /**
      * Get all pinned notes.
      */
     @Query("""
@@ -57,10 +81,28 @@ interface NoteDao {
     fun getPinnedNotes(): Flow<List<NoteEntity>>
 
     /**
+     * Stage 6 Fix: Get pinned notes with tags and attachments using Room @Relation.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM notes
+        WHERE is_deleted = 0 AND is_pinned = 1
+        ORDER BY created_at DESC
+    """)
+    fun getPinnedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
+
+    /**
      * Get all deleted notes (for trash view in future).
      */
     @Query("SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC")
     fun getDeletedNotes(): Flow<List<NoteEntity>>
+
+    /**
+     * Stage 6 Fix: Get deleted notes with tags and attachments using Room @Relation.
+     */
+    @Transaction
+    @Query("SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC")
+    fun getDeletedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
 
     /**
      * Insert a new note. Returns the generated ID.
@@ -107,6 +149,18 @@ interface NoteDao {
         ORDER BY notes.is_pinned DESC, notes.created_at DESC
     """)
     fun getNotesByTag(tagId: Long): Flow<List<NoteEntity>>
+
+    /**
+     * Stage 6 Fix: Get notes by tag with tags and attachments using Room @Relation.
+     */
+    @Transaction
+    @Query("""
+        SELECT notes.* FROM notes
+        INNER JOIN note_tag_cross_ref ON notes.id = note_tag_cross_ref.note_id
+        WHERE note_tag_cross_ref.tag_id = :tagId AND notes.is_deleted = 0
+        ORDER BY notes.is_pinned DESC, notes.created_at DESC
+    """)
+    fun getNotesByTagWithRelations(tagId: Long): Flow<List<NoteWithTagsAndAttachments>>
 
     /**
      * Get total count of active notes (for statistics).

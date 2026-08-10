@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -21,6 +24,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -51,8 +56,9 @@ import java.time.Instant
  *
  * Stage 3: Real database integration with Room + ViewModel.
  * Stage 4: Added tag filtering with horizontal scrollable tag bar.
+ * Stage 5: Added real-time search, pin/edit/delete operations.
  * Displays empty state when no notes, otherwise shows note list.
- * Includes editor bottom sheet for creating new notes.
+ * Includes editor bottom sheet for creating/editing notes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,8 +71,13 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
+    // Stage 5: Search state
+    var isSearchActive by remember { mutableStateOf(false) }
+
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
+    var editingNoteId by remember { mutableStateOf<Long?>(null) }
+    var editingNoteContent by remember { mutableStateOf<String?>(null) }
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Listen for editor events
@@ -92,16 +103,39 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    Text(
-                        text = "Lozify",
-                        fontWeight = FontWeight.Medium,
-                        fontSize = 20.sp
-                    )
+                    // Stage 5: Toggle between title and search input
+                    if (isSearchActive) {
+                        TextField(
+                            value = uiState.searchQuery,
+                            onValueChange = { homeViewModel.updateSearchQuery(it) },
+                            placeholder = {
+                                Text(
+                                    text = "搜索笔记内容...",
+                                    fontSize = 16.sp,
+                                    color = Color(0xFF999999)
+                                )
+                            },
+                            singleLine = true,
+                            colors = TextFieldDefaults.colors(
+                                focusedContainerColor = Color.Transparent,
+                                unfocusedContainerColor = Color.Transparent,
+                                focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    } else {
+                        Text(
+                            text = "Lozify",
+                            fontWeight = FontWeight.Medium,
+                            fontSize = 20.sp
+                        )
+                    }
                 },
                 navigationIcon = {
                     IconButton(onClick = {
                         scope.launch {
-                            snackbarHostState.showSnackbar("侧边栏 (Stage 5 实现)")
+                            snackbarHostState.showSnackbar("侧边栏 (Stage 6+ 实现)")
                         }
                     }) {
                         Icon(
@@ -111,14 +145,16 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    // Stage 5: Search toggle button
                     IconButton(onClick = {
-                        scope.launch {
-                            snackbarHostState.showSnackbar("搜索功能 (Post-MVP)")
+                        isSearchActive = !isSearchActive
+                        if (!isSearchActive) {
+                            homeViewModel.clearSearch()
                         }
                     }) {
                         Icon(
-                            painter = painterResource(android.R.drawable.ic_menu_search),
-                            contentDescription = "搜索"
+                            imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
+                            contentDescription = if (isSearchActive) "关闭搜索" else "搜索"
                         )
                     }
                 },
@@ -133,6 +169,8 @@ fun HomeScreen(
         floatingActionButton = {
             LozifyFloatingActionButton(
                 onClick = {
+                    editingNoteId = null
+                    editingNoteContent = null
                     showEditor = true
                 }
             )
@@ -208,9 +246,23 @@ fun HomeScreen(
                             NoteCard(
                                 content = note.content,
                                 timestamp = formatTimestamp(note.createdAt),
-                                onMoreClick = {
+                                isPinned = note.isPinned,
+                                attachments = note.attachments,
+                                filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+                                onTogglePinClick = {
+                                    homeViewModel.togglePinStatus(note.id, note.isPinned)
+                                },
+                                onEditClick = {
+                                    // Stage 5: Open editor with existing content
+                                    editingNoteId = note.id
+                                    editingNoteContent = note.content
+                                    showEditor = true
+                                },
+                                onDeleteClick = {
+                                    // Stage 5: Delete note with confirmation
+                                    homeViewModel.deleteNote(note.id)
                                     scope.launch {
-                                        snackbarHostState.showSnackbar("更多操作 (Stage 9 实现)")
+                                        snackbarHostState.showSnackbar("笔记已删除")
                                     }
                                 },
                                 onTagClick = { tagName ->
@@ -232,10 +284,15 @@ fun HomeScreen(
             sheetState = editorSheetState,
             onDismiss = {
                 showEditor = false
+                editingNoteId = null
+                editingNoteContent = null
             },
-            onSave = { content ->
-                editorViewModel.saveNote(content)
-            }
+            onSave = { content, imageUris ->
+                // Stage 5: Support both create and update
+                // Stage 6: Pass image URIs to ViewModel
+                editorViewModel.saveNote(content, imageUris, editingNoteId)
+            },
+            initialContent = editingNoteContent
         )
     }
 }

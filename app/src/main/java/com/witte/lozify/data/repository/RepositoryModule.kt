@@ -2,6 +2,7 @@ package com.witte.lozify.data.repository
 
 import com.witte.lozify.data.local.dao.NoteDao
 import com.witte.lozify.data.local.dao.TagDao
+import com.witte.lozify.domain.repository.AttachmentRepository
 import com.witte.lozify.domain.repository.NoteRepository
 import com.witte.lozify.domain.repository.TagRepository
 import dagger.Binds
@@ -15,6 +16,8 @@ import javax.inject.Singleton
  *
  * This module tells Hilt which implementation to use when a repository
  * interface is requested for dependency injection.
+ *
+ * Stage 6: Added AttachmentRepository binding.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -31,4 +34,10 @@ abstract class RepositoryModule {
     abstract fun bindTagRepository(
         tagRepositoryImpl: TagRepositoryImpl
     ): TagRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindAttachmentRepository(
+        attachmentRepositoryImpl: AttachmentRepositoryImpl
+    ): AttachmentRepository
 }

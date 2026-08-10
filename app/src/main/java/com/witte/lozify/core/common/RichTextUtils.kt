@@ -34,17 +34,18 @@ object RichTextUtils {
     /**
      * Build AnnotatedString with full rich text formatting support.
      *
+     * Bug Fix (Stage 7): Strip Markdown markers from rendered text while preserving styling.
+     *
      * Processing Order:
-     * 1. Checkboxes (- [ ] / - [x])
-     * 2. Bold (**text**)
-     * 3. Underline (__text__)
-     * 4. Highlight (==text==)
-     * 5. Tags (#tagname)
+     * 1. Checkboxes (- [ ] / - [x]) → Replace with Unicode
+     * 2. Strip markers: **, __, == → Build clean text
+     * 3. Apply styles to cleaned text positions
+     * 4. Tags (#tagname) → Apply color styling
      *
      * @param content Raw text with Markdown markers
      * @param tagColor Color for #tags (default blue)
      * @param onTagClick Callback when tag is clicked (receives tag name without #)
-     * @return AnnotatedString with all formatting applied
+     * @return AnnotatedString with all formatting applied, markers removed
      */
     fun buildAnnotatedStringWithFormatting(
         content: String,
@@ -55,8 +56,6 @@ object RichTextUtils {
             var processedContent = content
 
             // Step 1: Replace checkbox markers with Unicode symbols
-            // - [ ] → ☐ (unchecked)
-            // - [x] → ☑ (checked)
             val checkboxPattern = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
             processedContent = processedContent.replace(checkboxPattern) { matchResult ->
                 when (matchResult.groupValues[1]) {
@@ -65,54 +64,76 @@ object RichTextUtils {
                 }
             }
 
-            append(processedContent)
+            // Step 2: Build clean text and track style ranges
+            val cleanText = StringBuilder()
+            val styleRanges = mutableListOf<StyleRange>()
+            var currentIndex = 0
 
-            // Step 2: Apply bold formatting (**text**)
-            val boldPattern = Regex("""\*\*(.+?)\*\*""")
-            boldPattern.findAll(processedContent).forEach { match ->
-                val start = match.range.first
-                val end = match.range.last + 1
-                // Remove ** markers from displayed text
-                val textStart = start + 2
-                val textEnd = end - 2
-                addStyle(
-                    style = SpanStyle(fontWeight = FontWeight.Bold),
-                    start = textStart,
-                    end = textEnd
-                )
+            // Parse all formatting markers and build clean text
+            val allMarkers = mutableListOf<FormatMarker>()
+
+            // Find bold markers
+            Regex("""\*\*(.+?)\*\*""").findAll(processedContent).forEach { match ->
+                allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.BOLD, match.groupValues[1]))
             }
 
-            // Step 3: Apply underline formatting (__text__)
-            val underlinePattern = Regex("""__(.+?)__""")
-            underlinePattern.findAll(processedContent).forEach { match ->
-                val start = match.range.first
-                val end = match.range.last + 1
-                val textStart = start + 2
-                val textEnd = end - 2
-                addStyle(
-                    style = SpanStyle(textDecoration = TextDecoration.Underline),
-                    start = textStart,
-                    end = textEnd
-                )
+            // Find underline markers
+            Regex("""__(.+?)__""").findAll(processedContent).forEach { match ->
+                allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.UNDERLINE, match.groupValues[1]))
             }
 
-            // Step 4: Apply highlight formatting (==text==)
-            val highlightPattern = Regex("""==(.+?)==""")
-            highlightPattern.findAll(processedContent).forEach { match ->
-                val start = match.range.first
-                val end = match.range.last + 1
-                val textStart = start + 2
-                val textEnd = end - 2
-                addStyle(
-                    style = SpanStyle(background = HighlightYellow),
-                    start = textStart,
-                    end = textEnd
-                )
+            // Find highlight markers
+            Regex("""==(.+?)==""").findAll(processedContent).forEach { match ->
+                allMarkers.add(FormatMarker(match.range.first, match.range.last + 1, FormatType.HIGHLIGHT, match.groupValues[1]))
             }
 
-            // Step 5: Apply tag styling (#tagname)
+            // Sort markers by position
+            allMarkers.sortBy { it.start }
+
+            // Build clean text by removing markers
+            var lastPos = 0
+            allMarkers.forEach { marker ->
+                // Add text before this marker
+                if (marker.start > lastPos) {
+                    cleanText.append(processedContent.substring(lastPos, marker.start))
+                }
+
+                // Add the content without markers
+                val cleanStart = cleanText.length
+                cleanText.append(marker.innerText)
+                val cleanEnd = cleanText.length
+
+                // Record style range
+                styleRanges.add(StyleRange(cleanStart, cleanEnd, marker.type))
+
+                lastPos = marker.end
+            }
+
+            // Add remaining text
+            if (lastPos < processedContent.length) {
+                cleanText.append(processedContent.substring(lastPos))
+            }
+
+            // Append clean text
+            val finalText = cleanText.toString()
+            append(finalText)
+
+            // Step 3: Apply styles to clean text
+            styleRanges.forEach { range ->
+                val style = when (range.type) {
+                    FormatType.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
+                    FormatType.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
+                    FormatType.HIGHLIGHT -> SpanStyle(background = HighlightYellow)
+                    else -> null
+                }
+                style?.let {
+                    addStyle(style = it, start = range.start, end = range.end)
+                }
+            }
+
+            // Step 4: Apply tag styling (#tagname)
             val tagPattern = Regex("""#[a-zA-Z0-9一-龥_]+""")
-            tagPattern.findAll(processedContent).forEach { match ->
+            tagPattern.findAll(finalText).forEach { match ->
                 val start = match.range.first
                 val end = match.range.last + 1
                 addStyle(
@@ -133,9 +154,9 @@ object RichTextUtils {
                 }
             }
 
-            // Step 6: Style checkbox symbols
+            // Step 5: Style checkbox symbols
             val checkboxSymbolPattern = Regex("""[☐☑]""")
-            checkboxSymbolPattern.findAll(processedContent).forEach { match ->
+            checkboxSymbolPattern.findAll(finalText).forEach { match ->
                 val start = match.range.first
                 val end = match.range.last + 1
                 val isChecked = match.value == "☑"
@@ -150,6 +171,20 @@ object RichTextUtils {
             }
         }.toAnnotatedString()
     }
+
+    // Helper data classes for marker parsing
+    private data class FormatMarker(
+        val start: Int,
+        val end: Int,
+        val type: FormatType,
+        val innerText: String
+    )
+
+    private data class StyleRange(
+        val start: Int,
+        val end: Int,
+        val type: FormatType
+    )
 
     /**
      * Get tag name at specific text offset.

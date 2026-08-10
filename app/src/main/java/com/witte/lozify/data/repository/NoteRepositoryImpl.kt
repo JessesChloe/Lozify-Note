@@ -11,9 +11,7 @@ import com.witte.lozify.data.mapper.toEntity
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.repository.NoteRepository
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.map
 import java.time.Instant
 import javax.inject.Inject
@@ -24,6 +22,8 @@ import javax.inject.Singleton
  *
  * Handles complex operations involving multiple DAOs and combines data from
  * multiple tables to build complete Note domain models with relations.
+ *
+ * Stage 6 Fix: Refactored to use Room @Relation pattern instead of fragile combine(List<Flow>).
  *
  * @property noteDao DAO for note operations
  * @property tagDao DAO for tag operations
@@ -39,64 +39,44 @@ class NoteRepositoryImpl @Inject constructor(
 ) : NoteRepository {
 
     override fun getAllNotes(): Flow<List<Note>> {
-        return noteDao.getAllNotes().map { noteEntities ->
-            // Build complete notes with tags for each entity
-            noteEntities.map { noteEntity ->
-                val tags = tagDao.getTagsForNote(noteEntity.id)
-                // Use first() to get current tag list synchronously
-                noteEntity.toDomainModel().copy(
-                    tags = kotlinx.coroutines.runBlocking { tags.first() }.toDomainModels()
-                )
-            }
+        return noteDao.getAllNotesWithRelations().map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
         }
     }
 
     override fun getNoteById(noteId: Long): Flow<Note?> {
         return noteDao.getNoteById(noteId).map { noteEntity ->
-            if (noteEntity == null) {
-                null
-            } else {
-                // Build complete note with all relations
-                val tags = tagDao.getTagsForNote(noteId)
-                val attachments = attachmentDao.getAttachmentsForNote(noteId)
-                val outgoingRelations = relationDao.getOutgoingRelations(noteId)
-                val incomingRelations = relationDao.getIncomingRelations(noteId)
-
-                // Combine all flows
-                combine(
-                    tags,
-                    attachments,
-                    outgoingRelations,
-                    incomingRelations
-                ) { tagList, attachmentList, outgoing, incoming ->
-                    noteEntity.toDomainModel().copy(
-                        tags = tagList.toDomainModels(),
-                        attachments = attachmentList.toDomainModels(),
-                        outgoingRelations = outgoing.toDomainModels(),
-                        incomingRelations = incoming.toDomainModels()
-                    )
-                }
-            }
-        }.flatMapConcat { it ?: kotlinx.coroutines.flow.flowOf(null) }
+            noteEntity?.toDomainModel()
+        }
     }
 
     override fun searchNotes(query: String): Flow<List<Note>> {
-        return noteDao.searchNotes(query).map { it.toDomainModels() }
+        return noteDao.searchNotesWithRelations(query).map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
     }
 
     override fun getPinnedNotes(): Flow<List<Note>> {
-        return noteDao.getPinnedNotes().map { it.toDomainModels() }
+        return noteDao.getPinnedNotesWithRelations().map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
     }
 
     override fun getDeletedNotes(): Flow<List<Note>> {
-        return noteDao.getDeletedNotes().map { it.toDomainModels() }
+        return noteDao.getDeletedNotesWithRelations().map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
     }
 
     override fun getNotesByTag(tagId: Long): Flow<List<Note>> {
-        return noteDao.getNotesByTag(tagId).map { it.toDomainModels() }
+        return noteDao.getNotesByTagWithRelations(tagId).map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
     }
 
     override suspend fun insertNote(note: Note): Long {
+        // Stage 5 Bug Fix: Remove manual incrementUsageCount - now calculated via COUNT(*)
+
         // Insert note entity
         val noteId = noteDao.insertNote(note.toEntity())
 
@@ -109,7 +89,6 @@ class NoteRepositoryImpl @Inject constructor(
                 tag.id
             }
             tagDao.insertNoteTagCrossRef(NoteTagCrossRef(noteId, tagId))
-            tagDao.incrementUsageCount(tagId)
         }
 
         // Insert attachments
@@ -126,6 +105,9 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun updateNote(note: Note) {
+        // Stage 5 Bug Fix: Properly handle tag associations without manual increment/decrement
+        // The new TagDao.getAllTags() uses real-time COUNT(*), so we don't need manual updates
+
         // Update note entity
         noteDao.updateNote(note.toEntity())
 
@@ -138,7 +120,6 @@ class NoteRepositoryImpl @Inject constructor(
                 tag.id
             }
             tagDao.insertNoteTagCrossRef(NoteTagCrossRef(note.id, tagId))
-            tagDao.incrementUsageCount(tagId)
         }
 
         // Update attachments: delete old ones, insert new ones

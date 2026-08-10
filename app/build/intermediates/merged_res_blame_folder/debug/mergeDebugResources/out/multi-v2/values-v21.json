@@ -4,7 +4,7 @@
             "outputFile": "com.witte.lozify.app-mergeDebugResources-60:/values-v21/values-v21.xml",
             "map": [
                 {
-                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\11c3375850afb790508214491c44605d\\transformed\\core-1.13.1\\res\\values-v21\\values-v21.xml",
+                    "source": "C:\\Users\\witte\\.gradle\\caches\\8.9\\transforms\\8744a36ee8a96610c828fc6476d35db0\\transformed\\core-1.13.1\\res\\values-v21\\values-v21.xml",
                     "from": {
                         "startLines": "2,3,4,5,6,7,8,9,10,13",
                         "startColumns": "4,4,4,4,4,4,4,4,4,4",

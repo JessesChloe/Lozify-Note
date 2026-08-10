@@ -16,7 +16,9 @@ import com.witte.lozify.data.local.dao.AttachmentDao;
 import com.witte.lozify.data.local.dao.NoteDao;
 import com.witte.lozify.data.local.dao.NoteRelationDao;
 import com.witte.lozify.data.local.dao.TagDao;
+import com.witte.lozify.data.repository.AttachmentRepositoryImpl;
 import com.witte.lozify.data.repository.NoteRepositoryImpl;
+import com.witte.lozify.data.repository.TagRepositoryImpl;
 import com.witte.lozify.presentation.editor.EditorViewModel;
 import com.witte.lozify.presentation.editor.EditorViewModel_HiltModules;
 import com.witte.lozify.presentation.home.HomeViewModel;
@@ -402,15 +404,15 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_witte_lozify_presentation_home_HomeViewModel = "com.witte.lozify.presentation.home.HomeViewModel";
-
       static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
 
-      @KeepFieldType
-      HomeViewModel com_witte_lozify_presentation_home_HomeViewModel2;
+      static String com_witte_lozify_presentation_home_HomeViewModel = "com.witte.lozify.presentation.home.HomeViewModel";
 
       @KeepFieldType
       EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
+
+      @KeepFieldType
+      HomeViewModel com_witte_lozify_presentation_home_HomeViewModel2;
     }
   }
 
@@ -454,15 +456,15 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
-
       static String com_witte_lozify_presentation_home_HomeViewModel = "com.witte.lozify.presentation.home.HomeViewModel";
 
-      @KeepFieldType
-      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
+      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
 
       @KeepFieldType
       HomeViewModel com_witte_lozify_presentation_home_HomeViewModel2;
+
+      @KeepFieldType
+      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {
@@ -487,10 +489,10 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
       public T get() {
         switch (id) {
           case 0: // com.witte.lozify.presentation.editor.EditorViewModel 
-          return (T) new EditorViewModel(singletonCImpl.noteRepositoryImplProvider.get());
+          return (T) new EditorViewModel(singletonCImpl.noteRepositoryImplProvider.get(), singletonCImpl.tagRepositoryImplProvider.get(), singletonCImpl.attachmentRepositoryImplProvider.get());
 
           case 1: // com.witte.lozify.presentation.home.HomeViewModel 
-          return (T) new HomeViewModel(singletonCImpl.noteRepositoryImplProvider.get());
+          return (T) new HomeViewModel(singletonCImpl.noteRepositoryImplProvider.get(), singletonCImpl.tagRepositoryImplProvider.get());
 
           default: throw new AssertionError(id);
         }
@@ -584,6 +586,10 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
     private Provider<NoteRepositoryImpl> noteRepositoryImplProvider;
 
+    private Provider<TagRepositoryImpl> tagRepositoryImplProvider;
+
+    private Provider<AttachmentRepositoryImpl> attachmentRepositoryImplProvider;
+
     private SingletonCImpl(ApplicationContextModule applicationContextModuleParam) {
       this.applicationContextModule = applicationContextModuleParam;
       initialize(applicationContextModuleParam);
@@ -598,6 +604,8 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
       this.provideAttachmentDaoProvider = DoubleCheck.provider(new SwitchingProvider<AttachmentDao>(singletonCImpl, 4));
       this.provideNoteRelationDaoProvider = DoubleCheck.provider(new SwitchingProvider<NoteRelationDao>(singletonCImpl, 5));
       this.noteRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<NoteRepositoryImpl>(singletonCImpl, 0));
+      this.tagRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<TagRepositoryImpl>(singletonCImpl, 6));
+      this.attachmentRepositoryImplProvider = DoubleCheck.provider(new SwitchingProvider<AttachmentRepositoryImpl>(singletonCImpl, 7));
     }
 
     @Override
@@ -650,6 +658,12 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
           case 5: // com.witte.lozify.data.local.dao.NoteRelationDao 
           return (T) DatabaseModule_ProvideNoteRelationDaoFactory.provideNoteRelationDao(singletonCImpl.provideLozifyDatabaseProvider.get());
+
+          case 6: // com.witte.lozify.data.repository.TagRepositoryImpl 
+          return (T) new TagRepositoryImpl(singletonCImpl.provideTagDaoProvider.get());
+
+          case 7: // com.witte.lozify.data.repository.AttachmentRepositoryImpl 
+          return (T) new AttachmentRepositoryImpl(singletonCImpl.provideAttachmentDaoProvider.get(), ApplicationContextModule_ProvideContextFactory.provideContext(singletonCImpl.applicationContextModule));
 
           default: throw new AssertionError(id);
         }

@@ -447,6 +447,72 @@ public final class AttachmentDao_Impl implements AttachmentDao {
     });
   }
 
+  @Override
+  public Object getAllAttachments(final Continuation<? super List<AttachmentEntity>> $completion) {
+    final String _sql = "SELECT * FROM attachments";
+    final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
+    final CancellationSignal _cancellationSignal = DBUtil.createCancellationSignal();
+    return CoroutinesRoom.execute(__db, false, _cancellationSignal, new Callable<List<AttachmentEntity>>() {
+      @Override
+      @NonNull
+      public List<AttachmentEntity> call() throws Exception {
+        final Cursor _cursor = DBUtil.query(__db, _statement, false, null);
+        try {
+          final int _cursorIndexOfId = CursorUtil.getColumnIndexOrThrow(_cursor, "id");
+          final int _cursorIndexOfNoteId = CursorUtil.getColumnIndexOrThrow(_cursor, "note_id");
+          final int _cursorIndexOfFilePath = CursorUtil.getColumnIndexOrThrow(_cursor, "file_path");
+          final int _cursorIndexOfDisplayOrder = CursorUtil.getColumnIndexOrThrow(_cursor, "display_order");
+          final int _cursorIndexOfCreatedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "created_at");
+          final int _cursorIndexOfMimeType = CursorUtil.getColumnIndexOrThrow(_cursor, "mime_type");
+          final int _cursorIndexOfFileSize = CursorUtil.getColumnIndexOrThrow(_cursor, "file_size");
+          final List<AttachmentEntity> _result = new ArrayList<AttachmentEntity>(_cursor.getCount());
+          while (_cursor.moveToNext()) {
+            final AttachmentEntity _item;
+            final long _tmpId;
+            _tmpId = _cursor.getLong(_cursorIndexOfId);
+            final long _tmpNoteId;
+            _tmpNoteId = _cursor.getLong(_cursorIndexOfNoteId);
+            final String _tmpFilePath;
+            _tmpFilePath = _cursor.getString(_cursorIndexOfFilePath);
+            final int _tmpDisplayOrder;
+            _tmpDisplayOrder = _cursor.getInt(_cursorIndexOfDisplayOrder);
+            final Instant _tmpCreatedAt;
+            final Long _tmp;
+            if (_cursor.isNull(_cursorIndexOfCreatedAt)) {
+              _tmp = null;
+            } else {
+              _tmp = _cursor.getLong(_cursorIndexOfCreatedAt);
+            }
+            final Instant _tmp_1 = __converters.fromTimestamp(_tmp);
+            if (_tmp_1 == null) {
+              throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+            } else {
+              _tmpCreatedAt = _tmp_1;
+            }
+            final String _tmpMimeType;
+            if (_cursor.isNull(_cursorIndexOfMimeType)) {
+              _tmpMimeType = null;
+            } else {
+              _tmpMimeType = _cursor.getString(_cursorIndexOfMimeType);
+            }
+            final Long _tmpFileSize;
+            if (_cursor.isNull(_cursorIndexOfFileSize)) {
+              _tmpFileSize = null;
+            } else {
+              _tmpFileSize = _cursor.getLong(_cursorIndexOfFileSize);
+            }
+            _item = new AttachmentEntity(_tmpId,_tmpNoteId,_tmpFilePath,_tmpDisplayOrder,_tmpCreatedAt,_tmpMimeType,_tmpFileSize);
+            _result.add(_item);
+          }
+          return _result;
+        } finally {
+          _cursor.close();
+          _statement.release();
+        }
+      }
+    }, $completion);
+  }
+
   @NonNull
   public static List<Class<?>> getRequiredConverters() {
     return Collections.emptyList();

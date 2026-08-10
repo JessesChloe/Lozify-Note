@@ -90,6 +90,9 @@ dependencies {
     // Coil Image Loading
     implementation(libs.coil.compose)
 
+    // ExifInterface for image orientation correction
+    implementation(libs.androidx.exifinterface)
+
     // Testing
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.ext.junit)

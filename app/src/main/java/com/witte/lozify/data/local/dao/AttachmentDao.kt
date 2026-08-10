@@ -73,4 +73,10 @@ interface AttachmentDao {
      */
     @Query("SELECT SUM(file_size) FROM attachments WHERE file_size IS NOT NULL")
     fun getTotalStorageUsed(): Flow<Long?>
+
+    /**
+     * Stage 6: Get all attachments across all notes (for orphan cleanup).
+     */
+    @Query("SELECT * FROM attachments")
+    suspend fun getAllAttachments(): List<AttachmentEntity>
 }

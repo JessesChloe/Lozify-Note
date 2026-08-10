@@ -3,7 +3,7 @@ package com.witte.lozify.presentation.editor
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.witte.lozify.core.common.TagUtils
+import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.repository.AttachmentRepository
@@ -65,8 +65,8 @@ class EditorViewModel @Inject constructor(
             try {
                 val now = Instant.now()
 
-                // Extract tags from content using TagUtils
-                val tagNames = TagUtils.extractTags(content)
+                // Stage 7: Extract tags from content using RichTextUtils (supports rich text)
+                val tagNames = extractTagsFromContent(content)
 
                 // Get or create Tag entities for each extracted tag
                 val tags = tagNames.map { tagName ->
@@ -83,6 +83,9 @@ class EditorViewModel @Inject constructor(
                     // Stage 5: Update existing note
                     val existingNote = noteRepository.getNoteById(noteId).first()
                     existingNote?.let { note ->
+                        // Stage 7 Bug Fix: Clear old tag associations before setting new ones
+                        tagRepository.setTagsForNote(noteId, tags.map { it.id })
+
                         val updatedNote = note.copy(
                             content = content.trim(),
                             updatedAt = now,
@@ -124,5 +127,25 @@ class EditorViewModel @Inject constructor(
                 _events.emit(EditorEvent.SaveError(e.message ?: "保存失败"))
             }
         }
+    }
+
+    /**
+     * Extract tags from content, stripping any Markdown formatting markers.
+     *
+     * Stage 7: Uses RichTextUtils to handle rich text content.
+     *
+     * @param content Raw content with possible Markdown markers
+     * @return List of tag names (without # prefix)
+     */
+    private fun extractTagsFromContent(content: String): List<String> {
+        // Strip formatting markers to get clean text for tag extraction
+        val cleanContent = RichTextUtils.stripFormatting(content)
+
+        // Extract tags from clean text
+        val tagPattern = Regex("""#([a-zA-Z0-9一-龥_]+)""")
+        return tagPattern.findAll(cleanContent)
+            .map { it.groupValues[1] }
+            .distinct()
+            .toList()
     }
 }

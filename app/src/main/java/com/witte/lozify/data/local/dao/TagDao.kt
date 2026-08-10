@@ -21,9 +21,23 @@ import kotlinx.coroutines.flow.Flow
 interface TagDao {
 
     /**
-     * Get all tags ordered by usage count (most popular first).
+     * Get all tags with REAL usage count calculated from active note associations.
+     *
+     * Stage 5 Bug Fix: Replace manual increment/decrement with real-time COUNT(*).
+     * This eliminates usage count drift caused by manual +1/-1 operations.
      */
-    @Query("SELECT * FROM tags ORDER BY usage_count DESC, name ASC")
+    @Query("""
+        SELECT
+            tags.id,
+            tags.name,
+            tags.created_at,
+            COUNT(DISTINCT note_tag_cross_ref.note_id) as usage_count
+        FROM tags
+        LEFT JOIN note_tag_cross_ref ON tags.id = note_tag_cross_ref.tag_id
+        LEFT JOIN notes ON note_tag_cross_ref.note_id = notes.id AND notes.is_deleted = 0
+        GROUP BY tags.id
+        ORDER BY usage_count DESC, tags.name ASC
+    """)
     fun getAllTags(): Flow<List<TagEntity>>
 
     /**

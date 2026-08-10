@@ -97,14 +97,24 @@ fun NoteEditorBottomSheet(
         }
     }
 
-    // Stage 7: Helper function to apply formatting
+    // Stage 7: Helper function to apply formatting with bounds checking
     fun applyFormatting(formatType: RichTextUtils.FormatType) {
         val currentText = textFieldValue.text
         val selection = textFieldValue.selection
+
+        // Validate selection bounds
+        val safeStart = selection.start.coerceIn(0, currentText.length)
+        val safeEnd = selection.end.coerceIn(0, currentText.length)
+
+        if (safeStart > safeEnd) {
+            // Invalid selection, abort
+            return
+        }
+
         val newText = RichTextUtils.insertFormatting(
             content = currentText,
-            selectionStart = selection.start,
-            selectionEnd = selection.end,
+            selectionStart = safeStart,
+            selectionEnd = safeEnd,
             formatType = formatType
         )
 
@@ -113,21 +123,24 @@ fun NoteEditorBottomSheet(
             RichTextUtils.FormatType.BOLD,
             RichTextUtils.FormatType.UNDERLINE,
             RichTextUtils.FormatType.HIGHLIGHT -> 2 // ** or __ or ==
-            RichTextUtils.FormatType.CHECKBOX_UNCHECKED -> 6 // - [ ]
-            RichTextUtils.FormatType.CHECKBOX_CHECKED -> 6 // - [x]
+            RichTextUtils.FormatType.CHECKBOX_UNCHECKED -> 6 // "- [ ] "
+            RichTextUtils.FormatType.CHECKBOX_CHECKED -> 6 // "- [x] "
         }
 
-        val newCursorPos = if (selection.start == selection.end) {
+        val newCursorPos = if (safeStart == safeEnd) {
             // No selection: place cursor between markers
-            selection.start + markerLength
+            safeStart + markerLength
         } else {
             // Has selection: place cursor after closing marker
-            selection.end + markerLength * 2
+            safeEnd + markerLength * 2
         }
+
+        // Ensure cursor position is within bounds
+        val safeCursorPos = newCursorPos.coerceIn(0, newText.length)
 
         textFieldValue = TextFieldValue(
             text = newText,
-            selection = TextRange(newCursorPos)
+            selection = TextRange(safeCursorPos)
         )
     }
 
