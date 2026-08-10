@@ -6,21 +6,17 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.FormatUnderlined
-import androidx.compose.material.icons.filled.Highlight
-import androidx.compose.material.icons.filled.Redo
-import androidx.compose.material.icons.filled.Undo
+import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 
@@ -34,6 +30,8 @@ import androidx.compose.ui.unit.sp
  * - Highlight: Apply ==text== formatting (yellow background)
  * - Undo: Revert last change (MVP: placeholder)
  * - Redo: Reapply undone change (MVP: placeholder)
+ *
+ * Note: Using Text icons instead of extended material icons to avoid dependency bloat.
  *
  * @param onDismiss Callback when menu is dismissed
  * @param onUnderlineClick Callback when underline is selected
@@ -72,7 +70,7 @@ fun FormattingMenu(
 
             // Underline option
             FormattingMenuItem(
-                icon = Icons.Default.FormatUnderlined,
+                iconText = "U",
                 label = "下划线",
                 description = "为选中文字添加下划线",
                 onClick = {
@@ -83,7 +81,7 @@ fun FormattingMenu(
 
             // Highlight option
             FormattingMenuItem(
-                icon = Icons.Default.Highlight,
+                iconText = "H",
                 label = "高亮",
                 description = "添加黄色背景高亮",
                 onClick = {
@@ -96,7 +94,7 @@ fun FormattingMenu(
 
             // Undo option (MVP: placeholder)
             FormattingMenuItem(
-                icon = Icons.Default.Undo,
+                iconText = "↶",
                 label = "撤销",
                 description = "正在开发中",
                 onClick = {
@@ -108,7 +106,7 @@ fun FormattingMenu(
 
             // Redo option (MVP: placeholder)
             FormattingMenuItem(
-                icon = Icons.Default.Redo,
+                iconText = "↷",
                 label = "重做",
                 description = "正在开发中",
                 onClick = {
@@ -124,7 +122,7 @@ fun FormattingMenu(
 /**
  * FormattingMenuItem - Single item in formatting menu.
  *
- * @param icon Menu item icon
+ * @param iconText Text to display as icon (e.g., "U" for underline)
  * @param label Primary label text
  * @param description Secondary description text
  * @param onClick Click callback
@@ -132,7 +130,7 @@ fun FormattingMenu(
  */
 @Composable
 private fun FormattingMenuItem(
-    icon: ImageVector,
+    iconText: String,
     label: String,
     description: String,
     onClick: () -> Unit,
@@ -147,11 +145,13 @@ private fun FormattingMenuItem(
         horizontalArrangement = Arrangement.spacedBy(16.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Icon(
-            imageVector = icon,
-            contentDescription = label,
-            tint = if (enabled) androidx.compose.ui.graphics.Color.Unspecified
-                   else androidx.compose.ui.graphics.Color.Gray
+        // Text icon (replaces Material Icon)
+        Text(
+            text = iconText,
+            fontSize = 20.sp,
+            fontWeight = FontWeight.Bold,
+            color = if (enabled) Color.Black else Color.Gray,
+            modifier = Modifier.size(24.dp)
         )
 
         Column(
@@ -160,13 +160,12 @@ private fun FormattingMenuItem(
             Text(
                 text = label,
                 fontSize = 16.sp,
-                color = if (enabled) androidx.compose.ui.graphics.Color.Unspecified
-                        else androidx.compose.ui.graphics.Color.Gray
+                color = if (enabled) Color.Unspecified else Color.Gray
             )
             Text(
                 text = description,
                 fontSize = 12.sp,
-                color = androidx.compose.ui.graphics.Color.Gray
+                color = Color.Gray
             )
         }
     }

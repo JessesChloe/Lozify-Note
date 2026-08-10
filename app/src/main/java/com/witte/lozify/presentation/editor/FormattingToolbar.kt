@@ -6,20 +6,21 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckBox
-import androidx.compose.material.icons.filled.FormatBold
 import androidx.compose.material.icons.filled.Image
 import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material.icons.filled.Tag
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * FormattingToolbar - Bottom toolbar for rich text editing.
@@ -27,11 +28,13 @@ import androidx.compose.ui.unit.dp
  * Stage 7: Provides quick access to formatting actions.
  *
  * Toolbar Buttons (left to right):
- * 1. # - Insert tag prefix
- * 2. 📷 - Image picker
- * 3. B - Bold formatting
- * 4. ☐ - Insert checkbox
- * 5. ... - More options menu (underline, highlight)
+ * 1. # - Insert tag prefix (Text button)
+ * 2. 📷 - Image picker (Icon)
+ * 3. B - Bold formatting (Text button)
+ * 4. ☐ - Insert checkbox (Text button)
+ * 5. ... - More options menu (Icon)
+ *
+ * Note: Using Text buttons instead of extended icons to avoid dependency bloat.
  *
  * @param onTagClick Callback when tag button is clicked
  * @param onImageClick Callback when image button is clicked
@@ -62,12 +65,13 @@ fun FormattingToolbar(
             horizontalArrangement = Arrangement.SpaceEvenly,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Tag button
-            IconButton(onClick = onTagClick) {
-                Icon(
-                    imageVector = Icons.Default.Tag,
-                    contentDescription = "插入标签",
-                    tint = MaterialTheme.colorScheme.secondary
+            // Tag button (#)
+            TextButton(onClick = onTagClick) {
+                Text(
+                    text = "#",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.secondary
                 )
             }
 
@@ -80,21 +84,22 @@ fun FormattingToolbar(
                 )
             }
 
-            // Bold button
-            IconButton(onClick = onBoldClick) {
-                Icon(
-                    imageVector = Icons.Default.FormatBold,
-                    contentDescription = "粗体",
-                    tint = MaterialTheme.colorScheme.onSurface
+            // Bold button (B)
+            TextButton(onClick = onBoldClick) {
+                Text(
+                    text = "B",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            // Checkbox button
-            IconButton(onClick = onCheckboxClick) {
-                Icon(
-                    imageVector = Icons.Default.CheckBox,
-                    contentDescription = "插入复选框",
-                    tint = MaterialTheme.colorScheme.onSurface
+            // Checkbox button (☐)
+            TextButton(onClick = onCheckboxClick) {
+                Text(
+                    text = "☐",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
