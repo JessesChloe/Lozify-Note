@@ -5,11 +5,6 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Image
-import androidx.compose.material.icons.filled.MoreHoriz
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -29,10 +24,10 @@ import androidx.compose.ui.unit.sp
  *
  * Toolbar Buttons (left to right):
  * 1. # - Insert tag prefix (Text button)
- * 2. 📷 - Image picker (Icon)
+ * 2. 📷 - Image picker (Text button)
  * 3. B - Bold formatting (Text button)
  * 4. ☐ - Insert checkbox (Text button)
- * 5. ... - More options menu (Icon)
+ * 5. ... - More options menu (Text button)
  *
  * Note: Using Text buttons instead of extended icons to avoid dependency bloat.
  *
@@ -75,12 +70,12 @@ fun FormattingToolbar(
                 )
             }
 
-            // Image picker button
-            IconButton(onClick = onImageClick) {
-                Icon(
-                    imageVector = Icons.Default.Image,
-                    contentDescription = "添加图片",
-                    tint = MaterialTheme.colorScheme.onSurface
+            // Image picker button (📷)
+            TextButton(onClick = onImageClick) {
+                Text(
+                    text = "📷",
+                    fontSize = 20.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -103,12 +98,13 @@ fun FormattingToolbar(
                 )
             }
 
-            // More options button
-            IconButton(onClick = onMoreClick) {
-                Icon(
-                    imageVector = Icons.Default.MoreHoriz,
-                    contentDescription = "更多选项",
-                    tint = MaterialTheme.colorScheme.onSurface
+            // More options button (...)
+            TextButton(onClick = onMoreClick) {
+                Text(
+                    text = "...",
+                    fontSize = 20.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
         }
