@@ -18,6 +18,7 @@ import androidx.sqlite.db.SupportSQLiteStatement;
 import com.witte.lozify.data.local.converter.Converters;
 import com.witte.lozify.data.local.entity.AttachmentEntity;
 import com.witte.lozify.data.local.entity.NoteEntity;
+import com.witte.lozify.data.local.entity.NoteRelationEntity;
 import com.witte.lozify.data.local.entity.TagEntity;
 import com.witte.lozify.data.local.model.NoteWithTagsAndAttachments;
 import java.lang.Class;
@@ -388,7 +389,8 @@ public final class NoteDao_Impl implements NoteDao {
             + "    ";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return CoroutinesRoom.createFlow(__db, true, new String[] {"note_tag_cross_ref", "tags",
-        "attachments", "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
+        "attachments", "note_relations",
+        "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
       @Override
       @NonNull
       public List<NoteWithTagsAndAttachments> call() throws Exception {
@@ -406,6 +408,8 @@ public final class NoteDao_Impl implements NoteDao {
             final int _cursorIndexOfLastSyncedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "last_synced_at");
             final LongSparseArray<ArrayList<TagEntity>> _collectionTags = new LongSparseArray<ArrayList<TagEntity>>();
             final LongSparseArray<ArrayList<AttachmentEntity>> _collectionAttachments = new LongSparseArray<ArrayList<AttachmentEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionOutgoingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionIncomingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
             while (_cursor.moveToNext()) {
               final long _tmpKey;
               _tmpKey = _cursor.getLong(_cursorIndexOfId);
@@ -417,10 +421,22 @@ public final class NoteDao_Impl implements NoteDao {
               if (!_collectionAttachments.containsKey(_tmpKey_1)) {
                 _collectionAttachments.put(_tmpKey_1, new ArrayList<AttachmentEntity>());
               }
+              final long _tmpKey_2;
+              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionOutgoingRelations.containsKey(_tmpKey_2)) {
+                _collectionOutgoingRelations.put(_tmpKey_2, new ArrayList<NoteRelationEntity>());
+              }
+              final long _tmpKey_3;
+              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionIncomingRelations.containsKey(_tmpKey_3)) {
+                _collectionIncomingRelations.put(_tmpKey_3, new ArrayList<NoteRelationEntity>());
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshiptagsAscomWitteLozifyDataLocalEntityTagEntity(_collectionTags);
             __fetchRelationshipattachmentsAscomWitteLozifyDataLocalEntityAttachmentEntity(_collectionAttachments);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(_collectionOutgoingRelations);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(_collectionIncomingRelations);
             final List<NoteWithTagsAndAttachments> _result = new ArrayList<NoteWithTagsAndAttachments>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final NoteWithTagsAndAttachments _item;
@@ -479,14 +495,22 @@ public final class NoteDao_Impl implements NoteDao {
               _tmpLastSyncedAt = __converters.fromTimestamp(_tmp_6);
               _tmpNote = new NoteEntity(_tmpId,_tmpContent,_tmpCreatedAt,_tmpUpdatedAt,_tmpIsPinned,_tmpIsDeleted,_tmpSyncId,_tmpLastSyncedAt);
               final ArrayList<TagEntity> _tmpTagsCollection;
-              final long _tmpKey_2;
-              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
-              _tmpTagsCollection = _collectionTags.get(_tmpKey_2);
+              final long _tmpKey_4;
+              _tmpKey_4 = _cursor.getLong(_cursorIndexOfId);
+              _tmpTagsCollection = _collectionTags.get(_tmpKey_4);
               final ArrayList<AttachmentEntity> _tmpAttachmentsCollection;
-              final long _tmpKey_3;
-              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
-              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_3);
-              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection);
+              final long _tmpKey_5;
+              _tmpKey_5 = _cursor.getLong(_cursorIndexOfId);
+              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_5);
+              final ArrayList<NoteRelationEntity> _tmpOutgoingRelationsCollection;
+              final long _tmpKey_6;
+              _tmpKey_6 = _cursor.getLong(_cursorIndexOfId);
+              _tmpOutgoingRelationsCollection = _collectionOutgoingRelations.get(_tmpKey_6);
+              final ArrayList<NoteRelationEntity> _tmpIncomingRelationsCollection;
+              final long _tmpKey_7;
+              _tmpKey_7 = _cursor.getLong(_cursorIndexOfId);
+              _tmpIncomingRelationsCollection = _collectionIncomingRelations.get(_tmpKey_7);
+              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection,_tmpOutgoingRelationsCollection,_tmpIncomingRelationsCollection);
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -703,7 +727,8 @@ public final class NoteDao_Impl implements NoteDao {
     int _argIndex = 1;
     _statement.bindString(_argIndex, searchQuery);
     return CoroutinesRoom.createFlow(__db, true, new String[] {"note_tag_cross_ref", "tags",
-        "attachments", "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
+        "attachments", "note_relations",
+        "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
       @Override
       @NonNull
       public List<NoteWithTagsAndAttachments> call() throws Exception {
@@ -721,6 +746,8 @@ public final class NoteDao_Impl implements NoteDao {
             final int _cursorIndexOfLastSyncedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "last_synced_at");
             final LongSparseArray<ArrayList<TagEntity>> _collectionTags = new LongSparseArray<ArrayList<TagEntity>>();
             final LongSparseArray<ArrayList<AttachmentEntity>> _collectionAttachments = new LongSparseArray<ArrayList<AttachmentEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionOutgoingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionIncomingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
             while (_cursor.moveToNext()) {
               final long _tmpKey;
               _tmpKey = _cursor.getLong(_cursorIndexOfId);
@@ -732,10 +759,22 @@ public final class NoteDao_Impl implements NoteDao {
               if (!_collectionAttachments.containsKey(_tmpKey_1)) {
                 _collectionAttachments.put(_tmpKey_1, new ArrayList<AttachmentEntity>());
               }
+              final long _tmpKey_2;
+              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionOutgoingRelations.containsKey(_tmpKey_2)) {
+                _collectionOutgoingRelations.put(_tmpKey_2, new ArrayList<NoteRelationEntity>());
+              }
+              final long _tmpKey_3;
+              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionIncomingRelations.containsKey(_tmpKey_3)) {
+                _collectionIncomingRelations.put(_tmpKey_3, new ArrayList<NoteRelationEntity>());
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshiptagsAscomWitteLozifyDataLocalEntityTagEntity(_collectionTags);
             __fetchRelationshipattachmentsAscomWitteLozifyDataLocalEntityAttachmentEntity(_collectionAttachments);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(_collectionOutgoingRelations);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(_collectionIncomingRelations);
             final List<NoteWithTagsAndAttachments> _result = new ArrayList<NoteWithTagsAndAttachments>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final NoteWithTagsAndAttachments _item;
@@ -794,14 +833,22 @@ public final class NoteDao_Impl implements NoteDao {
               _tmpLastSyncedAt = __converters.fromTimestamp(_tmp_6);
               _tmpNote = new NoteEntity(_tmpId,_tmpContent,_tmpCreatedAt,_tmpUpdatedAt,_tmpIsPinned,_tmpIsDeleted,_tmpSyncId,_tmpLastSyncedAt);
               final ArrayList<TagEntity> _tmpTagsCollection;
-              final long _tmpKey_2;
-              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
-              _tmpTagsCollection = _collectionTags.get(_tmpKey_2);
+              final long _tmpKey_4;
+              _tmpKey_4 = _cursor.getLong(_cursorIndexOfId);
+              _tmpTagsCollection = _collectionTags.get(_tmpKey_4);
               final ArrayList<AttachmentEntity> _tmpAttachmentsCollection;
-              final long _tmpKey_3;
-              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
-              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_3);
-              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection);
+              final long _tmpKey_5;
+              _tmpKey_5 = _cursor.getLong(_cursorIndexOfId);
+              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_5);
+              final ArrayList<NoteRelationEntity> _tmpOutgoingRelationsCollection;
+              final long _tmpKey_6;
+              _tmpKey_6 = _cursor.getLong(_cursorIndexOfId);
+              _tmpOutgoingRelationsCollection = _collectionOutgoingRelations.get(_tmpKey_6);
+              final ArrayList<NoteRelationEntity> _tmpIncomingRelationsCollection;
+              final long _tmpKey_7;
+              _tmpKey_7 = _cursor.getLong(_cursorIndexOfId);
+              _tmpIncomingRelationsCollection = _collectionIncomingRelations.get(_tmpKey_7);
+              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection,_tmpOutgoingRelationsCollection,_tmpIncomingRelationsCollection);
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -923,7 +970,8 @@ public final class NoteDao_Impl implements NoteDao {
             + "    ";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return CoroutinesRoom.createFlow(__db, true, new String[] {"note_tag_cross_ref", "tags",
-        "attachments", "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
+        "attachments", "note_relations",
+        "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
       @Override
       @NonNull
       public List<NoteWithTagsAndAttachments> call() throws Exception {
@@ -941,6 +989,8 @@ public final class NoteDao_Impl implements NoteDao {
             final int _cursorIndexOfLastSyncedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "last_synced_at");
             final LongSparseArray<ArrayList<TagEntity>> _collectionTags = new LongSparseArray<ArrayList<TagEntity>>();
             final LongSparseArray<ArrayList<AttachmentEntity>> _collectionAttachments = new LongSparseArray<ArrayList<AttachmentEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionOutgoingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionIncomingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
             while (_cursor.moveToNext()) {
               final long _tmpKey;
               _tmpKey = _cursor.getLong(_cursorIndexOfId);
@@ -952,10 +1002,22 @@ public final class NoteDao_Impl implements NoteDao {
               if (!_collectionAttachments.containsKey(_tmpKey_1)) {
                 _collectionAttachments.put(_tmpKey_1, new ArrayList<AttachmentEntity>());
               }
+              final long _tmpKey_2;
+              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionOutgoingRelations.containsKey(_tmpKey_2)) {
+                _collectionOutgoingRelations.put(_tmpKey_2, new ArrayList<NoteRelationEntity>());
+              }
+              final long _tmpKey_3;
+              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionIncomingRelations.containsKey(_tmpKey_3)) {
+                _collectionIncomingRelations.put(_tmpKey_3, new ArrayList<NoteRelationEntity>());
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshiptagsAscomWitteLozifyDataLocalEntityTagEntity(_collectionTags);
             __fetchRelationshipattachmentsAscomWitteLozifyDataLocalEntityAttachmentEntity(_collectionAttachments);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(_collectionOutgoingRelations);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(_collectionIncomingRelations);
             final List<NoteWithTagsAndAttachments> _result = new ArrayList<NoteWithTagsAndAttachments>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final NoteWithTagsAndAttachments _item;
@@ -1014,14 +1076,22 @@ public final class NoteDao_Impl implements NoteDao {
               _tmpLastSyncedAt = __converters.fromTimestamp(_tmp_6);
               _tmpNote = new NoteEntity(_tmpId,_tmpContent,_tmpCreatedAt,_tmpUpdatedAt,_tmpIsPinned,_tmpIsDeleted,_tmpSyncId,_tmpLastSyncedAt);
               final ArrayList<TagEntity> _tmpTagsCollection;
-              final long _tmpKey_2;
-              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
-              _tmpTagsCollection = _collectionTags.get(_tmpKey_2);
+              final long _tmpKey_4;
+              _tmpKey_4 = _cursor.getLong(_cursorIndexOfId);
+              _tmpTagsCollection = _collectionTags.get(_tmpKey_4);
               final ArrayList<AttachmentEntity> _tmpAttachmentsCollection;
-              final long _tmpKey_3;
-              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
-              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_3);
-              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection);
+              final long _tmpKey_5;
+              _tmpKey_5 = _cursor.getLong(_cursorIndexOfId);
+              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_5);
+              final ArrayList<NoteRelationEntity> _tmpOutgoingRelationsCollection;
+              final long _tmpKey_6;
+              _tmpKey_6 = _cursor.getLong(_cursorIndexOfId);
+              _tmpOutgoingRelationsCollection = _collectionOutgoingRelations.get(_tmpKey_6);
+              final ArrayList<NoteRelationEntity> _tmpIncomingRelationsCollection;
+              final long _tmpKey_7;
+              _tmpKey_7 = _cursor.getLong(_cursorIndexOfId);
+              _tmpIncomingRelationsCollection = _collectionIncomingRelations.get(_tmpKey_7);
+              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection,_tmpOutgoingRelationsCollection,_tmpIncomingRelationsCollection);
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -1135,7 +1205,8 @@ public final class NoteDao_Impl implements NoteDao {
     final String _sql = "SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC";
     final RoomSQLiteQuery _statement = RoomSQLiteQuery.acquire(_sql, 0);
     return CoroutinesRoom.createFlow(__db, true, new String[] {"note_tag_cross_ref", "tags",
-        "attachments", "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
+        "attachments", "note_relations",
+        "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
       @Override
       @NonNull
       public List<NoteWithTagsAndAttachments> call() throws Exception {
@@ -1153,6 +1224,8 @@ public final class NoteDao_Impl implements NoteDao {
             final int _cursorIndexOfLastSyncedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "last_synced_at");
             final LongSparseArray<ArrayList<TagEntity>> _collectionTags = new LongSparseArray<ArrayList<TagEntity>>();
             final LongSparseArray<ArrayList<AttachmentEntity>> _collectionAttachments = new LongSparseArray<ArrayList<AttachmentEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionOutgoingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionIncomingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
             while (_cursor.moveToNext()) {
               final long _tmpKey;
               _tmpKey = _cursor.getLong(_cursorIndexOfId);
@@ -1164,10 +1237,22 @@ public final class NoteDao_Impl implements NoteDao {
               if (!_collectionAttachments.containsKey(_tmpKey_1)) {
                 _collectionAttachments.put(_tmpKey_1, new ArrayList<AttachmentEntity>());
               }
+              final long _tmpKey_2;
+              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionOutgoingRelations.containsKey(_tmpKey_2)) {
+                _collectionOutgoingRelations.put(_tmpKey_2, new ArrayList<NoteRelationEntity>());
+              }
+              final long _tmpKey_3;
+              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionIncomingRelations.containsKey(_tmpKey_3)) {
+                _collectionIncomingRelations.put(_tmpKey_3, new ArrayList<NoteRelationEntity>());
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshiptagsAscomWitteLozifyDataLocalEntityTagEntity(_collectionTags);
             __fetchRelationshipattachmentsAscomWitteLozifyDataLocalEntityAttachmentEntity(_collectionAttachments);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(_collectionOutgoingRelations);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(_collectionIncomingRelations);
             final List<NoteWithTagsAndAttachments> _result = new ArrayList<NoteWithTagsAndAttachments>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final NoteWithTagsAndAttachments _item;
@@ -1226,14 +1311,22 @@ public final class NoteDao_Impl implements NoteDao {
               _tmpLastSyncedAt = __converters.fromTimestamp(_tmp_6);
               _tmpNote = new NoteEntity(_tmpId,_tmpContent,_tmpCreatedAt,_tmpUpdatedAt,_tmpIsPinned,_tmpIsDeleted,_tmpSyncId,_tmpLastSyncedAt);
               final ArrayList<TagEntity> _tmpTagsCollection;
-              final long _tmpKey_2;
-              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
-              _tmpTagsCollection = _collectionTags.get(_tmpKey_2);
+              final long _tmpKey_4;
+              _tmpKey_4 = _cursor.getLong(_cursorIndexOfId);
+              _tmpTagsCollection = _collectionTags.get(_tmpKey_4);
               final ArrayList<AttachmentEntity> _tmpAttachmentsCollection;
-              final long _tmpKey_3;
-              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
-              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_3);
-              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection);
+              final long _tmpKey_5;
+              _tmpKey_5 = _cursor.getLong(_cursorIndexOfId);
+              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_5);
+              final ArrayList<NoteRelationEntity> _tmpOutgoingRelationsCollection;
+              final long _tmpKey_6;
+              _tmpKey_6 = _cursor.getLong(_cursorIndexOfId);
+              _tmpOutgoingRelationsCollection = _collectionOutgoingRelations.get(_tmpKey_6);
+              final ArrayList<NoteRelationEntity> _tmpIncomingRelationsCollection;
+              final long _tmpKey_7;
+              _tmpKey_7 = _cursor.getLong(_cursorIndexOfId);
+              _tmpIncomingRelationsCollection = _collectionIncomingRelations.get(_tmpKey_7);
+              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection,_tmpOutgoingRelationsCollection,_tmpIncomingRelationsCollection);
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -1368,7 +1461,8 @@ public final class NoteDao_Impl implements NoteDao {
     int _argIndex = 1;
     _statement.bindLong(_argIndex, tagId);
     return CoroutinesRoom.createFlow(__db, true, new String[] {"note_tag_cross_ref", "tags",
-        "attachments", "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
+        "attachments", "note_relations",
+        "notes"}, new Callable<List<NoteWithTagsAndAttachments>>() {
       @Override
       @NonNull
       public List<NoteWithTagsAndAttachments> call() throws Exception {
@@ -1386,6 +1480,8 @@ public final class NoteDao_Impl implements NoteDao {
             final int _cursorIndexOfLastSyncedAt = CursorUtil.getColumnIndexOrThrow(_cursor, "last_synced_at");
             final LongSparseArray<ArrayList<TagEntity>> _collectionTags = new LongSparseArray<ArrayList<TagEntity>>();
             final LongSparseArray<ArrayList<AttachmentEntity>> _collectionAttachments = new LongSparseArray<ArrayList<AttachmentEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionOutgoingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
+            final LongSparseArray<ArrayList<NoteRelationEntity>> _collectionIncomingRelations = new LongSparseArray<ArrayList<NoteRelationEntity>>();
             while (_cursor.moveToNext()) {
               final long _tmpKey;
               _tmpKey = _cursor.getLong(_cursorIndexOfId);
@@ -1397,10 +1493,22 @@ public final class NoteDao_Impl implements NoteDao {
               if (!_collectionAttachments.containsKey(_tmpKey_1)) {
                 _collectionAttachments.put(_tmpKey_1, new ArrayList<AttachmentEntity>());
               }
+              final long _tmpKey_2;
+              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionOutgoingRelations.containsKey(_tmpKey_2)) {
+                _collectionOutgoingRelations.put(_tmpKey_2, new ArrayList<NoteRelationEntity>());
+              }
+              final long _tmpKey_3;
+              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
+              if (!_collectionIncomingRelations.containsKey(_tmpKey_3)) {
+                _collectionIncomingRelations.put(_tmpKey_3, new ArrayList<NoteRelationEntity>());
+              }
             }
             _cursor.moveToPosition(-1);
             __fetchRelationshiptagsAscomWitteLozifyDataLocalEntityTagEntity(_collectionTags);
             __fetchRelationshipattachmentsAscomWitteLozifyDataLocalEntityAttachmentEntity(_collectionAttachments);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(_collectionOutgoingRelations);
+            __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(_collectionIncomingRelations);
             final List<NoteWithTagsAndAttachments> _result = new ArrayList<NoteWithTagsAndAttachments>(_cursor.getCount());
             while (_cursor.moveToNext()) {
               final NoteWithTagsAndAttachments _item;
@@ -1459,14 +1567,22 @@ public final class NoteDao_Impl implements NoteDao {
               _tmpLastSyncedAt = __converters.fromTimestamp(_tmp_6);
               _tmpNote = new NoteEntity(_tmpId,_tmpContent,_tmpCreatedAt,_tmpUpdatedAt,_tmpIsPinned,_tmpIsDeleted,_tmpSyncId,_tmpLastSyncedAt);
               final ArrayList<TagEntity> _tmpTagsCollection;
-              final long _tmpKey_2;
-              _tmpKey_2 = _cursor.getLong(_cursorIndexOfId);
-              _tmpTagsCollection = _collectionTags.get(_tmpKey_2);
+              final long _tmpKey_4;
+              _tmpKey_4 = _cursor.getLong(_cursorIndexOfId);
+              _tmpTagsCollection = _collectionTags.get(_tmpKey_4);
               final ArrayList<AttachmentEntity> _tmpAttachmentsCollection;
-              final long _tmpKey_3;
-              _tmpKey_3 = _cursor.getLong(_cursorIndexOfId);
-              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_3);
-              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection);
+              final long _tmpKey_5;
+              _tmpKey_5 = _cursor.getLong(_cursorIndexOfId);
+              _tmpAttachmentsCollection = _collectionAttachments.get(_tmpKey_5);
+              final ArrayList<NoteRelationEntity> _tmpOutgoingRelationsCollection;
+              final long _tmpKey_6;
+              _tmpKey_6 = _cursor.getLong(_cursorIndexOfId);
+              _tmpOutgoingRelationsCollection = _collectionOutgoingRelations.get(_tmpKey_6);
+              final ArrayList<NoteRelationEntity> _tmpIncomingRelationsCollection;
+              final long _tmpKey_7;
+              _tmpKey_7 = _cursor.getLong(_cursorIndexOfId);
+              _tmpIncomingRelationsCollection = _collectionIncomingRelations.get(_tmpKey_7);
+              _item = new NoteWithTagsAndAttachments(_tmpNote,_tmpTagsCollection,_tmpAttachmentsCollection,_tmpOutgoingRelationsCollection,_tmpIncomingRelationsCollection);
               _result.add(_item);
             }
             __db.setTransactionSuccessful();
@@ -1672,6 +1788,152 @@ public final class NoteDao_Impl implements NoteDao {
             _tmpFileSize = _cursor.getLong(_cursorIndexOfFileSize);
           }
           _item_1 = new AttachmentEntity(_tmpId,_tmpNoteId,_tmpFilePath,_tmpDisplayOrder,_tmpCreatedAt,_tmpMimeType,_tmpFileSize);
+          _tmpRelation.add(_item_1);
+        }
+      }
+    } finally {
+      _cursor.close();
+    }
+  }
+
+  private void __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(
+      @NonNull final LongSparseArray<ArrayList<NoteRelationEntity>> _map) {
+    if (_map.isEmpty()) {
+      return;
+    }
+    if (_map.size() > RoomDatabase.MAX_BIND_PARAMETER_CNT) {
+      RelationUtil.recursiveFetchLongSparseArray(_map, true, (map) -> {
+        __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity(map);
+        return Unit.INSTANCE;
+      });
+      return;
+    }
+    final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
+    _stringBuilder.append("SELECT `id`,`from_note_id`,`to_note_id`,`mention_text`,`created_at` FROM `note_relations` WHERE `from_note_id` IN (");
+    final int _inputSize = _map.size();
+    StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
+    _stringBuilder.append(")");
+    final String _sql = _stringBuilder.toString();
+    final int _argCount = 0 + _inputSize;
+    final RoomSQLiteQuery _stmt = RoomSQLiteQuery.acquire(_sql, _argCount);
+    int _argIndex = 1;
+    for (int i = 0; i < _map.size(); i++) {
+      final long _item = _map.keyAt(i);
+      _stmt.bindLong(_argIndex, _item);
+      _argIndex++;
+    }
+    final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
+    try {
+      final int _itemKeyIndex = CursorUtil.getColumnIndex(_cursor, "from_note_id");
+      if (_itemKeyIndex == -1) {
+        return;
+      }
+      final int _cursorIndexOfId = 0;
+      final int _cursorIndexOfFromNoteId = 1;
+      final int _cursorIndexOfToNoteId = 2;
+      final int _cursorIndexOfMentionText = 3;
+      final int _cursorIndexOfCreatedAt = 4;
+      while (_cursor.moveToNext()) {
+        final long _tmpKey;
+        _tmpKey = _cursor.getLong(_itemKeyIndex);
+        final ArrayList<NoteRelationEntity> _tmpRelation = _map.get(_tmpKey);
+        if (_tmpRelation != null) {
+          final NoteRelationEntity _item_1;
+          final long _tmpId;
+          _tmpId = _cursor.getLong(_cursorIndexOfId);
+          final long _tmpFromNoteId;
+          _tmpFromNoteId = _cursor.getLong(_cursorIndexOfFromNoteId);
+          final long _tmpToNoteId;
+          _tmpToNoteId = _cursor.getLong(_cursorIndexOfToNoteId);
+          final String _tmpMentionText;
+          _tmpMentionText = _cursor.getString(_cursorIndexOfMentionText);
+          final Instant _tmpCreatedAt;
+          final Long _tmp;
+          if (_cursor.isNull(_cursorIndexOfCreatedAt)) {
+            _tmp = null;
+          } else {
+            _tmp = _cursor.getLong(_cursorIndexOfCreatedAt);
+          }
+          final Instant _tmp_1 = __converters.fromTimestamp(_tmp);
+          if (_tmp_1 == null) {
+            throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+          } else {
+            _tmpCreatedAt = _tmp_1;
+          }
+          _item_1 = new NoteRelationEntity(_tmpId,_tmpFromNoteId,_tmpToNoteId,_tmpMentionText,_tmpCreatedAt);
+          _tmpRelation.add(_item_1);
+        }
+      }
+    } finally {
+      _cursor.close();
+    }
+  }
+
+  private void __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(
+      @NonNull final LongSparseArray<ArrayList<NoteRelationEntity>> _map) {
+    if (_map.isEmpty()) {
+      return;
+    }
+    if (_map.size() > RoomDatabase.MAX_BIND_PARAMETER_CNT) {
+      RelationUtil.recursiveFetchLongSparseArray(_map, true, (map) -> {
+        __fetchRelationshipnoteRelationsAscomWitteLozifyDataLocalEntityNoteRelationEntity_1(map);
+        return Unit.INSTANCE;
+      });
+      return;
+    }
+    final StringBuilder _stringBuilder = StringUtil.newStringBuilder();
+    _stringBuilder.append("SELECT `id`,`from_note_id`,`to_note_id`,`mention_text`,`created_at` FROM `note_relations` WHERE `to_note_id` IN (");
+    final int _inputSize = _map.size();
+    StringUtil.appendPlaceholders(_stringBuilder, _inputSize);
+    _stringBuilder.append(")");
+    final String _sql = _stringBuilder.toString();
+    final int _argCount = 0 + _inputSize;
+    final RoomSQLiteQuery _stmt = RoomSQLiteQuery.acquire(_sql, _argCount);
+    int _argIndex = 1;
+    for (int i = 0; i < _map.size(); i++) {
+      final long _item = _map.keyAt(i);
+      _stmt.bindLong(_argIndex, _item);
+      _argIndex++;
+    }
+    final Cursor _cursor = DBUtil.query(__db, _stmt, false, null);
+    try {
+      final int _itemKeyIndex = CursorUtil.getColumnIndex(_cursor, "to_note_id");
+      if (_itemKeyIndex == -1) {
+        return;
+      }
+      final int _cursorIndexOfId = 0;
+      final int _cursorIndexOfFromNoteId = 1;
+      final int _cursorIndexOfToNoteId = 2;
+      final int _cursorIndexOfMentionText = 3;
+      final int _cursorIndexOfCreatedAt = 4;
+      while (_cursor.moveToNext()) {
+        final long _tmpKey;
+        _tmpKey = _cursor.getLong(_itemKeyIndex);
+        final ArrayList<NoteRelationEntity> _tmpRelation = _map.get(_tmpKey);
+        if (_tmpRelation != null) {
+          final NoteRelationEntity _item_1;
+          final long _tmpId;
+          _tmpId = _cursor.getLong(_cursorIndexOfId);
+          final long _tmpFromNoteId;
+          _tmpFromNoteId = _cursor.getLong(_cursorIndexOfFromNoteId);
+          final long _tmpToNoteId;
+          _tmpToNoteId = _cursor.getLong(_cursorIndexOfToNoteId);
+          final String _tmpMentionText;
+          _tmpMentionText = _cursor.getString(_cursorIndexOfMentionText);
+          final Instant _tmpCreatedAt;
+          final Long _tmp;
+          if (_cursor.isNull(_cursorIndexOfCreatedAt)) {
+            _tmp = null;
+          } else {
+            _tmp = _cursor.getLong(_cursorIndexOfCreatedAt);
+          }
+          final Instant _tmp_1 = __converters.fromTimestamp(_tmp);
+          if (_tmp_1 == null) {
+            throw new IllegalStateException("Expected NON-NULL 'java.time.Instant', but it was NULL.");
+          } else {
+            _tmpCreatedAt = _tmp_1;
+          }
+          _item_1 = new NoteRelationEntity(_tmpId,_tmpFromNoteId,_tmpToNoteId,_tmpMentionText,_tmpCreatedAt);
           _tmpRelation.add(_item_1);
         }
       }

@@ -1,18 +1,23 @@
 package com.witte.lozify.presentation.editor
 
 import android.net.Uri
+import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.repository.AttachmentRepository
+import com.witte.lozify.domain.repository.NoteRelationRepository
 import com.witte.lozify.domain.repository.NoteRepository
 import com.witte.lozify.domain.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.time.Instant
@@ -26,12 +31,14 @@ import javax.inject.Inject
  *
  * Stage 4: Integrated automatic #tag extraction and database persistence.
  * Stage 6: Integrated image attachment handling with AttachmentRepository.
+ * Stage 9 Refactor: Upgraded to TextFieldValue + activeFormats for WYSIWYG editing.
  */
 @HiltViewModel
 class EditorViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val tagRepository: TagRepository,
-    private val attachmentRepository: AttachmentRepository
+    private val attachmentRepository: AttachmentRepository,
+    private val noteRelationRepository: NoteRelationRepository
 ) : ViewModel() {
 
     /**
@@ -46,17 +53,46 @@ class EditorViewModel @Inject constructor(
     val events: SharedFlow<EditorEvent> = _events.asSharedFlow()
 
     /**
+     * Active formatting states for WYSIWYG editing.
+     * When a format is in this set, newly typed text will have that format applied.
+     */
+    private val _activeFormats = MutableStateFlow<Set<RichTextUtils.FormatType>>(emptySet())
+    val activeFormats: StateFlow<Set<RichTextUtils.FormatType>> = _activeFormats.asStateFlow()
+
+    /**
+     * Toggle a format in the active formats set.
+     * Used by toolbar buttons to lock/unlock formatting modes.
+     */
+    fun toggleFormat(formatType: RichTextUtils.FormatType) {
+        _activeFormats.value = if (_activeFormats.value.contains(formatType)) {
+            _activeFormats.value - formatType
+        } else {
+            _activeFormats.value + formatType
+        }
+    }
+
+    /**
+     * Clear all active formats.
+     * Called when editor is dismissed or note is saved.
+     */
+    fun clearActiveFormats() {
+        _activeFormats.value = emptySet()
+    }
+
+    /**
      * Save a new note to the database with automatic tag extraction.
      *
      * Stage 4: Extracts all #tags from content, creates/links them to note.
      * Stage 5: Added noteId parameter for updating existing notes.
      * Stage 6: Added imageUris parameter for image attachment handling.
+     * Stage 9 Refactor: Now accepts TextFieldValue instead of plain String.
      *
-     * @param content The note content text
+     * @param textFieldValue The note content as TextFieldValue
      * @param imageUris List of selected image URIs to attach
      * @param noteId Optional note ID for editing (null for new note)
      */
-    fun saveNote(content: String, imageUris: List<Uri> = emptyList(), noteId: Long? = null) {
+    fun saveNote(textFieldValue: TextFieldValue, imageUris: List<Uri> = emptyList(), noteId: Long? = null) {
+        val content = textFieldValue.text
         if (content.isBlank()) {
             return
         }
@@ -79,12 +115,25 @@ class EditorViewModel @Inject constructor(
                     )
                 }
 
+                // Stage 8: Extract @mentions from content
+                val mentions = RichTextUtils.extractMentionsFromContent(content)
+
                 if (noteId != null) {
                     // Stage 5: Update existing note
                     val existingNote = noteRepository.getNoteById(noteId).first()
                     existingNote?.let { note ->
                         // Stage 7 Bug Fix: Clear old tag associations before setting new ones
                         tagRepository.setTagsForNote(noteId, tags.map { it.id })
+
+                        // Stage 8: Clear old relations and insert new ones
+                        noteRelationRepository.deleteRelationsForNote(noteId)
+                        mentions.forEach { (toNoteId, mentionText) ->
+                            noteRelationRepository.addRelation(
+                                fromNoteId = noteId,
+                                toNoteId = toNoteId,
+                                mentionText = mentionText
+                            )
+                        }
 
                         val updatedNote = note.copy(
                             content = content.trim(),
@@ -111,6 +160,15 @@ class EditorViewModel @Inject constructor(
 
                     val newNoteId = noteRepository.insertNote(note)
 
+                    // Stage 8: Insert mention relations for new note
+                    mentions.forEach { (toNoteId, mentionText) ->
+                        noteRelationRepository.addRelation(
+                            fromNoteId = newNoteId,
+                            toNoteId = toNoteId,
+                            mentionText = mentionText
+                        )
+                    }
+
                     // Stage 6: Process image attachments with error handling
                     imageUris.forEach { uri ->
                         try {
@@ -123,6 +181,9 @@ class EditorViewModel @Inject constructor(
 
                     _events.emit(EditorEvent.NoteSaved(newNoteId, tags.size))
                 }
+
+                // Clear active formats after successful save
+                clearActiveFormats()
             } catch (e: Exception) {
                 _events.emit(EditorEvent.SaveError(e.message ?: "保存失败"))
             }

@@ -7,6 +7,7 @@ import com.witte.lozify.domain.model.Note
  * Mapper extensions for NoteWithTagsAndAttachments to Domain Model.
  *
  * Stage 6 Fix: Clean mapper for Room @Relation pattern.
+ * Stage 8 Fix: Added mapping for outgoingRelations and incomingRelations.
  */
 
 /**
@@ -15,7 +16,9 @@ import com.witte.lozify.domain.model.Note
 fun NoteWithTagsAndAttachments.toDomainModel(): Note {
     return note.toDomainModel().copy(
         tags = tags.toDomainModels(),
-        attachments = attachments.toDomainModels()
+        attachments = attachments.toDomainModels(),
+        outgoingRelations = outgoingRelations.toDomainModels(),
+        incomingRelations = incomingRelations.toDomainModels()
     )
 }
 

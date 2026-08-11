@@ -331,15 +331,17 @@ fun HomeScreen(
     if (showEditor) {
         NoteEditorBottomSheet(
             sheetState = editorSheetState,
+            viewModel = editorViewModel,
             onDismiss = {
                 showEditor = false
                 editingNoteId = null
                 editingNoteContent = null
             },
-            onSave = { content, imageUris ->
+            onSave = { textFieldValue, imageUris ->
                 // Stage 5: Support both create and update
                 // Stage 6: Pass image URIs to ViewModel
-                editorViewModel.saveNote(content, imageUris, editingNoteId)
+                // Stage 9 Refactor: Now receives TextFieldValue instead of String
+                editorViewModel.saveNote(textFieldValue, imageUris, editingNoteId)
             },
             initialContent = editingNoteContent,
             allNotes = uiState.notes,

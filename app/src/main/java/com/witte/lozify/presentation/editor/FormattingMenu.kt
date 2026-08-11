@@ -24,18 +24,19 @@ import androidx.compose.ui.unit.sp
  * FormattingMenu - More options menu for advanced formatting.
  *
  * Stage 7: Bottom sheet with additional formatting actions.
+ * Stage 9 Refactor: Added checkbox option, updated for format lock support.
  *
  * Menu Items:
- * - Underline: Apply __text__ formatting
- * - Highlight: Apply ==text== formatting (yellow background)
+ * - Underline: Apply __text__ formatting or toggle format lock
+ * - Highlight: Apply ==text== formatting or toggle format lock
+ * - Checkbox: Insert checkbox list item
  * - Undo: Revert last change (MVP: placeholder)
  * - Redo: Reapply undone change (MVP: placeholder)
- *
- * Note: Using Text icons instead of extended material icons to avoid dependency bloat.
  *
  * @param onDismiss Callback when menu is dismissed
  * @param onUnderlineClick Callback when underline is selected
  * @param onHighlightClick Callback when highlight is selected
+ * @param onCheckboxClick Callback when checkbox is selected
  * @param onUndoClick Callback when undo is selected
  * @param onRedoClick Callback when redo is selected
  */
@@ -45,6 +46,7 @@ fun FormattingMenu(
     onDismiss: () -> Unit,
     onUnderlineClick: () -> Unit,
     onHighlightClick: () -> Unit,
+    onCheckboxClick: () -> Unit,
     onUndoClick: () -> Unit,
     onRedoClick: () -> Unit
 ) {
@@ -72,7 +74,7 @@ fun FormattingMenu(
             FormattingMenuItem(
                 iconText = "U",
                 label = "下划线",
-                description = "为选中文字添加下划线",
+                description = "为选中文字添加下划线或锁定格式",
                 onClick = {
                     onUnderlineClick()
                     onDismiss()
@@ -83,9 +85,20 @@ fun FormattingMenu(
             FormattingMenuItem(
                 iconText = "H",
                 label = "高亮",
-                description = "添加黄色背景高亮",
+                description = "添加黄色背景高亮或锁定格式",
                 onClick = {
                     onHighlightClick()
+                    onDismiss()
+                }
+            )
+
+            // Checkbox option
+            FormattingMenuItem(
+                iconText = "☐",
+                label = "待办事项",
+                description = "插入可勾选的复选框",
+                onClick = {
+                    onCheckboxClick()
                     onDismiss()
                 }
             )

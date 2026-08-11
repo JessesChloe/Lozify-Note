@@ -3,6 +3,7 @@ package com.witte.lozify.data.repository
 import com.witte.lozify.data.local.dao.NoteDao
 import com.witte.lozify.data.local.dao.TagDao
 import com.witte.lozify.domain.repository.AttachmentRepository
+import com.witte.lozify.domain.repository.NoteRelationRepository
 import com.witte.lozify.domain.repository.NoteRepository
 import com.witte.lozify.domain.repository.TagRepository
 import dagger.Binds
@@ -18,6 +19,7 @@ import javax.inject.Singleton
  * interface is requested for dependency injection.
  *
  * Stage 6: Added AttachmentRepository binding.
+ * Stage 8: Added NoteRelationRepository binding.
  */
 @Module
 @InstallIn(SingletonComponent::class)
@@ -40,4 +42,10 @@ abstract class RepositoryModule {
     abstract fun bindAttachmentRepository(
         attachmentRepositoryImpl: AttachmentRepositoryImpl
     ): AttachmentRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindNoteRelationRepository(
+        noteRelationRepositoryImpl: NoteRelationRepositoryImpl
+    ): NoteRelationRepository
 }
