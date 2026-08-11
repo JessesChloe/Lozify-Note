@@ -202,10 +202,10 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **2** | Basic Display | ✅ Completed | 2026-08-07 | 2026-08-07 | NoteCard, HomeScreen, FAB, expand/collapse interaction |
 | **3** | Editor Foundation | ✅ Completed | 2026-08-07 | 2026-08-07 | ViewModel, ModalBottomSheet editor, Room integration, EmptyState |
 | **4** | Tag System | ✅ Completed | 2026-08-08 | 2026-08-08 | #tag parsing, blue highlight, tag extraction, database integration, filter bug fix |
-| **5** | Tag Filtering | ⚪ Not Started | - | - | Side drawer, tag list, feed filtering by tag |
+| **5** | Tag Filtering | ✅ Completed | 2026-08-08 | 2026-08-08 | Real-time search, tag filter bar, pin/edit/delete operations |
 | **6** | Multi-Image | ✅ Completed | 2026-08-08 | 2026-08-10 | Image picker, compression, 3-column grid, AttachmentEntity integration, OOM fix, nested layout fix |
-| **7** | Rich Formatting | ⚪ Not Started | - | - | Bold, underline, highlight, checkboxes, AnnotatedString rendering |
-| **8** | @Relations | ⚪ Not Started | - | - | Note picker, @mention rendering, navigation, NoteRelationEntity |
+| **7** | Rich Formatting | ✅ Completed | 2026-08-10 | 2026-08-10 | Bold, underline, highlight, interactive checkboxes, AnnotatedString rendering, multiline regex fix |
+| **8** | @Relations | ✅ Completed | 2026-08-10 | 2026-08-11 | @mention parsing, NoteRelationEntity, bidirectional links, relation tracing UI, scroll+highlight interaction |
 | **9** | Card Operations | ⚪ Not Started | - | - | Share/edit/copy/delete menu, placeholder toasts |
 | **10** | Polish | ⚪ Not Started | - | - | Empty states, error handling, accessibility, final testing |
 
