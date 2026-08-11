@@ -28,8 +28,7 @@ object RichTextUtils {
 
     private val HighlightYellow = Color(0xFFFFF3C4)
     private val TagBlue = Color(0xFF4C88FF)
-    private val MentionBlue = Color(0xFF1976D2)
-    private val MentionBackground = Color(0xFFE3F2FD)
+    private val MentionBlue = Color(0xFF4C88FF)  // Bug Fix: Changed to link blue, removed background
     private val CheckboxGreen = Color(0xFF00C853)
     private val CheckboxGray = Color(0xFF9CA3AF)
 
@@ -75,16 +74,23 @@ object RichTextUtils {
             val markerPositions = mutableListOf<MarkerPosition>()
 
             // Find @mention markers (Stage 8: @[text](note:id) format)
-            Regex("""@\[([^\]]+)\]\(note:(\d+)\)""").findAll(processedContent).forEach { match ->
+            // Bug Fix: Use stricter regex to handle brackets inside mention text (e.g., "- [ ] task")
+            Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""").findAll(processedContent).forEach { match ->
                 val mentionText = match.groupValues[1]
                 val noteId = match.groupValues[2].toLongOrNull()
-                // Opening: "@[" (2 chars), Closing: "](note:X)" (variable length)
-                markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
-                markerPositions.add(MarkerPosition(match.range.first + 2 + mentionText.length, match.range.last + 1, MarkerType.CLOSE))
-                // Track content range for mention styling
+                // Opening: "@[" (2 chars)
+                val openStart = match.range.first
+                val openEnd = match.range.first + 2
+                // Closing: "](note:X)" starts after mentionText
+                val closeStart = match.range.first + 2 + mentionText.length
+                val closeEnd = match.range.last + 1
+
+                markerPositions.add(MarkerPosition(openStart, openEnd, MarkerType.OPEN))
+                markerPositions.add(MarkerPosition(closeStart, closeEnd, MarkerType.CLOSE))
+                // Track content range for mention styling (only the mentionText part)
                 markerPositions.add(MarkerPosition(
-                    match.range.first,
-                    match.range.last + 1,
+                    openEnd,
+                    closeStart,
                     MarkerType.STYLE,
                     FormatType.MENTION,
                     noteId
@@ -120,14 +126,19 @@ object RichTextUtils {
 
             var i = 0
             while (i < processedContent.length) {
+                // Map current position before any operation
+                positionMap[i] = cleanText.length
+
                 // Check if current position is a marker to skip
                 val markerToSkip = markerRanges.firstOrNull { it.start == i }
                 if (markerToSkip != null) {
-                    // Skip marker symbols
+                    // Skip marker symbols, but map all positions within the marker
+                    for (j in i until markerToSkip.end) {
+                        positionMap[j] = cleanText.length
+                    }
                     i = markerToSkip.end
                 } else {
                     // Copy character to clean text
-                    positionMap[i] = cleanText.length
                     cleanText.append(processedContent[i])
                     i++
                 }
@@ -145,18 +156,18 @@ object RichTextUtils {
             styleMarkers.forEach { marker ->
                 // Map original content range to clean text range
                 val cleanStart = positionMap[marker.start] ?: 0
-                val cleanEnd = positionMap[marker.end] ?: cleanText.length
+                // Bug Fix: Use marker.end directly if mapped, but clamp to finalText.length
+                val mappedEnd = positionMap[marker.end] ?: cleanText.length
+                val cleanEnd = minOf(mappedEnd, finalText.length)
 
-                // Ensure valid range
-                if (cleanStart < cleanEnd && cleanEnd <= finalText.length) {
+                // Ensure valid range and prevent overflow
+                if (cleanStart >= 0 && cleanStart < cleanEnd && cleanEnd <= finalText.length) {
                     val style = when (marker.formatType) {
                         FormatType.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
                         FormatType.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
                         FormatType.HIGHLIGHT -> SpanStyle(background = HighlightYellow)
                         FormatType.MENTION -> SpanStyle(
-                            color = MentionBlue,
-                            background = MentionBackground,
-                            fontWeight = FontWeight.Medium
+                            color = MentionBlue  // Bug Fix: Removed background, only blue color
                         )
                         else -> null
                     }
@@ -314,17 +325,19 @@ object RichTextUtils {
      * Used for plain text export or clipboard copy.
      *
      * Stage 8: Added @mention marker stripping.
+     * Bug Fix: Use stricter regex to handle brackets inside mention text.
      *
      * @param content Formatted text with Markdown markers
      * @return Plain text without markers
      */
     fun stripFormatting(content: String): String {
         return content
-            .replace(Regex("""@\[([^\]]+)\]\(note:\d+\)"""), "@$1")  // @mention → @text
+            .replace(Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)"""), "$1")  // @mention → text only
             .replace(Regex("""\*\*(?s)(.+?)\*\*"""), "$1")  // Bold (DOTALL mode)
             .replace(Regex("""__(?s)(.+?)__"""), "$1")      // Underline (DOTALL mode)
             .replace(Regex("""==(?s)(.+?)=="""), "$1")      // Highlight (DOTALL mode)
-            .replace(Regex("""^- \[([ x])\] """, RegexOption.MULTILINE), "") // Checkbox
+            .replace(Regex("""^\s*- \[([ x])\] """, RegexOption.MULTILINE), "")  // Checkbox with optional leading spaces
+            .trim()  // Remove leading/trailing whitespace
     }
 
     /**
@@ -333,13 +346,14 @@ object RichTextUtils {
      * Used for analytics or debugging.
      *
      * Stage 8: Added @mention counting.
+     * Bug Fix: Use stricter regex to handle brackets inside mention text.
      */
     fun countFormatting(content: String): Map<FormatType, Int> {
         return mapOf(
             FormatType.BOLD to Regex("""\*\*(?s)(.+?)\*\*""").findAll(content).count(),
             FormatType.UNDERLINE to Regex("""__(?s)(.+?)__""").findAll(content).count(),
             FormatType.HIGHLIGHT to Regex("""==(?s)(.+?)==""").findAll(content).count(),
-            FormatType.MENTION to Regex("""@\[([^\]]+)\]\(note:\d+\)""").findAll(content).count(),
+            FormatType.MENTION to Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)""").findAll(content).count(),
             FormatType.CHECKBOX_UNCHECKED to Regex("""^- \[ \]""", RegexOption.MULTILINE).findAll(content).count(),
             FormatType.CHECKBOX_CHECKED to Regex("""^- \[x\]""", RegexOption.MULTILINE).findAll(content).count()
         )
@@ -349,12 +363,13 @@ object RichTextUtils {
      * Extract all @mentions from content and return list of (noteId, mentionText).
      *
      * Stage 8: Used by EditorViewModel to save NoteRelation records.
+     * Bug Fix: Use stricter regex to handle brackets inside mention text.
      *
      * @param content Raw note content with @mention markers
      * @return List of pairs (noteId, mentionText) for all mentions found
      */
     fun extractMentionsFromContent(content: String): List<Pair<Long, String>> {
-        val mentionPattern = Regex("""@\[([^\]]+)\]\(note:(\d+)\)""")
+        val mentionPattern = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""")
         return mentionPattern.findAll(content).mapNotNull { match ->
             val mentionText = match.groupValues[1]
             val noteId = match.groupValues[2].toLongOrNull()

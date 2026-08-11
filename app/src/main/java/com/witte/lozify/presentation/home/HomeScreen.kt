@@ -93,8 +93,8 @@ fun HomeScreen(
     // Stage 8: Highlight state for @mention navigation
     var highlightedNoteId by remember { mutableStateOf<Long?>(null) }
 
-    // Stage 8: Relations dialog state
-    var showRelationsDialog by remember { mutableStateOf<Pair<String, List<NoteRelation>>?>(null) }
+    // Stage 8 UX Refactor: Note detail dialog state (replaces relations dialog)
+    var showNoteDetail by remember { mutableStateOf<Long?>(null) }
 
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
@@ -302,20 +302,15 @@ fun HomeScreen(
                                     tag?.let { homeViewModel.selectTag(it.id) }
                                 },
                                 onMentionClick = { mentionedNoteId ->
-                                    // Stage 8: Scroll to mentioned note and highlight it
-                                    scope.launch {
-                                        val targetIndex = uiState.notes.indexOfFirst { it.id == mentionedNoteId }
-                                        if (targetIndex != -1) {
-                                            listState.animateScrollToItem(targetIndex)
-                                            highlightedNoteId = mentionedNoteId
-                                        } else {
-                                            snackbarHostState.showSnackbar("目标笔记不存在或已删除")
-                                        }
-                                    }
+                                    // Stage 8 UX Refactor: Show note detail instead of scrolling
+                                    showNoteDetail = mentionedNoteId
                                 },
                                 onRelationsClick = { relations: List<NoteRelation>, title: String ->
-                                    // Stage 8: Show relations dialog
-                                    showRelationsDialog = Pair(title, relations)
+                                    // Stage 8 UX Refactor: Show first relation's note detail
+                                    if (relations.isNotEmpty()) {
+                                        val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
+                                        showNoteDetail = targetNoteId
+                                    }
                                 },
                                 outgoingRelations = note.outgoingRelations,
                                 incomingRelations = note.incomingRelations
@@ -349,84 +344,21 @@ fun HomeScreen(
         )
     }
 
-    // Stage 8: Relations dialog
-    showRelationsDialog?.let { (title: String, relations: List<NoteRelation>) ->
-        ModalBottomSheet(
-            onDismissRequest = { showRelationsDialog = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-
-                if (relations.isEmpty()) {
-                    Text(
-                        text = "暂无关联笔记",
-                        fontSize = 14.sp,
-                        color = Color(0xFF999999),
-                        modifier = Modifier.padding(vertical = 16.dp)
-                    )
-                } else {
-                    LazyColumn(
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(relations) { relation: NoteRelation ->
-                            val targetNoteId = if (title == "出链列表") relation.toNoteId else relation.fromNoteId
-                            val targetNote = uiState.notes.find { it.id == targetNoteId }
-
-                            Surface(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        showRelationsDialog = null
-                                        scope.launch {
-                                            val targetIndex = uiState.notes.indexOfFirst { it.id == targetNoteId }
-                                            if (targetIndex != -1) {
-                                                listState.animateScrollToItem(targetIndex)
-                                                highlightedNoteId = targetNoteId
-                                            } else {
-                                                snackbarHostState.showSnackbar("目标笔记不存在或已删除")
-                                            }
-                                        }
-                                    },
-                                shape = RoundedCornerShape(8.dp),
-                                color = Color(0xFFF5F5F5)
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(12.dp)
-                                ) {
-                                    Text(
-                                        text = relation.mentionText,
-                                        fontSize = 14.sp,
-                                        fontWeight = FontWeight.Medium,
-                                        color = Color(0xFF4C88FF)
-                                    )
-                                    targetNote?.let { note ->
-                                        Text(
-                                            text = note.content.take(50) + if (note.content.length > 50) "..." else "",
-                                            fontSize = 12.sp,
-                                            color = Color(0xFF666666),
-                                            modifier = Modifier.padding(top = 4.dp),
-                                            maxLines = 2,
-                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
+    // Stage 8 UX Refactor: Note detail bottom sheet
+    showNoteDetail?.let { noteId ->
+        val targetNote = uiState.notes.find { it.id == noteId }
+        if (targetNote != null) {
+            NoteDetailBottomSheet(
+                note = targetNote,
+                filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+                onDismiss = { showNoteDetail = null }
+            )
+        } else {
+            // Note not found, dismiss and show snackbar
+            LaunchedEffect(Unit) {
+                showNoteDetail = null
+                snackbarHostState.showSnackbar("目标笔记不存在或已删除")
             }
         }
     }

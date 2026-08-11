@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -58,6 +59,7 @@ import java.io.File
  * Stage 7: Enhanced with full rich text formatting support (bold, underline, highlight, checkbox).
  * Stage 7 Bug Fix: Added interactive checkbox support - clicking checkbox updates note content.
  * Stage 8: Added @mention click support and relation count display.
+ * Stage 8 UX Refactor: Changed relation display to Flomo-style "关联自" format with preview.
  *
  * @param noteId The note ID for checkbox updates
  * @param content The note content text
@@ -73,6 +75,7 @@ import java.io.File
  * @param onCheckboxToggle Callback when checkbox is toggled (noteId, newContent)
  * @param onTagClick Optional callback when a tag is clicked (tag name without #)
  * @param onMentionClick Optional callback when a mention is clicked (note ID)
+ * @param hideOperations Whether to hide the dropdown menu (used in detail view)
  */
 @Composable
 fun NoteCard(
@@ -94,6 +97,7 @@ fun NoteCard(
     onTagClick: ((String) -> Unit)? = null,
     onMentionClick: ((Long) -> Unit)? = null,
     onRelationsClick: ((List<NoteRelation>, String) -> Unit)? = null,
+    hideOperations: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -140,10 +144,9 @@ fun NoteCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(if (isHighlighted) Color(0xFFE3F2FD) else Color.White)
-            .padding(16.dp)
     ) {
         Column(
-            verticalArrangement = Arrangement.spacedBy(8.dp)
+            modifier = Modifier.padding(16.dp)
         ) {
             // Header: Pinned indicator + Timestamp + More Icon with Menu
             Row(
@@ -170,70 +173,75 @@ fun NoteCard(
                 }
 
                 Box {
-                    IconButton(
-                        onClick = { showMenu = true },
-                        modifier = Modifier.padding(0.dp)
-                    ) {
-                        Icon(
-                            painter = painterResource(android.R.drawable.ic_menu_more),
-                            contentDescription = "更多操作",
-                            tint = Color(0xFF999999)
-                        )
-                    }
+                    // Only show dropdown menu if not in detail view
+                    if (!hideOperations) {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.padding(0.dp)
+                        ) {
+                            Icon(
+                                painter = painterResource(android.R.drawable.ic_menu_more),
+                                contentDescription = "更多操作",
+                                tint = Color(0xFF999999)
+                            )
+                        }
 
-                    // Stage 5: Dropdown menu for card operations
-                    DropdownMenu(
-                        expanded = showMenu,
-                        onDismissRequest = { showMenu = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = if (isPinned) "📌" else "📍")
-                                    Text(text = if (isPinned) "取消置顶" else "置顶")
+                        // Stage 5: Dropdown menu for card operations
+                        DropdownMenu(
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = if (isPinned) "📌" else "📍")
+                                        Text(text = if (isPinned) "取消置顶" else "置顶")
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onTogglePinClick()
                                 }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onTogglePinClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = "✏️")
-                                    Text(text = "编辑")
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = "✏️")
+                                        Text(text = "编辑")
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onEditClick()
                                 }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onEditClick()
-                            }
-                        )
-                        DropdownMenuItem(
-                            text = {
-                                Row(
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(text = "🗑️")
-                                    Text(text = "删除")
+                            )
+                            DropdownMenuItem(
+                                text = {
+                                    Row(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(text = "🗑️")
+                                        Text(text = "删除")
+                                    }
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    onDeleteClick()
                                 }
-                            },
-                            onClick = {
-                                showMenu = false
-                                onDeleteClick()
-                            }
-                        )
+                            )
+                        }
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(12.dp))
 
             // Content with tag highlighting and expand/collapse logic
             Column {
@@ -327,11 +335,11 @@ fun NoteCard(
 
             // Stage 6: Image attachments in 3-column grid (non-scrolling)
             if (attachments.isNotEmpty() && filesDir != null) {
+                Spacer(modifier = Modifier.height(12.dp))
+
                 Column(
                     verticalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(top = 8.dp)
+                    modifier = Modifier.fillMaxWidth()
                 ) {
                     // Chunk attachments into rows of 3
                     attachments.chunked(3).forEach { rowAttachments ->
@@ -360,40 +368,49 @@ fun NoteCard(
                 }
             }
 
-            // Stage 8: Display relation counts at the bottom (clickable)
-            val totalRelations = outgoingRelationsCount + incomingRelationsCount
-            if (totalRelations > 0) {
+            // Stage 8 UX Refactor: Flomo-style relation display with preview
+            // Show "关联自" section only if not in detail view and has incoming relations
+            if (!hideOperations && incomingRelationsCount > 0 && incomingRelations.isNotEmpty()) {
+                Spacer(modifier = Modifier.height(12.dp))
+
+                // Divider line
+                Spacer(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(1.dp)
+                        .background(Color(0xFFE0E0E0))
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Get first incoming relation
+                val firstIncoming = incomingRelations.first()
+
+                // "关联自：[笔记标题] ▶"
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 8.dp),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                        .clickable {
+                            onRelationsClick?.invoke(incomingRelations, "反链列表")
+                        }
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    if (outgoingRelationsCount > 0) {
-                        Text(
-                            text = "🔗 $outgoingRelationsCount 个引用",
-                            fontSize = 11.sp,
-                            color = Color(0xFF4C88FF),
-                            modifier = Modifier
-                                .clickable {
-                                    onRelationsClick?.invoke(outgoingRelations, "出链列表")
-                                }
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
-                    if (incomingRelationsCount > 0) {
-                        Text(
-                            text = "🔙 $incomingRelationsCount 个反链",
-                            fontSize = 11.sp,
-                            color = Color(0xFF4C88FF),
-                            modifier = Modifier
-                                .clickable {
-                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
-                                }
-                                .padding(vertical = 4.dp, horizontal = 8.dp)
-                        )
-                    }
+                    Text(
+                        text = "关联自：",
+                        fontSize = 12.sp,
+                        color = Color(0xFF888888)
+                    )
+                    // Display cleaned mention text
+                    Text(
+                        text = "${firstIncoming.mentionText} ▶",
+                        fontSize = 12.sp,
+                        color = Color(0xFF4C88FF),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
                 }
             }
         }
