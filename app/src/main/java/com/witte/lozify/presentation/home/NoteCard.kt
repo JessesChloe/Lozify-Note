@@ -39,6 +39,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import coil.compose.AsyncImage
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Attachment
+import com.witte.lozify.domain.model.NoteRelation
 import java.io.File
 
 /**
@@ -56,18 +57,22 @@ import java.io.File
  * Stage 6: Added image attachments rendering in 3-column grid below content.
  * Stage 7: Enhanced with full rich text formatting support (bold, underline, highlight, checkbox).
  * Stage 7 Bug Fix: Added interactive checkbox support - clicking checkbox updates note content.
+ * Stage 8: Added @mention click support and relation count display.
  *
  * @param noteId The note ID for checkbox updates
  * @param content The note content text
  * @param timestamp Display timestamp (e.g., "2分钟前")
  * @param isPinned Whether the note is pinned
  * @param attachments List of image attachments to display
+ * @param outgoingRelationsCount Number of outgoing relations (notes this note mentions)
+ * @param incomingRelationsCount Number of incoming relations (notes that mention this note)
  * @param filesDir Application files directory for resolving image paths
  * @param onTogglePinClick Callback when pin/unpin is clicked
  * @param onEditClick Callback when edit is clicked
  * @param onDeleteClick Callback when delete is clicked
  * @param onCheckboxToggle Callback when checkbox is toggled (noteId, newContent)
  * @param onTagClick Optional callback when a tag is clicked (tag name without #)
+ * @param onMentionClick Optional callback when a mention is clicked (note ID)
  */
 @Composable
 fun NoteCard(
@@ -76,12 +81,19 @@ fun NoteCard(
     timestamp: String,
     isPinned: Boolean = false,
     attachments: List<Attachment> = emptyList(),
+    outgoingRelationsCount: Int = 0,
+    incomingRelationsCount: Int = 0,
+    outgoingRelations: List<NoteRelation> = emptyList(),
+    incomingRelations: List<NoteRelation> = emptyList(),
+    isHighlighted: Boolean = false,
     filesDir: File? = null,
     onTogglePinClick: () -> Unit,
     onEditClick: () -> Unit,
     onDeleteClick: () -> Unit,
     onCheckboxToggle: (Long, String) -> Unit,
     onTagClick: ((String) -> Unit)? = null,
+    onMentionClick: ((Long) -> Unit)? = null,
+    onRelationsClick: ((List<NoteRelation>, String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
@@ -118,7 +130,8 @@ fun NoteCard(
         RichTextUtils.buildAnnotatedStringWithFormatting(
             content = nonCheckboxContent,
             tagColor = Color(0xFF4C88FF),
-            onTagClick = onTagClick
+            onTagClick = onTagClick,
+            onMentionClick = onMentionClick
         )
     }
 
@@ -126,7 +139,7 @@ fun NoteCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(Color.White)
+            .background(if (isHighlighted) Color(0xFFE3F2FD) else Color.White)
             .padding(16.dp)
     ) {
         Column(
@@ -281,10 +294,16 @@ fun NoteCard(
                             }
                         },
                         onClick = { offset ->
-                            // Handle tag clicks if callback provided
+                            // Stage 4: Handle tag clicks if callback provided
                             onTagClick?.let { callback ->
                                 RichTextUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
                                     callback(tagName)
+                                }
+                            }
+                            // Stage 8: Handle @mention clicks if callback provided
+                            onMentionClick?.let { callback ->
+                                RichTextUtils.getMentionAtOffset(annotatedContent, offset)?.let { noteId ->
+                                    callback(noteId)
                                 }
                             }
                         },
@@ -337,6 +356,43 @@ fun NoteCard(
                                 Spacer(modifier = Modifier.weight(1f))
                             }
                         }
+                    }
+                }
+            }
+
+            // Stage 8: Display relation counts at the bottom (clickable)
+            val totalRelations = outgoingRelationsCount + incomingRelationsCount
+            if (totalRelations > 0) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    if (outgoingRelationsCount > 0) {
+                        Text(
+                            text = "🔗 $outgoingRelationsCount 个引用",
+                            fontSize = 11.sp,
+                            color = Color(0xFF4C88FF),
+                            modifier = Modifier
+                                .clickable {
+                                    onRelationsClick?.invoke(outgoingRelations, "出链列表")
+                                }
+                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                        )
+                    }
+                    if (incomingRelationsCount > 0) {
+                        Text(
+                            text = "🔙 $incomingRelationsCount 个反链",
+                            fontSize = 11.sp,
+                            color = Color(0xFF4C88FF),
+                            modifier = Modifier
+                                .clickable {
+                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
+                                }
+                                .padding(vertical = 4.dp, horizontal = 8.dp)
+                        )
                     }
                 }
             }

@@ -1,6 +1,7 @@
 package com.witte.lozify.presentation.home
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -13,6 +14,9 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Search
@@ -20,9 +24,11 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -47,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.witte.lozify.presentation.editor.EditorViewModel
 import com.witte.lozify.presentation.editor.NoteEditorBottomSheet
+import com.witte.lozify.domain.model.NoteRelation
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.Instant
@@ -70,9 +77,16 @@ fun HomeScreen(
     val uiState by homeViewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
+    val listState = rememberLazyListState()
 
     // Stage 5: Search state
     var isSearchActive by remember { mutableStateOf(false) }
+
+    // Stage 8: Highlight state for @mention navigation
+    var highlightedNoteId by remember { mutableStateOf<Long?>(null) }
+
+    // Stage 8: Relations dialog state
+    var showRelationsDialog by remember { mutableStateOf<Pair<String, List<NoteRelation>>?>(null) }
 
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
@@ -91,11 +105,27 @@ fun HomeScreen(
                         "笔记已保存"
                     }
                     snackbarHostState.showSnackbar(message)
+                    // Stage 8: Auto-scroll to top after saving new note
+                    // Add small delay to wait for Room Flow to update UI
+                    if (editingNoteId == null) {
+                        scope.launch {
+                            kotlinx.coroutines.delay(150)
+                            listState.animateScrollToItem(0)
+                        }
+                    }
                 }
                 is EditorViewModel.EditorEvent.SaveError -> {
                     snackbarHostState.showSnackbar("保存失败: ${event.message}")
                 }
             }
+        }
+    }
+
+    // Stage 8: Auto-clear highlight after 3 seconds
+    LaunchedEffect(highlightedNoteId) {
+        highlightedNoteId?.let {
+            kotlinx.coroutines.delay(3000)
+            highlightedNoteId = null
         }
     }
 
@@ -238,17 +268,21 @@ fun HomeScreen(
                 }
                 else -> {
                     LazyColumn(
+                        state = listState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        items(uiState.notes, key = { it.id }) { note ->
+                        itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
                             NoteCard(
                                 noteId = note.id,
                                 content = note.content,
                                 timestamp = formatTimestamp(note.createdAt),
                                 isPinned = note.isPinned,
                                 attachments = note.attachments,
+                                outgoingRelationsCount = note.outgoingRelations.size,
+                                incomingRelationsCount = note.incomingRelations.size,
+                                isHighlighted = note.id == highlightedNoteId,
                                 filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
                                 onTogglePinClick = {
                                     homeViewModel.togglePinStatus(note.id, note.isPinned)
@@ -274,7 +308,25 @@ fun HomeScreen(
                                     // Stage 4: Filter by clicked tag
                                     val tag = uiState.allTags.find { it.name == tagName }
                                     tag?.let { homeViewModel.selectTag(it.id) }
-                                }
+                                },
+                                onMentionClick = { mentionedNoteId ->
+                                    // Stage 8: Scroll to mentioned note and highlight it
+                                    scope.launch {
+                                        val targetIndex = uiState.notes.indexOfFirst { it.id == mentionedNoteId }
+                                        if (targetIndex != -1) {
+                                            listState.animateScrollToItem(targetIndex)
+                                            highlightedNoteId = mentionedNoteId
+                                        } else {
+                                            snackbarHostState.showSnackbar("目标笔记不存在或已删除")
+                                        }
+                                    }
+                                },
+                                onRelationsClick = { relations: List<NoteRelation>, title: String ->
+                                    // Stage 8: Show relations dialog
+                                    showRelationsDialog = Pair(title, relations)
+                                },
+                                outgoingRelations = note.outgoingRelations,
+                                incomingRelations = note.incomingRelations
                             )
                         }
                     }
@@ -297,8 +349,92 @@ fun HomeScreen(
                 // Stage 6: Pass image URIs to ViewModel
                 editorViewModel.saveNote(content, imageUris, editingNoteId)
             },
-            initialContent = editingNoteContent
+            initialContent = editingNoteContent,
+            allNotes = uiState.notes,
+            currentNoteId = editingNoteId ?: 0L
         )
+    }
+
+    // Stage 8: Relations dialog
+    showRelationsDialog?.let { (title: String, relations: List<NoteRelation>) ->
+        ModalBottomSheet(
+            onDismissRequest = { showRelationsDialog = null },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                Text(
+                    text = title,
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+
+                if (relations.isEmpty()) {
+                    Text(
+                        text = "暂无关联笔记",
+                        fontSize = 14.sp,
+                        color = Color(0xFF999999),
+                        modifier = Modifier.padding(vertical = 16.dp)
+                    )
+                } else {
+                    LazyColumn(
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        items(relations) { relation: NoteRelation ->
+                            val targetNoteId = if (title == "出链列表") relation.toNoteId else relation.fromNoteId
+                            val targetNote = uiState.notes.find { it.id == targetNoteId }
+
+                            Surface(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        showRelationsDialog = null
+                                        scope.launch {
+                                            val targetIndex = uiState.notes.indexOfFirst { it.id == targetNoteId }
+                                            if (targetIndex != -1) {
+                                                listState.animateScrollToItem(targetIndex)
+                                                highlightedNoteId = targetNoteId
+                                            } else {
+                                                snackbarHostState.showSnackbar("目标笔记不存在或已删除")
+                                            }
+                                        }
+                                    },
+                                shape = RoundedCornerShape(8.dp),
+                                color = Color(0xFFF5F5F5)
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(12.dp)
+                                ) {
+                                    Text(
+                                        text = relation.mentionText,
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF4C88FF)
+                                    )
+                                    targetNote?.let { note ->
+                                        Text(
+                                            text = note.content.take(50) + if (note.content.length > 50) "..." else "",
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF666666),
+                                            modifier = Modifier.padding(top = 4.dp),
+                                            maxLines = 2,
+                                            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+            }
+        }
     }
 }
 
