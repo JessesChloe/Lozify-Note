@@ -19,12 +19,15 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.ModalNavigationDrawer
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -34,6 +37,7 @@ import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -64,6 +68,7 @@ import java.time.Instant
  * Stage 3: Real database integration with Room + ViewModel.
  * Stage 4: Added tag filtering with horizontal scrollable tag bar.
  * Stage 5: Added real-time search, pin/edit/delete operations.
+ * Stage 5 Refactor: Replaced horizontal TagFilterBar with ModalNavigationDrawer.
  * Displays empty state when no notes, otherwise shows note list.
  * Includes editor bottom sheet for creating/editing notes.
  */
@@ -78,6 +83,9 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+
+    // Stage 5 Refactor: Drawer state
+    val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
 
     // Stage 5: Search state
     var isSearchActive by remember { mutableStateOf(false) }
@@ -129,7 +137,25 @@ fun HomeScreen(
         }
     }
 
-    Scaffold(
+    // Stage 5 Refactor: Wrap Scaffold with ModalNavigationDrawer
+    ModalNavigationDrawer(
+        drawerState = drawerState,
+        drawerContent = {
+            DrawerContent(
+                tags = uiState.allTags,
+                selectedTag = uiState.selectedTag,
+                onTagSelected = { tagId ->
+                    homeViewModel.selectTag(tagId)
+                },
+                onCloseDrawer = {
+                    scope.launch {
+                        drawerState.close()
+                    }
+                }
+            )
+        }
+    ) {
+        Scaffold(
         topBar = {
             TopAppBar(
                 title = {
@@ -163,13 +189,14 @@ fun HomeScreen(
                     }
                 },
                 navigationIcon = {
+                    // Stage 5 Refactor: Hamburger menu icon to open drawer
                     IconButton(onClick = {
                         scope.launch {
-                            snackbarHostState.showSnackbar("侧边栏 (Stage 6+ 实现)")
+                            drawerState.open()
                         }
                     }) {
                         Icon(
-                            painter = painterResource(android.R.drawable.ic_menu_sort_by_size),
+                            imageVector = Icons.Default.Menu,
                             contentDescription = "菜单"
                         )
                     }
@@ -214,42 +241,7 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Stage 4: Tag filter bar (only show when tags exist)
-            if (uiState.allTags.isNotEmpty()) {
-                TagFilterBar(
-                    tags = uiState.allTags,
-                    selectedTag = uiState.selectedTag,
-                    onTagSelected = { tagId ->
-                        homeViewModel.selectTag(tagId)
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-            } else {
-                // Statistics widget placeholder (when no tags)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                        .background(Color(0xFFF0F0F0))
-                        .padding(horizontal = 16.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text(
-                            text = "📊",
-                            fontSize = 16.sp
-                        )
-                        Text(
-                            text = "统计挂件占位区 (Stage 10 实现)",
-                            fontSize = 12.sp,
-                            color = Color(0xFF999999)
-                        )
-                    }
-                }
-            }
+            // Stage 5 Refactor: Removed TagFilterBar (replaced by drawer)
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -435,6 +427,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.height(16.dp))
             }
         }
+    }
     }
 }
 
