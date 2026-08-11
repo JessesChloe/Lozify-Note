@@ -92,11 +92,6 @@ fun NoteEditorBottomSheet(
     var showNotePicker by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
-    // Note picker sheet state - must be created outside if block
-    val notePickerSheetState = androidx.compose.material3.rememberModalBottomSheetState(
-        skipPartiallyExpanded = true
-    )
-
     // Collect activeFormats from ViewModel
     val activeFormats by viewModel.activeFormats.collectAsState()
 
@@ -209,6 +204,36 @@ fun NoteEditorBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
+
+            // Inline NotePicker (appears when @ is typed)
+            if (showNotePicker) {
+                NotePicker(
+                    allNotes = allNotes,
+                    currentNoteId = currentNoteId,
+                    onDismiss = { showNotePicker = false },
+                    onNoteSelected = { noteId, mentionText ->
+                        val currentText = textFieldValue.text
+                        val cursorPos = textFieldValue.selection.start
+
+                        // Remove the @ trigger character
+                        val beforeCursor = currentText.substring(0, maxOf(0, cursorPos - 1))
+                        val afterCursor = currentText.substring(cursorPos)
+
+                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                        val newText = beforeCursor + mentionMarkdown + afterCursor
+
+                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                        textFieldValue = TextFieldValue(
+                            text = newText,
+                            selection = TextRange(newCursorPos)
+                        )
+
+                        showNotePicker = false
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             // Image thumbnail preview
             if (selectedImageUris.isNotEmpty()) {
@@ -420,35 +445,6 @@ fun NoteEditorBottomSheet(
             },
             onRedoClick = {
                 // MVP: Placeholder
-            }
-        )
-    }
-
-    // Note picker for @mentions
-    if (showNotePicker) {
-        NotePicker(
-            sheetState = notePickerSheetState,
-            allNotes = allNotes,
-            currentNoteId = currentNoteId,
-            onDismiss = { showNotePicker = false },
-            onNoteSelected = { noteId, mentionText ->
-                val currentText = textFieldValue.text
-                val cursorPos = textFieldValue.selection.start
-
-                // Remove the @ trigger character
-                val beforeCursor = currentText.substring(0, maxOf(0, cursorPos - 1))
-                val afterCursor = currentText.substring(cursorPos)
-
-                val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                textFieldValue = TextFieldValue(
-                    text = newText,
-                    selection = TextRange(newCursorPos)
-                )
-
-                showNotePicker = false
             }
         )
     }
