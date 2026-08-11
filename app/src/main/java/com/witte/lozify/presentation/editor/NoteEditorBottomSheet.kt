@@ -178,6 +178,40 @@ fun NoteEditorBottomSheet(
                 .imePadding()
                 .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
+            // NotePicker ABOVE TextField to avoid keyboard occlusion
+            if (showNotePicker) {
+                NotePicker(
+                    allNotes = allNotes,
+                    currentNoteId = currentNoteId,
+                    onDismiss = { showNotePicker = false },
+                    onNoteSelected = { noteId, mentionText ->
+                        val currentText = textFieldValue.text
+                        val cursorPos = textFieldValue.selection.start
+
+                        // Remove the @ trigger character if present
+                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
+                            currentText.substring(0, maxOf(0, cursorPos - 1))
+                        } else {
+                            currentText.substring(0, cursorPos)
+                        }
+                        val afterCursor = currentText.substring(cursorPos)
+
+                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                        val newText = beforeCursor + mentionMarkdown + afterCursor
+
+                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                        textFieldValue = TextFieldValue(
+                            text = newText,
+                            selection = TextRange(newCursorPos)
+                        )
+
+                        showNotePicker = false
+                    }
+                )
+
+                Spacer(modifier = Modifier.height(12.dp))
+            }
+
             // Borderless text input field
             TextField(
                 value = textFieldValue,
@@ -204,36 +238,6 @@ fun NoteEditorBottomSheet(
             )
 
             Spacer(modifier = Modifier.height(8.dp))
-
-            // Inline NotePicker (appears when @ is typed)
-            if (showNotePicker) {
-                NotePicker(
-                    allNotes = allNotes,
-                    currentNoteId = currentNoteId,
-                    onDismiss = { showNotePicker = false },
-                    onNoteSelected = { noteId, mentionText ->
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-
-                        // Remove the @ trigger character
-                        val beforeCursor = currentText.substring(0, maxOf(0, cursorPos - 1))
-                        val afterCursor = currentText.substring(cursorPos)
-
-                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                        val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursorPos)
-                        )
-
-                        showNotePicker = false
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(8.dp))
-            }
 
             // Image thumbnail preview
             if (selectedImageUris.isNotEmpty()) {
@@ -287,6 +291,7 @@ fun NoteEditorBottomSheet(
                 // Left: Minimal function icons
                 FlomoToolbar(
                     activeFormats = activeFormats,
+                    isNotPickerActive = showNotePicker,
                     onTagClick = {
                         // Insert # at cursor position
                         val currentText = textFieldValue.text
@@ -296,6 +301,17 @@ fun NoteEditorBottomSheet(
                             text = newText,
                             selection = TextRange(cursorPos + 1)
                         )
+                    },
+                    onMentionClick = {
+                        // Manual @ trigger - insert @ and show picker
+                        val currentText = textFieldValue.text
+                        val cursorPos = textFieldValue.selection.start
+                        val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
+                        textFieldValue = TextFieldValue(
+                            text = newText,
+                            selection = TextRange(cursorPos + 1)
+                        )
+                        showNotePicker = true
                     },
                     onImageClick = {
                         imagePickerLauncher.launch(
@@ -459,6 +475,7 @@ fun NoteEditorBottomSheet(
  * FlomoToolbar - Minimal left-aligned toolbar with format lock indicators.
  *
  * Stage 9 Refactor: Replaces FormattingToolbar with Flomo-style minimal design.
+ * Stage 9 Fix: Added manual @mention trigger button to avoid input method issues.
  *
  * Features:
  * - 20dp icon size (not 24dp - more subtle)
@@ -466,7 +483,9 @@ fun NoteEditorBottomSheet(
  * - Selected state: circular background highlight when format is locked
  *
  * @param activeFormats Currently active format locks from ViewModel
+ * @param isNotPickerActive Whether the note picker is currently visible
  * @param onTagClick Callback for # button
+ * @param onMentionClick Callback for @ button (manual trigger)
  * @param onImageClick Callback for image button
  * @param onBoldClick Callback for bold button
  * @param onMoreClick Callback for more options button
@@ -474,7 +493,9 @@ fun NoteEditorBottomSheet(
 @Composable
 private fun FlomoToolbar(
     activeFormats: Set<RichTextUtils.FormatType>,
+    isNotPickerActive: Boolean,
     onTagClick: () -> Unit,
+    onMentionClick: () -> Unit,
     onImageClick: () -> Unit,
     onBoldClick: () -> Unit,
     onMoreClick: () -> Unit,
@@ -490,6 +511,13 @@ private fun FlomoToolbar(
             text = "#",
             isActive = false,
             onClick = onTagClick
+        )
+
+        // Mention button (@) - manual trigger
+        MinimalIconButton(
+            text = "@",
+            isActive = isNotPickerActive,
+            onClick = onMentionClick
         )
 
         // Image picker button (📷)
