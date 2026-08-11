@@ -406,15 +406,15 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
-
       static String com_witte_lozify_presentation_home_HomeViewModel = "com.witte.lozify.presentation.home.HomeViewModel";
 
-      @KeepFieldType
-      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
+      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
 
       @KeepFieldType
       HomeViewModel com_witte_lozify_presentation_home_HomeViewModel2;
+
+      @KeepFieldType
+      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
     }
   }
 
@@ -458,15 +458,15 @@ public final class DaggerLozifyApplication_HiltComponents_SingletonC {
 
     @IdentifierNameString
     private static final class LazyClassKeyProvider {
-      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
-
       static String com_witte_lozify_presentation_home_HomeViewModel = "com.witte.lozify.presentation.home.HomeViewModel";
 
-      @KeepFieldType
-      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
+      static String com_witte_lozify_presentation_editor_EditorViewModel = "com.witte.lozify.presentation.editor.EditorViewModel";
 
       @KeepFieldType
       HomeViewModel com_witte_lozify_presentation_home_HomeViewModel2;
+
+      @KeepFieldType
+      EditorViewModel com_witte_lozify_presentation_editor_EditorViewModel2;
     }
 
     private static final class SwitchingProvider<T> implements Provider<T> {

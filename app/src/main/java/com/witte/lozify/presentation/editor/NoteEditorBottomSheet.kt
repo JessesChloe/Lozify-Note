@@ -92,6 +92,11 @@ fun NoteEditorBottomSheet(
     var showNotePicker by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
+    // Note picker sheet state - must be created outside if block
+    val notePickerSheetState = androidx.compose.material3.rememberModalBottomSheetState(
+        skipPartiallyExpanded = true
+    )
+
     // Collect activeFormats from ViewModel
     val activeFormats by viewModel.activeFormats.collectAsState()
 
@@ -421,7 +426,6 @@ fun NoteEditorBottomSheet(
 
     // Note picker for @mentions
     if (showNotePicker) {
-        val notePickerSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
         NotePicker(
             sheetState = notePickerSheetState,
             allNotes = allNotes,
@@ -431,6 +435,7 @@ fun NoteEditorBottomSheet(
                 val currentText = textFieldValue.text
                 val cursorPos = textFieldValue.selection.start
 
+                // Remove the @ trigger character
                 val beforeCursor = currentText.substring(0, maxOf(0, cursorPos - 1))
                 val afterCursor = currentText.substring(cursorPos)
 
@@ -452,12 +457,6 @@ fun NoteEditorBottomSheet(
     LaunchedEffect(Unit) {
         focusRequester.requestFocus()
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun rememberModalBottomSheetState(skipPartiallyExpanded: Boolean = false): SheetState {
-    return androidx.compose.material3.rememberModalBottomSheetState(skipPartiallyExpanded = skipPartiallyExpanded)
 }
 
 /**
