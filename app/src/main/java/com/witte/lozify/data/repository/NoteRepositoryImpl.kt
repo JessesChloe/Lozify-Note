@@ -68,6 +68,12 @@ class NoteRepositoryImpl @Inject constructor(
         }
     }
 
+    override fun getArchivedNotes(): Flow<List<Note>> {
+        return noteDao.getArchivedNotesWithRelations().map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
+    }
+
     override fun getNotesByTag(tagId: Long): Flow<List<Note>> {
         return noteDao.getNotesByTagWithRelations(tagId).map { notesWithRelations ->
             notesWithRelations.toDomainModels()
@@ -166,6 +172,11 @@ class NoteRepositoryImpl @Inject constructor(
     override suspend fun togglePinStatus(noteId: Long, isPinned: Boolean) {
         val now = Instant.now().toEpochMilli()
         noteDao.updatePinStatus(noteId, isPinned, now)
+    }
+
+    override suspend fun toggleArchiveStatus(noteId: Long, isArchived: Boolean) {
+        val now = Instant.now().toEpochMilli()
+        noteDao.updateArchiveStatus(noteId, isArchived, now)
     }
 
     override fun getActiveNotesCount(): Flow<Int> {

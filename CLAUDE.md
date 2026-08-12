@@ -206,8 +206,9 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **6** | Multi-Image | ✅ Completed | 2026-08-08 | 2026-08-10 | Image picker, compression, 3-column grid, AttachmentEntity integration, OOM fix, nested layout fix |
 | **7** | Rich Formatting | ✅ Completed | 2026-08-10 | 2026-08-10 | Bold, underline, highlight, interactive checkboxes, AnnotatedString rendering, multiline regex fix |
 | **8** | @Relations | ✅ Completed | 2026-08-10 | 2026-08-11 | @mention parsing, NoteRelationEntity, bidirectional links, relation tracing UI, scroll+highlight interaction |
-| **9** | Card Operations | ⚪ Not Started | - | - | Share/edit/copy/delete menu, placeholder toasts |
-| **10** | Polish | ⚪ Not Started | - | - | Empty states, error handling, accessibility, final testing |
+| **9** | Card Operations | ✅ Completed | 2026-08-11 | 2026-08-12 | SwipeToDismiss gestures, pin/archive status management, data layer refactor |
+| **10** | Archive Screen | 🟡 In Progress | 2026-08-12 | - | Archive screen UI, navigation system, restore/delete operations |
+| **11** | Polish | ⚪ Not Started | - | - | Empty states, error handling, accessibility, final testing |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -415,12 +416,25 @@ adb exec-out screencap -p > screenshot.png
 - Start with `/docs/PRD.md` (understand product)
 - Read `/docs/TECH-STACK.md` (understand architecture)
 - Review `/docs/UI-DESIGN.md` (understand design system)
+- **Read `/docs/compose-guidelines.md` (Compose best practices & icon constraints)**
 - Follow Stage Table in order (build incrementally)
 
 ---
 
 ## Change Log
 
+- **2026-08-12**: Stage 10 归档箱与导航系统开发
+  - 创建 ArchiveScreen UI 页面，支持恢复/永久删除操作
+  - 建立 Navigation 系统（Routes + NavGraph + NavController）
+  - 在 HomeScreen 顶部添加归档箱入口按钮
+  - DAO 新增 `getArchivedNotesWithRelations()` 查询方法
+  - 创建 ArchiveViewModel 管理归档笔记状态
+  - 更新 Compose 规范文档，补充 Refresh 图标和语义映射表
+- **2026-08-12**: Stage 9 滑动交互开发
+  - 添加 `/docs/compose-guidelines.md` Compose 开发规范文档
+  - 记录图标库使用约束（仅核心包，禁用扩展包图标）
+  - 记录 Modifier 扩展函数 import 规范
+  - 记录 SwipeToDismissBox 使用规范
 - **2026-08-07**: Initial CLAUDE.md created for Stage 0
   - Defined Clean Architecture layer rules
   - Established Version Catalog mandate
@@ -430,6 +444,6 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
-**Last Updated:** 2026-08-07  
-**Current Stage:** Stage 0 (Foundation) - In Progress  
-**Next Milestone:** Complete Gradle structure and package hierarchy
+**Last Updated:** 2026-08-12  
+**Current Stage:** Stage 9 (Card Operations) - In Progress  
+**Next Milestone:** Complete swipe gesture implementation and polish UI interactions

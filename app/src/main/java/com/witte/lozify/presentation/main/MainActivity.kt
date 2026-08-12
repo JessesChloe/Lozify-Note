@@ -9,12 +9,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.tooling.preview.Preview
-import com.witte.lozify.presentation.home.HomeScreen
+import androidx.navigation.compose.rememberNavController
+import com.witte.lozify.core.navigation.LozifyNavGraph
 import dagger.hilt.android.AndroidEntryPoint
 
 /**
  * Main entry point for Lozify application.
- * Single-activity architecture using Jetpack Compose.
+ * Single-activity architecture using Jetpack Compose with Navigation.
  */
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -28,12 +29,14 @@ class MainActivity : ComponentActivity() {
 
 @Composable
 fun LozifyApp() {
+    val navController = rememberNavController()
+
     MaterialTheme {
         Surface(
             modifier = Modifier.fillMaxSize(),
             color = MaterialTheme.colorScheme.background
         ) {
-            HomeScreen()
+            LozifyNavGraph(navController = navController)
         }
     }
 }

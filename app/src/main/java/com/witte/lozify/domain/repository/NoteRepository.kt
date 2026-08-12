@@ -41,6 +41,11 @@ interface NoteRepository {
     fun getDeletedNotes(): Flow<List<Note>>
 
     /**
+     * Stage 10: Get all archived notes (not deleted, only archived).
+     */
+    fun getArchivedNotes(): Flow<List<Note>>
+
+    /**
      * Get notes filtered by a specific tag.
      */
     fun getNotesByTag(tagId: Long): Flow<List<Note>>
@@ -73,6 +78,11 @@ interface NoteRepository {
      * Toggle pin status for a note.
      */
     suspend fun togglePinStatus(noteId: Long, isPinned: Boolean)
+
+    /**
+     * Toggle archive status for a note.
+     */
+    suspend fun toggleArchiveStatus(noteId: Long, isArchived: Boolean)
 
     /**
      * Get total count of active notes.

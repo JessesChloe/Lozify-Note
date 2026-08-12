@@ -295,6 +295,10 @@ object RichTextUtils {
         selectionEnd: Int,
         formatType: FormatType
     ): String {
+        // Safety: normalize selection range to prevent crashes
+        val safeStart = minOf(selectionStart, selectionEnd).coerceIn(0, content.length)
+        val safeEnd = maxOf(selectionStart, selectionEnd).coerceIn(0, content.length)
+
         val (prefix, suffix) = when (formatType) {
             FormatType.BOLD -> "**" to "**"
             FormatType.UNDERLINE -> "__" to "__"
@@ -304,18 +308,18 @@ object RichTextUtils {
             FormatType.CHECKBOX_CHECKED -> "- [x] " to ""
         }
 
-        return if (selectionStart == selectionEnd) {
+        return if (safeStart == safeEnd) {
             // No selection: insert markers and place cursor between them
-            content.substring(0, selectionStart) +
+            content.substring(0, safeStart) +
                     prefix + suffix +
-                    content.substring(selectionStart)
+                    content.substring(safeStart)
         } else {
             // Has selection: wrap selected text
-            content.substring(0, selectionStart) +
+            content.substring(0, safeStart) +
                     prefix +
-                    content.substring(selectionStart, selectionEnd) +
+                    content.substring(safeStart, safeEnd) +
                     suffix +
-                    content.substring(selectionEnd)
+                    content.substring(safeEnd)
         }
     }
 

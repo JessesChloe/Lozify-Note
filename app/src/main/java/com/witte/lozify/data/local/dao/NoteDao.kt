@@ -21,13 +21,13 @@ import kotlinx.coroutines.flow.Flow
 interface NoteDao {
 
     /**
-     * Get all notes that are not deleted, sorted by pinned status and creation time.
-     * Pinned notes appear first, then sorted by newest first.
+     * Get all notes that are not deleted or archived, sorted by pinned status and update time.
+     * Pinned notes appear first, then sorted by recently updated.
      */
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0
-        ORDER BY is_pinned DESC, created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0
+        ORDER BY is_pinned DESC, updated_at DESC
     """)
     fun getAllNotes(): Flow<List<NoteEntity>>
 
@@ -38,8 +38,8 @@ interface NoteDao {
     @Transaction
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0
-        ORDER BY is_pinned DESC, created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0
+        ORDER BY is_pinned DESC, updated_at DESC
     """)
     fun getAllNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
 
@@ -54,8 +54,8 @@ interface NoteDao {
      */
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0 AND content LIKE '%' || :searchQuery || '%'
-        ORDER BY is_pinned DESC, created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0 AND content LIKE '%' || :searchQuery || '%'
+        ORDER BY is_pinned DESC, updated_at DESC
     """)
     fun searchNotes(searchQuery: String): Flow<List<NoteEntity>>
 
@@ -65,8 +65,8 @@ interface NoteDao {
     @Transaction
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0 AND content LIKE '%' || :searchQuery || '%'
-        ORDER BY is_pinned DESC, created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0 AND content LIKE '%' || :searchQuery || '%'
+        ORDER BY is_pinned DESC, updated_at DESC
     """)
     fun searchNotesWithRelations(searchQuery: String): Flow<List<NoteWithTagsAndAttachments>>
 
@@ -75,8 +75,8 @@ interface NoteDao {
      */
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0 AND is_pinned = 1
-        ORDER BY created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0 AND is_pinned = 1
+        ORDER BY updated_at DESC
     """)
     fun getPinnedNotes(): Flow<List<NoteEntity>>
 
@@ -86,8 +86,8 @@ interface NoteDao {
     @Transaction
     @Query("""
         SELECT * FROM notes
-        WHERE is_deleted = 0 AND is_pinned = 1
-        ORDER BY created_at DESC
+        WHERE is_deleted = 0 AND is_archived = 0 AND is_pinned = 1
+        ORDER BY updated_at DESC
     """)
     fun getPinnedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
 
@@ -103,6 +103,18 @@ interface NoteDao {
     @Transaction
     @Query("SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC")
     fun getDeletedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
+
+    /**
+     * Stage 10: Get all archived notes (not deleted, only archived).
+     * Used for Archive Screen to show archived notes.
+     */
+    @Transaction
+    @Query("""
+        SELECT * FROM notes
+        WHERE is_deleted = 0 AND is_archived = 1
+        ORDER BY updated_at DESC
+    """)
+    fun getArchivedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
 
     /**
      * Insert a new note. Returns the generated ID.
@@ -138,6 +150,12 @@ interface NoteDao {
     suspend fun updatePinStatus(noteId: Long, isPinned: Boolean, updatedAt: Long)
 
     /**
+     * Toggle archive status for a note.
+     */
+    @Query("UPDATE notes SET is_archived = :isArchived, updated_at = :updatedAt WHERE id = :noteId")
+    suspend fun updateArchiveStatus(noteId: Long, isArchived: Boolean, updatedAt: Long)
+
+    /**
      * Get notes by tag ID (via join with cross-ref table).
      * This will be used in Stage 5 when tag filtering is implemented.
      */
@@ -157,8 +175,8 @@ interface NoteDao {
     @Query("""
         SELECT notes.* FROM notes
         INNER JOIN note_tag_cross_ref ON notes.id = note_tag_cross_ref.note_id
-        WHERE note_tag_cross_ref.tag_id = :tagId AND notes.is_deleted = 0
-        ORDER BY notes.is_pinned DESC, notes.created_at DESC
+        WHERE note_tag_cross_ref.tag_id = :tagId AND notes.is_deleted = 0 AND notes.is_archived = 0
+        ORDER BY notes.is_pinned DESC, notes.updated_at DESC
     """)
     fun getNotesByTagWithRelations(tagId: Long): Flow<List<NoteWithTagsAndAttachments>>
 

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -19,8 +20,10 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -32,6 +35,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SwipeToDismissBox
+import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -39,6 +44,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -49,6 +55,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
@@ -75,6 +82,7 @@ import java.time.Instant
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
+    onNavigateToArchive: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -202,6 +210,13 @@ fun HomeScreen(
                     }
                 },
                 actions = {
+                    // Stage 10: Archive button
+                    IconButton(onClick = onNavigateToArchive) {
+                        Icon(
+                            imageVector = Icons.Default.Menu, // Using Menu as folder icon placeholder
+                            contentDescription = "归档箱"
+                        )
+                    }
                     // Stage 5: Search toggle button
                     IconButton(onClick = {
                         isSearchActive = !isSearchActive
@@ -266,55 +281,121 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
-                            NoteCard(
-                                noteId = note.id,
-                                content = note.content,
-                                timestamp = formatTimestamp(note.createdAt),
-                                isPinned = note.isPinned,
-                                attachments = note.attachments,
-                                outgoingRelationsCount = note.outgoingRelations.size,
-                                incomingRelationsCount = note.incomingRelations.size,
-                                isHighlighted = note.id == highlightedNoteId,
-                                filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
-                                onTogglePinClick = {
-                                    homeViewModel.togglePinStatus(note.id, note.isPinned)
-                                },
-                                onEditClick = {
-                                    // Stage 5: Open editor with existing content
-                                    editingNoteId = note.id
-                                    editingNoteContent = note.content
-                                    showEditor = true
-                                },
-                                onDeleteClick = {
-                                    // Stage 5: Delete note with confirmation
-                                    homeViewModel.deleteNote(note.id)
-                                    scope.launch {
-                                        snackbarHostState.showSnackbar("笔记已删除")
+                            val dismissState = rememberSwipeToDismissBoxState(
+                                confirmValueChange = { dismissValue ->
+                                    when (dismissValue) {
+                                        SwipeToDismissBoxValue.StartToEnd -> {
+                                            // Right swipe: Toggle pin
+                                            homeViewModel.togglePin(note.id)
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar(
+                                                    if (note.isPinned) "已取消置顶" else "已置顶"
+                                                )
+                                            }
+                                            false // Don't dismiss, reset state
+                                        }
+                                        SwipeToDismissBoxValue.EndToStart -> {
+                                            // Left swipe: Archive
+                                            homeViewModel.archiveNote(note.id)
+                                            scope.launch {
+                                                snackbarHostState.showSnackbar("已归档")
+                                            }
+                                            false // Don't dismiss, reset state
+                                        }
+                                        SwipeToDismissBoxValue.Settled -> false
                                     }
                                 },
-                                onCheckboxToggle = { noteId, newContent ->
-                                    // Stage 7 Bug Fix: Update note content when checkbox is toggled
-                                    homeViewModel.updateNoteContent(noteId, newContent)
-                                },
-                                onTagClick = { tagName ->
-                                    // Stage 4: Filter by clicked tag
-                                    val tag = uiState.allTags.find { it.name == tagName }
-                                    tag?.let { homeViewModel.selectTag(it.id) }
-                                },
-                                onMentionClick = { mentionedNoteId ->
-                                    // Stage 8 UX Refactor: Show note detail instead of scrolling
-                                    showNoteDetail = mentionedNoteId
-                                },
-                                onRelationsClick = { relations: List<NoteRelation>, title: String ->
-                                    // Stage 8 UX Refactor: Show first relation's note detail
-                                    if (relations.isNotEmpty()) {
-                                        val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
-                                        showNoteDetail = targetNoteId
-                                    }
-                                },
-                                outgoingRelations = note.outgoingRelations,
-                                incomingRelations = note.incomingRelations
+                                positionalThreshold = { totalDistance -> totalDistance * 0.4f }
                             )
+
+                            SwipeToDismissBox(
+                                state = dismissState,
+                                backgroundContent = {
+                                    val color = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Color(0xFFFF9800) // Orange for pin
+                                        SwipeToDismissBoxValue.EndToStart -> Color(0xFFE57373) // Red for archive
+                                        else -> Color.Transparent
+                                    }
+                                    val icon = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Star
+                                        SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
+                                        else -> null
+                                    }
+                                    val alignment = when (dismissState.dismissDirection) {
+                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
+                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
+                                        else -> Alignment.Center
+                                    }
+
+                                    Box(
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .background(color)
+                                            .padding(horizontal = 24.dp),
+                                        contentAlignment = alignment
+                                    ) {
+                                        icon?.let {
+                                            Icon(
+                                                imageVector = it,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(24.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            ) {
+                                NoteCard(
+                                    noteId = note.id,
+                                    content = note.content,
+                                    timestamp = formatTimestamp(note.createdAt),
+                                    isPinned = note.isPinned,
+                                    attachments = note.attachments,
+                                    outgoingRelationsCount = note.outgoingRelations.size,
+                                    incomingRelationsCount = note.incomingRelations.size,
+                                    isHighlighted = note.id == highlightedNoteId,
+                                    filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+                                    onTogglePinClick = {
+                                        homeViewModel.togglePinStatus(note.id, note.isPinned)
+                                    },
+                                    onEditClick = {
+                                        // Stage 5: Open editor with existing content
+                                        editingNoteId = note.id
+                                        editingNoteContent = note.content
+                                        showEditor = true
+                                    },
+                                    onDeleteClick = {
+                                        // Stage 5: Delete note with confirmation
+                                        homeViewModel.deleteNote(note.id)
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("笔记已删除")
+                                        }
+                                    },
+                                    onCheckboxToggle = { noteId, newContent ->
+                                        // Stage 7 Bug Fix: Update note content when checkbox is toggled
+                                        homeViewModel.updateNoteContent(noteId, newContent)
+                                    },
+                                    onTagClick = { tagName ->
+                                        // Stage 4: Filter by clicked tag
+                                        val tag = uiState.allTags.find { it.name == tagName }
+                                        tag?.let { homeViewModel.selectTag(it.id) }
+                                    },
+                                    onMentionClick = { mentionedNoteId ->
+                                        // Stage 8 UX Refactor: Show note detail instead of scrolling
+                                        showNoteDetail = mentionedNoteId
+                                    },
+                                    onRelationsClick = { relations: List<NoteRelation>, title: String ->
+                                        // Stage 8 UX Refactor: Show first relation's note detail
+                                        if (relations.isNotEmpty()) {
+                                            val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
+                                            showNoteDetail = targetNoteId
+                                        }
+                                    },
+                                    outgoingRelations = note.outgoingRelations,
+                                    incomingRelations = note.incomingRelations
+                                )
+                            }
                         }
                     }
                 }
