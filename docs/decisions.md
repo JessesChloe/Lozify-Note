@@ -706,6 +706,147 @@ if (!isExpanded && showExpandButton) {
 
 ---
 
+## ADR-012: Use Instant Type for Timestamps Throughout the Stack
+
+**Status:** ✅ Accepted  
+**Date:** 2026-08-12  
+**Deciders:** Stage 12 Development Team
+
+### Context
+During Stage 12 development, encountered type mismatch issues between `Instant` (java.time) and `Long` (Unix milliseconds) for timestamp fields. Need to establish consistent type usage across Domain, Data, and Presentation layers.
+
+### Decision
+**Use `java.time.Instant` as the primary timestamp type throughout the entire codebase:**
+- Domain models use `Instant`
+- Room entities use `Instant` (with TypeConverter to Long for storage)
+- DAO method parameters use `Instant`
+- ViewModel methods use `Instant`
+- UI layer converts to formatted strings only at render time
+
+### Alternatives Considered
+1. **Use Long everywhere**: Simple but loses type safety, requires manual millisecond conversion
+2. **Use kotlinx.datetime.Instant**: Multiplatform-ready but adds dependency, not needed for Android-only app
+3. **Mix Instant and Long per layer**: Domain uses Instant, Data uses Long (causes type confusion)
+
+### Rationale
+- **Type safety**: `Instant` is a proper type, not just a number (catches logic errors at compile time)
+- **Clarity**: `createdAt: Instant` is more readable than `createdAt: Long`
+- **Standard library**: `java.time.Instant` is part of Java 8+ (available since Android API 26 with desugaring)
+- **Room integration**: Room's `@TypeConverters` handles Instant ↔ Long conversion transparently
+- **Consistency**: Avoids manual `.toEpochMilli()` conversions scattered throughout codebase
+
+### Critical Bug Fixed
+**Issue**: In Stage 12, DAO method signatures were changed from `Long` to `Instant`, but:
+1. Missing `import java.time.Instant` in `NoteDao.kt` caused KSP to fail with cryptic "Storage already registered" error
+2. Repository implementations were calling `.toEpochMilli()` before passing to DAO (type mismatch)
+
+**Solution**:
+```kotlin
+// ✅ Correct DAO signature
+import java.time.Instant
+
+@Dao
+interface NoteDao {
+    @Query("UPDATE notes SET isPinned = :isPinned, updatedAt = :updatedAt WHERE id = :noteId")
+    suspend fun updatePinStatus(noteId: Long, isPinned: Boolean, updatedAt: Instant)
+}
+
+// ✅ Correct Repository call
+override suspend fun togglePinStatus(noteId: Long, isPinned: Boolean) {
+    noteDao.updatePinStatus(noteId, isPinned, Instant.now())  // Pass Instant directly
+}
+```
+
+### Consequences
+- **Positive**: Type-safe, self-documenting, prevents timestamp logic errors
+- **Negative**: Requires Room TypeConverter setup (already done in Stage 1), Android API < 26 needs desugaring (already enabled)
+- **Migration impact**: No database migration needed (Room stores as BIGINT internally, same as before)
+
+### Enforcement Rule
+**Mandatory**: All timestamp fields must use `java.time.Instant`. No raw `Long` timestamps allowed except inside TypeConverter. All DAO files using `Instant` must explicitly `import java.time.Instant` to prevent KSP errors.
+
+### Lesson Learned
+**KSP cache masks type errors**: When DAO signature changes cause type mismatches, KSP may crash with misleading `Storage already registered` errors instead of showing the real type error. Solution: Always run `./gradlew clean` after changing DAO signatures.
+
+---
+
+## ADR-013: Use Word Boundary Regex for Tag Operations
+
+**Status:** ✅ Accepted  
+**Date:** 2026-08-12  
+**Deciders:** Stage 12 Development Team
+
+### Context
+Stage 12 implements dangerous tag operations (remove tag, delete tag and notes, rename tag) that use regex to find and replace `#tagName` in note content. Need to prevent accidental damage to similar tag names.
+
+### Problem Example
+User has tags `#task` and `#task_list`. If we naively replace `#task` with empty string:
+```kotlin
+// ❌ Wrong: Simple replacement
+content.replace("#task", "")
+// Input:  "Today's #task and #task_list"
+// Output: "Today's  and _list"  // ❌ #task_list destroyed!
+```
+
+### Decision
+**Use word boundary regex pattern with lookahead/lookbehind:**
+```kotlin
+val pattern = Regex("""(?<=\s|^)#${Regex.escape(tagName)}(?=\s|$)""")
+```
+
+**Pattern breakdown:**
+- `(?<=\s|^)`: Positive lookbehind - tag must be preceded by whitespace or start of string
+- `#${Regex.escape(tagName)}`: The tag itself (escaped to prevent regex injection)
+- `(?=\s|$)`: Positive lookahead - tag must be followed by whitespace or end of string
+
+### Alternatives Considered
+1. **Simple string replacement**: `content.replace("#$tagName", "")` - Too naive, breaks similar tags
+2. **Split by whitespace**: `content.split(" ").filter { it != "#$tagName" }` - Loses formatting, breaks punctuation
+3. **Word boundary `\b`**: `Regex("""\b#$tagName\b""")` - Doesn't work with underscores (treats `task_list` as two words)
+
+### Rationale
+- **Safety**: Only matches exact tag names, won't affect `#task_list` when removing `#task`
+- **Handles edge cases**: Works at start/end of string, after/before punctuation
+- **Injection protection**: `Regex.escape()` prevents special characters in tag names from breaking the pattern
+- **Unicode support**: Works with non-ASCII tags (e.g., `#工作`, `#项目`)
+
+### Test Cases
+```kotlin
+// Should match
+"#task"          → Match
+" #task "        → Match
+"Today's #task." → Match
+"\n#task\n"      → Match
+
+// Should NOT match
+"#task_list"     → No match (underscore after)
+"#tasks"         → No match (letter after)
+"email@task.com" → No match (@ before)
+"#mytask"        → No match (letter before)
+```
+
+### Implementation
+All three tag operations use this pattern consistently:
+1. `removeTagFromAllNotes(tagName: String)` - Removes tag text, leaves note content
+2. `deleteTagAndMoveNotesToTrash(tagId: Long)` - Soft deletes all notes with tag
+3. `renameTagInAllNotes(tagId: Long, oldName: String, newName: String)` - Replaces old tag with new tag
+
+### Consequences
+- **Positive**: Safe operations, no accidental data loss, handles edge cases
+- **Negative**: Regex is slower than simple string replacement (but negligible for note-sized content)
+- **Testing**: Must add unit tests to verify boundary cases (TODO: Stage 13)
+
+### Known Limitation
+Current implementation does NOT handle:
+- Tags inside code blocks (should preserve `#include` in C code)
+- Tags in URLs (should preserve `example.com#section`)
+- Escaped tags (if we add `\#task` as escape syntax)
+
+These are post-MVP enhancements requiring Markdown parsing.
+
+---
+
 ## Change Log
 
-- **2026-08-07**: Initial ADRs 001-012 created for Stage 0 foundation
+- **2026-08-07**: Initial ADRs 001-011 created for Stage 0 foundation
+- **2026-08-12**: Added ADR-012 (Instant timestamps) and ADR-013 (word boundary regex) from Stage 12 development
