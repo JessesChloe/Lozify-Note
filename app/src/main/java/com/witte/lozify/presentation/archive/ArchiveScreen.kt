@@ -25,9 +25,9 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * Archive Screen (Stage 10).
+ * Trash Screen (Stage 10, renamed from Archive in Stage 12).
  *
- * Displays archived notes with swipe actions:
+ * Displays trashed notes with swipe actions:
  * - Right swipe: Restore to home
  * - Left swipe: Delete permanently
  */
@@ -42,7 +42,7 @@ fun ArchiveScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("归档箱") },
+                title = { Text("回收站") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(
@@ -66,13 +66,13 @@ fun ArchiveScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = "归档箱空空如也",
+                    text = "回收站空空如也",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         } else {
-            // Archived notes list
+            // Trashed notes list
             LazyColumn(
                 modifier = Modifier
                     .fillMaxSize()

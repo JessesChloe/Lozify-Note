@@ -76,13 +76,15 @@ import java.time.Instant
  * Stage 4: Added tag filtering with horizontal scrollable tag bar.
  * Stage 5: Added real-time search, pin/edit/delete operations.
  * Stage 5 Refactor: Replaced horizontal TagFilterBar with ModalNavigationDrawer.
+ * Stage 12: Renamed archive to trash, added tag edit navigation.
  * Displays empty state when no notes, otherwise shows note list.
  * Includes editor bottom sheet for creating/editing notes.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToArchive: () -> Unit = {},
+    onNavigateToTrash: () -> Unit = {},
+    onNavigateToTagEdit: (Long) -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -159,6 +161,16 @@ fun HomeScreen(
                     scope.launch {
                         drawerState.close()
                     }
+                },
+                onNavigateToTrash = onNavigateToTrash,
+                onEditTag = { tag ->
+                    onNavigateToTagEdit(tag.id)
+                },
+                onRemoveTag = { tagName ->
+                    homeViewModel.removeTagFromAllNotes(tagName)
+                },
+                onDeleteTagAndNotes = { tagId ->
+                    homeViewModel.deleteTagAndMoveNotesToTrash(tagId)
                 }
             )
         }
@@ -210,13 +222,6 @@ fun HomeScreen(
                     }
                 },
                 actions = {
-                    // Stage 10: Archive button
-                    IconButton(onClick = onNavigateToArchive) {
-                        Icon(
-                            imageVector = Icons.Default.Menu, // Using Menu as folder icon placeholder
-                            contentDescription = "归档箱"
-                        )
-                    }
                     // Stage 5: Search toggle button
                     IconButton(onClick = {
                         isSearchActive = !isSearchActive
@@ -295,10 +300,10 @@ fun HomeScreen(
                                             false // Don't dismiss, reset state
                                         }
                                         SwipeToDismissBoxValue.EndToStart -> {
-                                            // Left swipe: Archive
-                                            homeViewModel.archiveNote(note.id)
+                                            // Left swipe: Move to trash (renamed from archive in Stage 12)
+                                            homeViewModel.moveToTrash(note.id)
                                             scope.launch {
-                                                snackbarHostState.showSnackbar("已归档")
+                                                snackbarHostState.showSnackbar("已移至回收站")
                                             }
                                             false // Don't dismiss, reset state
                                         }

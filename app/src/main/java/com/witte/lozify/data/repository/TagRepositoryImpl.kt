@@ -2,6 +2,7 @@ package com.witte.lozify.data.repository
 
 import com.witte.lozify.data.local.entity.NoteTagCrossRef
 import com.witte.lozify.data.local.dao.TagDao
+import com.witte.lozify.data.local.dao.NoteDao
 import com.witte.lozify.data.mapper.toDomainModel
 import com.witte.lozify.data.mapper.toDomainModels
 import com.witte.lozify.data.mapper.toEntity
@@ -19,11 +20,15 @@ import javax.inject.Singleton
  *
  * Handles tag operations and tag-note associations.
  *
+ * Stage 12: Added dangerous tag operations (remove, delete with trash, rename).
+ *
  * @property tagDao DAO for tag operations
+ * @property noteDao DAO for note operations (needed for content regex replacement)
  */
 @Singleton
 class TagRepositoryImpl @Inject constructor(
-    private val tagDao: TagDao
+    private val tagDao: TagDao,
+    private val noteDao: NoteDao
 ) : TagRepository {
 
     override fun getAllTags(): Flow<List<Tag>> {
@@ -94,5 +99,120 @@ class TagRepositoryImpl @Inject constructor(
 
     override fun getTagsCount(): Flow<Int> {
         return tagDao.getTagsCount()
+    }
+
+    /**
+     * Stage 12: Remove tag from all notes using regex replacement.
+     *
+     * Strategy:
+     * 1. Find all notes containing the tag via cross-ref table
+     * 2. Use word boundary regex to replace #tagName with empty string
+     * 3. Clean up extra spaces after removal
+     * 4. Update note content and remove tag associations
+     *
+     * Regex Pattern: (?<=\s|^)#tagName(?=\s|$)
+     * - Ensures tag is surrounded by whitespace or string boundaries
+     * - Prevents damaging #task_list when removing #task
+     */
+    override suspend fun removeTagFromAllNotes(tagName: String) {
+        // Get tag ID first
+        val tag = tagDao.getTagByName(tagName) ?: return
+
+        // Get all notes with this tag
+        val notes = noteDao.getNotesByTag(tag.id).first()
+
+        // Remove tag from each note's content
+        notes.forEach { noteEntity ->
+            // Build regex pattern with word boundaries
+            val tagPattern = Regex("""(?<=\s|^)#${Regex.escape(tagName)}(?=\s|$)""")
+
+            // Replace tag with empty string
+            var updatedContent = noteEntity.content.replace(tagPattern, "")
+
+            // Clean up extra spaces (multiple consecutive spaces → single space)
+            updatedContent = updatedContent.replace(Regex("""\s{2,}"""), " ").trim()
+
+            // Update note entity
+            val updatedEntity = noteEntity.copy(
+                content = updatedContent,
+                updatedAt = Instant.now()
+            )
+            noteDao.updateNote(updatedEntity)
+        }
+
+        // Remove all tag associations (CASCADE will clean up cross-ref)
+        tagDao.deleteAllTagsForNote(tag.id)
+
+        // Optionally delete the tag entity itself if no longer used
+        // (Check if usage count is 0 after removal)
+        val updatedTag = tagDao.getTagById(tag.id).first()
+        if (updatedTag != null && updatedTag.usageCount == 0) {
+            tagDao.deleteTag(updatedTag)
+        }
+    }
+
+    /**
+     * Stage 12: Delete tag and move all associated notes to trash.
+     *
+     * Strategy:
+     * 1. Find all notes with this tag
+     * 2. Set is_archived = 1 for all these notes (soft delete to trash)
+     * 3. Delete the tag entity (CASCADE removes associations)
+     */
+    override suspend fun deleteTagAndMoveNotesToTrash(tagId: Long) {
+        // Get all notes with this tag
+        val notes = noteDao.getNotesByTag(tagId).first()
+
+        // Move all notes to trash
+        notes.forEach { noteEntity ->
+            noteDao.updateArchiveStatus(noteEntity.id, isArchived = true, updatedAt = Instant.now())
+        }
+
+        // Delete the tag entity (CASCADE will remove cross-ref entries)
+        val tag = tagDao.getTagById(tagId).first()
+        tag?.let { tagDao.deleteTag(it) }
+    }
+
+    /**
+     * Stage 12: Rename tag across all notes using regex replacement.
+     *
+     * Strategy:
+     * 1. Get all notes containing the old tag
+     * 2. Use word boundary regex to replace #oldName with #newName
+     * 3. Update note content
+     * 4. Update tag entity itself
+     * 5. Recreate tag associations with new tag ID
+     *
+     * Regex Pattern: (?<=\s|^)#oldName(?=\s|$)
+     * - Ensures tag is surrounded by whitespace or string boundaries
+     */
+    override suspend fun renameTagInAllNotes(tagId: Long, oldName: String, newName: String) {
+        // Get tag entity first
+        val oldTag = tagDao.getTagById(tagId).first() ?: return
+
+        // Get all notes with this tag
+        val notes = noteDao.getNotesByTag(tagId).first()
+
+        // Update tag name in each note's content
+        notes.forEach { noteEntity ->
+            // Build regex pattern with word boundaries for old tag
+            val oldTagPattern = Regex("""(?<=\s|^)#${Regex.escape(oldName)}(?=\s|$)""")
+
+            // Replace with new tag name
+            val updatedContent = noteEntity.content.replace(oldTagPattern, "#$newName")
+
+            // Update note entity
+            val updatedEntity = noteEntity.copy(
+                content = updatedContent,
+                updatedAt = Instant.now()
+            )
+            noteDao.updateNote(updatedEntity)
+        }
+
+        // Update tag entity itself
+        val updatedTag = oldTag.copy(name = newName)
+        tagDao.updateTag(updatedTag)
+
+        // Note: No need to update cross-ref table, as it references tag.id which remains the same
     }
 }

@@ -12,11 +12,11 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 /**
- * ViewModel for Archive Screen (Stage 10).
+ * ViewModel for Trash Screen (Stage 10, renamed from Archive in Stage 12).
  *
- * Manages archived notes display and operations:
- * - Load archived notes
- * - Unarchive (restore to home)
+ * Manages trashed notes display and operations:
+ * - Load trashed notes
+ * - Restore to home
  * - Permanent delete
  */
 @HiltViewModel
@@ -25,9 +25,9 @@ class ArchiveViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
-     * StateFlow of archived notes, automatically updated from Room Flow.
+     * StateFlow of trashed notes, automatically updated from Room Flow.
      */
-    val archivedNotes: StateFlow<List<Note>> = noteRepository.getArchivedNotes()
+    val archivedNotes: StateFlow<List<Note>> = noteRepository.getTrashNotes()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -35,11 +35,11 @@ class ArchiveViewModel @Inject constructor(
         )
 
     /**
-     * Unarchive a note (restore to home screen).
+     * Restore a note from trash (back to home screen).
      */
     fun unarchiveNote(noteId: Long) {
         viewModelScope.launch {
-            noteRepository.toggleArchiveStatus(noteId, isArchived = false)
+            noteRepository.toggleTrashStatus(noteId, isInTrash = false)
         }
     }
 

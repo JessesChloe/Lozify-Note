@@ -68,7 +68,7 @@ class NoteRepositoryImpl @Inject constructor(
         }
     }
 
-    override fun getArchivedNotes(): Flow<List<Note>> {
+    override fun getTrashNotes(): Flow<List<Note>> {
         return noteDao.getArchivedNotesWithRelations().map { notesWithRelations ->
             notesWithRelations.toDomainModels()
         }
@@ -170,13 +170,11 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun togglePinStatus(noteId: Long, isPinned: Boolean) {
-        val now = Instant.now().toEpochMilli()
-        noteDao.updatePinStatus(noteId, isPinned, now)
+        noteDao.updatePinStatus(noteId, isPinned, Instant.now())
     }
 
-    override suspend fun toggleArchiveStatus(noteId: Long, isArchived: Boolean) {
-        val now = Instant.now().toEpochMilli()
-        noteDao.updateArchiveStatus(noteId, isArchived, now)
+    override suspend fun toggleTrashStatus(noteId: Long, isInTrash: Boolean) {
+        noteDao.updateArchiveStatus(noteId, isInTrash, Instant.now())
     }
 
     override fun getActiveNotesCount(): Flow<Int> {

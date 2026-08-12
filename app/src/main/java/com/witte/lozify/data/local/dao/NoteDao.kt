@@ -10,6 +10,7 @@ import androidx.room.Update
 import com.witte.lozify.data.local.entity.NoteEntity
 import com.witte.lozify.data.local.model.NoteWithTagsAndAttachments
 import kotlinx.coroutines.flow.Flow
+import java.time.Instant
 
 /**
  * Data Access Object for Note operations.
@@ -147,13 +148,13 @@ interface NoteDao {
      * Toggle pin status for a note.
      */
     @Query("UPDATE notes SET is_pinned = :isPinned, updated_at = :updatedAt WHERE id = :noteId")
-    suspend fun updatePinStatus(noteId: Long, isPinned: Boolean, updatedAt: Long)
+    suspend fun updatePinStatus(noteId: Long, isPinned: Boolean, updatedAt: Instant)
 
     /**
      * Toggle archive status for a note.
      */
     @Query("UPDATE notes SET is_archived = :isArchived, updated_at = :updatedAt WHERE id = :noteId")
-    suspend fun updateArchiveStatus(noteId: Long, isArchived: Boolean, updatedAt: Long)
+    suspend fun updateArchiveStatus(noteId: Long, isArchived: Boolean, updatedAt: Instant)
 
     /**
      * Get notes by tag ID (via join with cross-ref table).
