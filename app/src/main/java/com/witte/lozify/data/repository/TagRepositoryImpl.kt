@@ -123,8 +123,8 @@ class TagRepositoryImpl @Inject constructor(
 
         // Remove tag from each note's content
         notes.forEach { noteEntity ->
-            // Build regex pattern with word boundaries
-            val tagPattern = Regex("""(?<=\s|^)#${Regex.escape(tagName)}(?=\s|$)""")
+            // Build regex pattern matching tag boundaries
+            val tagPattern = Regex("""(?<![a-zA-Z0-9])#${Regex.escape(tagName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
 
             // Replace tag with empty string
             var updatedContent = noteEntity.content.replace(tagPattern, "")
@@ -181,8 +181,9 @@ class TagRepositoryImpl @Inject constructor(
      * 2. If tag name changed, replace #oldName with #newName in note contents
      * 3. Update tag entity itself with new name and new icon
      *
-     * Regex Pattern: (?<=\s|^)#oldName(?=\s|$)
-     * - Ensures tag is surrounded by whitespace or string boundaries
+     * Regex Pattern: (?<![a-zA-Z0-9])#oldName(?![a-zA-Z0-9\u4e00-\u9fa5_])
+     * - Ensures tag is not preceded by ASCII alphanumeric
+     * - Ensures tag is not followed by alphanumeric/CJK characters
      */
     override suspend fun renameTagInAllNotes(
         tagId: Long,
@@ -198,8 +199,8 @@ class TagRepositoryImpl @Inject constructor(
             val notes = noteDao.getNotesByTag(tagId).first()
 
             notes.forEach { noteEntity ->
-                // Build regex pattern with word boundaries for old tag
-                val oldTagPattern = Regex("""(?<=\s|^)#${Regex.escape(oldName)}(?=\s|$)""")
+                // Build regex pattern matching tag boundaries for old tag
+                val oldTagPattern = Regex("""(?<![a-zA-Z0-9])#${Regex.escape(oldName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
 
                 // Replace with new tag name
                 val updatedContent = noteEntity.content.replace(oldTagPattern, "#$newName")

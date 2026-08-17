@@ -119,8 +119,8 @@ object RichTextUtils {
             markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.HIGHLIGHT))
         }
 
-        // Find tags (#tagName)
-        val tagRegex = Regex("""(?<=\s|^)#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+        // Find tags (#tagName) - Supports Chinese characters directly preceding # without space, while preventing URL anchors (page#sec)
+        val tagRegex = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
         tagRegex.findAll(contentWithoutMentions).forEach { match ->
             val tagName = match.value.substring(1) // remove #
             extractedTags.add(tagName)
@@ -154,7 +154,18 @@ object RichTextUtils {
                     }
                     MarkerType.TAG -> {
                         val tagName = marker.tagName ?: ""
-                        builder.appendInlineContent(id = "tag_$tagName", alternateText = "#$tagName")
+                        val tagStartIndex = builder.length
+                        builder.appendInlineContent(id = "tag_$tagName", alternateText = "\uFFFD")
+                        val tagEndIndex = builder.length
+                        // Fallback SpanStyle for inline tag badge
+                        builder.addStyle(
+                            style = SpanStyle(
+                                color = tagColor,
+                                fontWeight = FontWeight.Medium
+                            ),
+                            start = tagStartIndex,
+                            end = tagEndIndex
+                        )
                         for (k in cursor until marker.end) {
                             positionMap[k] = builder.length
                         }
