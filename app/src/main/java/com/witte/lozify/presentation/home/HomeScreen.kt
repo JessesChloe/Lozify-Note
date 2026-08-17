@@ -154,6 +154,7 @@ fun HomeScreen(
             DrawerContent(
                 tags = uiState.allTags,
                 selectedTag = uiState.selectedTag,
+                stats = uiState.userStats,
                 onTagSelected = { tagId ->
                     homeViewModel.selectTag(tagId)
                 },

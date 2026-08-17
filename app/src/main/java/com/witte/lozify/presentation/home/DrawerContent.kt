@@ -22,29 +22,26 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.witte.lozify.domain.model.Tag
+import com.witte.lozify.domain.model.UserStats
 
 /**
  * DrawerContent - Flomo-inspired side navigation drawer.
  *
  * Stage 11 Major Refactor: Pixel-perfect Flomo design replication.
  * Stage 12 Update: Added bottom system entries (Trash, Help Center), tag operations integration.
+ * Stage 14 Update: Added top achievement panel (Personal Data Center).
  *
  * Design System:
  * - Pure white background (#FFFFFF), no heavy shadows
+ * - Top achievement panel: notes count, tags count, days count
  * - Section titles: 12sp, very light warm gray (#B0B0B0), non-bold
  * - Tag text: 15sp, deep charcoal (#222222), medium weight
  * - Selected state: subtle light gray background, NO blue rounded blocks
  * - Generous padding for breathing room
  *
- * Features:
- * - "置顶标签" (Pinned Tags) section (placeholder for future)
- * - "全部标签" (All Tags) section with sort/filter icon
- * - Individual DrawerTagItem with # prefix or emoji and ... menu
- * - Right-side DropdownMenu with 4 operations (pin/edit/remove/delete)
- * - Bottom fixed entries: Trash (回收站) and Help Center (帮助中心)
- *
  * @param tags List of all available tags
  * @param selectedTag Currently selected tag (null = show all)
+ * @param stats User stats for achievement panel
  * @param onTagSelected Callback when a tag is selected (null = show all)
  * @param onCloseDrawer Callback to close the drawer after selection
  * @param onNavigateToTrash Callback to navigate to trash screen
@@ -56,6 +53,7 @@ import com.witte.lozify.domain.model.Tag
 fun DrawerContent(
     tags: List<Tag>,
     selectedTag: Tag?,
+    stats: UserStats = UserStats(),
     onTagSelected: (Long?) -> Unit,
     onCloseDrawer: () -> Unit,
     onNavigateToTrash: () -> Unit = {},
@@ -74,11 +72,25 @@ fun DrawerContent(
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             // Header Section (with horizontal padding)
-            Box(modifier = Modifier.padding(horizontal = 20.dp)) {
+            Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp)) {
                 DrawerHeader()
             }
 
-            Spacer(modifier = Modifier.height(24.dp))
+            // Stage 14: Achievement Panel (个人数据中心 / 统计面板)
+            DrawerStatsPanel(
+                stats = stats,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider(
+                color = Color(0xFFF0F0F0),
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Scrollable Content (tags list) - takes remaining space
             LazyColumn(
@@ -192,9 +204,7 @@ private fun DrawerHeader(
     modifier: Modifier = Modifier
 ) {
     Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = 28.dp),
+        modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.CenterStart
     ) {
         Text(
@@ -202,6 +212,69 @@ private fun DrawerHeader(
             fontSize = 24.sp,
             fontWeight = FontWeight.Medium,
             color = Color(0xFF222222)
+        )
+    }
+}
+
+/**
+ * DrawerStatsPanel - Achievement and milestone dashboard in drawer.
+ *
+ * Stage 14: Personal Data Center
+ * Displays:
+ * 1. 笔记数 (Notes Count)
+ * 2. 标签数 (Tags Count)
+ * 3. 记录天数 (Days of Record)
+ */
+@Composable
+private fun DrawerStatsPanel(
+    stats: UserStats,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        DrawerStatItem(
+            value = stats.notesCount.toString(),
+            label = "条笔记",
+            modifier = Modifier.weight(1f)
+        )
+        DrawerStatItem(
+            value = stats.tagsCount.toString(),
+            label = "个标签",
+            modifier = Modifier.weight(1f)
+        )
+        DrawerStatItem(
+            value = stats.daysCount.toString(),
+            label = "天记录",
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun DrawerStatItem(
+    value: String,
+    label: String,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier,
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(4.dp)
+    ) {
+        Text(
+            text = value,
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF222222)
+        )
+        Text(
+            text = label,
+            fontSize = 12.sp,
+            color = Color(0xFF888888),
+            fontWeight = FontWeight.Normal
         )
     }
 }

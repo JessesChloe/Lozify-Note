@@ -1,5 +1,6 @@
 package com.witte.lozify.presentation.home
 
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -11,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.InlineTextContent
@@ -20,6 +22,7 @@ import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -34,7 +37,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -108,6 +114,9 @@ fun NoteCard(
     var showExpandButton by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
     val maxCollapsedLines = 5
+
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
 
     // Stage 7: Parse content into lines and separate checkbox items from regular content
     val contentLines = remember(content) {
@@ -221,19 +230,102 @@ fun NoteCard(
                             )
                         }
 
-                        // Stage 5: Dropdown menu for card operations
+                        // Stage 14: Flomo-styled High-Density Rich Dropdown Menu
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
+                            modifier = Modifier
+                                .width(220.dp)
+                                .background(Color.White)
                         ) {
+                            // 1. 顶部快捷操作栏 (Row: 复制 / 编辑 / 删除)
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 8.dp, vertical = 8.dp),
+                                horizontalArrangement = Arrangement.SpaceEvenly,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                // 复制
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            showMenu = false
+                                            clipboardManager.setText(AnnotatedString(content))
+                                            Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(text = "📋", fontSize = 18.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "复制",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF333333),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                // 编辑
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            showMenu = false
+                                            onEditClick()
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(text = "✏️", fontSize = 18.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "编辑",
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF333333),
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+
+                                // 删除 (红色预警色)
+                                Column(
+                                    modifier = Modifier
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .clickable {
+                                            showMenu = false
+                                            onDeleteClick()
+                                        }
+                                        .padding(horizontal = 12.dp, vertical = 6.dp),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Text(text = "🗑️", fontSize = 18.sp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    Text(
+                                        text = "删除",
+                                        fontSize = 12.sp,
+                                        color = MaterialTheme.colorScheme.error,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+
+                            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+
+                            // 2. 中间功能列表 (设为置顶 / 取消置顶)
                             DropdownMenuItem(
                                 text = {
                                     Row(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = if (isPinned) "📌" else "📍")
-                                        Text(text = if (isPinned) "取消置顶" else "置顶")
+                                        Text(text = if (isPinned) "📌" else "📍", fontSize = 15.sp)
+                                        Text(
+                                            text = if (isPinned) "取消置顶" else "设为置顶",
+                                            fontSize = 14.sp,
+                                            color = Color(0xFF333333)
+                                        )
                                     }
                                 },
                                 onClick = {
@@ -241,36 +333,28 @@ fun NoteCard(
                                     onTogglePinClick()
                                 }
                             )
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(text = "✏️")
-                                        Text(text = "编辑")
-                                    }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onEditClick()
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(text = "🗑️")
-                                        Text(text = "删除")
-                                    }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onDeleteClick()
-                                }
-                            )
+
+                            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+
+                            // 3. 底部元数据统计面板 (字数统计 / 创建时间)
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(Color(0xFFF9F9F9))
+                                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "字数统计: ${content.length}",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF999999)
+                                )
+                                Text(
+                                    text = "创建时间: $timestamp",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF999999)
+                                )
+                            }
                         }
                     }
                 }

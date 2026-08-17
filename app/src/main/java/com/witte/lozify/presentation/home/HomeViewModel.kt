@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
+import com.witte.lozify.domain.model.UserStats
 import com.witte.lozify.domain.repository.NoteRepository
 import com.witte.lozify.domain.repository.TagRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -14,6 +15,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.ZoneId
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
 /**
@@ -23,6 +27,7 @@ import javax.inject.Inject
  * Observes Room database via Flow for reactive updates.
  *
  * Stage 4: Added tag filtering functionality.
+ * Stage 14: Added user achievement and statistics tracking.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
@@ -34,13 +39,15 @@ class HomeViewModel @Inject constructor(
      * UI state representing the home screen data.
      *
      * Stage 5: Added searchQuery for real-time search.
+     * Stage 14: Added userStats for drawer achievement dashboard.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
         val allTags: List<Tag> = emptyList(),
         val selectedTag: Tag? = null,
         val isLoading: Boolean = false,
-        val searchQuery: String = ""
+        val searchQuery: String = "",
+        val userStats: UserStats = UserStats()
     )
 
     /**
@@ -60,6 +67,7 @@ class HomeViewModel @Inject constructor(
      * Stage 4 Bug Fix: Added content-based fallback matching to ensure tags
      * are always detected even if database cross-ref is missing.
      * Stage 5: Added real-time search filtering.
+     * Stage 14: Computes userStats (notesCount, tagsCount, daysCount).
      */
     val uiState: StateFlow<HomeUiState> = combine(
         noteRepository.getAllNotes(),
@@ -92,17 +100,64 @@ class HomeViewModel @Inject constructor(
             }
         }
 
+        // Stage 14: Calculate user statistics and days of usage
+        val earliestNote = allNotes.minOfOrNull { it.createdAt }
+        val daysCount = if (earliestNote != null) {
+            val zoneId = ZoneId.systemDefault()
+            val startDate = earliestNote.atZone(zoneId).toLocalDate()
+            val today = LocalDate.now()
+            val daysBetween = ChronoUnit.DAYS.between(startDate, today) + 1
+            maxOf(1, daysBetween.toInt())
+        } else {
+            1
+        }
+
+        val userStats = UserStats(
+            notesCount = allNotes.size,
+            tagsCount = allTags.size,
+            daysCount = daysCount
+        )
+
         HomeUiState(
             notes = filteredNotes,
             allTags = allTags,
             selectedTag = allTags.find { it.id == selectedTagId },
             isLoading = false,
-            searchQuery = searchQuery
+            searchQuery = searchQuery,
+            userStats = userStats
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState(isLoading = true)
+    )
+
+    /**
+     * Stage 14: Dedicated StateFlow for user achievement statistics.
+     */
+    val userStats: StateFlow<UserStats> = combine(
+        noteRepository.getAllNotes(),
+        tagRepository.getAllTags()
+    ) { allNotes, allTags ->
+        val earliestNote = allNotes.minOfOrNull { it.createdAt }
+        val daysCount = if (earliestNote != null) {
+            val zoneId = ZoneId.systemDefault()
+            val startDate = earliestNote.atZone(zoneId).toLocalDate()
+            val today = LocalDate.now()
+            val daysBetween = ChronoUnit.DAYS.between(startDate, today) + 1
+            maxOf(1, daysBetween.toInt())
+        } else {
+            1
+        }
+        UserStats(
+            notesCount = allNotes.size,
+            tagsCount = allTags.size,
+            daysCount = daysCount
+        )
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = UserStats()
     )
 
     /**
