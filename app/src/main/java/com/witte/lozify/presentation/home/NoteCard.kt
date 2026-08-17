@@ -355,39 +355,14 @@ fun NoteCard(
                 }
             }
 
-            // Stage 6: Image attachments in 3-column grid (non-scrolling)
+            // Stage 13 UI Refactor: Dynamic Responsive Image Grid (AttachmentGrid)
             if (attachments.isNotEmpty() && filesDir != null) {
                 Spacer(modifier = Modifier.height(12.dp))
-
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(4.dp),
+                AttachmentGrid(
+                    attachments = attachments,
+                    filesDir = filesDir,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    // Chunk attachments into rows of 3
-                    attachments.chunked(3).forEach { rowAttachments ->
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(4.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            rowAttachments.forEach { attachment ->
-                                val imageFile = File(filesDir, attachment.filePath)
-                                AsyncImage(
-                                    model = imageFile,
-                                    contentDescription = "附件图片",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(8.dp))
-                                )
-                            }
-                            // Fill empty slots with spacers to maintain grid alignment
-                            repeat(3 - rowAttachments.size) {
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-                        }
-                    }
-                }
+                )
             }
 
             // Stage 13 UI Refactor: Flomo-style Relation Block (底部双向链接块)
