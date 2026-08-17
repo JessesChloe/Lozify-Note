@@ -298,6 +298,7 @@ private fun DrawerTagItem(
     modifier: Modifier = Modifier
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     val backgroundColor = if (isSelected) Color(0xFFF5F5F5) else Color.Transparent
@@ -407,7 +408,7 @@ private fun DrawerTagItem(
                     }
                 )
 
-                // Delete tag and notes (light red)
+                // Delete tag and notes (light red with confirmation dialog)
                 DropdownMenuItem(
                     text = {
                         Text(
@@ -418,11 +419,60 @@ private fun DrawerTagItem(
                     },
                     onClick = {
                         menuExpanded = false
-                        onDeleteTagAndNotes()
+                        showDeleteDialog = true
                     }
                 )
             }
         }
+    }
+
+    // Dangerous Operation Confirmation AlertDialog
+    if (showDeleteDialog) {
+        AlertDialog(
+            onDismissRequest = { showDeleteDialog = false },
+            title = {
+                Text(
+                    text = "确定删除该标签及相关笔记？",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 18.sp,
+                    color = Color(0xFF222222)
+                )
+            },
+            text = {
+                Text(
+                    text = "该标签将被彻底移除，且带有此标签的所有笔记都会被移入回收站。此操作不可逆！",
+                    fontSize = 14.sp,
+                    color = Color(0xFF666666),
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showDeleteDialog = false
+                        onDeleteTagAndNotes()
+                    }
+                ) {
+                    Text(
+                        text = "确认删除",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showDeleteDialog = false }
+                ) {
+                    Text(
+                        text = "取消",
+                        color = Color(0xFF666666)
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
     }
 }
 
