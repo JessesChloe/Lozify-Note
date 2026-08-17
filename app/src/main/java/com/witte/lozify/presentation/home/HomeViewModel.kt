@@ -39,7 +39,7 @@ class HomeViewModel @Inject constructor(
      * UI state representing the home screen data.
      *
      * Stage 5: Added searchQuery for real-time search.
-     * Stage 14: Added userStats for drawer achievement dashboard.
+     * Stage 14: Added userStats and heatmapData for drawer dashboard.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
@@ -47,7 +47,8 @@ class HomeViewModel @Inject constructor(
         val selectedTag: Tag? = null,
         val isLoading: Boolean = false,
         val searchQuery: String = "",
-        val userStats: UserStats = UserStats()
+        val userStats: UserStats = UserStats(),
+        val heatmapData: Map<LocalDate, Int> = emptyMap()
     )
 
     /**
@@ -67,7 +68,7 @@ class HomeViewModel @Inject constructor(
      * Stage 4 Bug Fix: Added content-based fallback matching to ensure tags
      * are always detected even if database cross-ref is missing.
      * Stage 5: Added real-time search filtering.
-     * Stage 14: Computes userStats (notesCount, tagsCount, daysCount).
+     * Stage 14: Computes userStats and heatmapData (daily note counts).
      */
     val uiState: StateFlow<HomeUiState> = combine(
         noteRepository.getAllNotes(),
@@ -101,9 +102,9 @@ class HomeViewModel @Inject constructor(
         }
 
         // Stage 14: Calculate user statistics and days of usage
+        val zoneId = ZoneId.systemDefault()
         val earliestNote = allNotes.minOfOrNull { it.createdAt }
         val daysCount = if (earliestNote != null) {
-            val zoneId = ZoneId.systemDefault()
             val startDate = earliestNote.atZone(zoneId).toLocalDate()
             val today = LocalDate.now()
             val daysBetween = ChronoUnit.DAYS.between(startDate, today) + 1
@@ -118,13 +119,19 @@ class HomeViewModel @Inject constructor(
             daysCount = daysCount
         )
 
+        // Stage 14: Calculate daily contribution counts for heatmap
+        val heatmapData = allNotes
+            .groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
+            .mapValues { it.value.size }
+
         HomeUiState(
             notes = filteredNotes,
             allTags = allTags,
             selectedTag = allTags.find { it.id == selectedTagId },
             isLoading = false,
             searchQuery = searchQuery,
-            userStats = userStats
+            userStats = userStats,
+            heatmapData = heatmapData
         )
     }.stateIn(
         scope = viewModelScope,
@@ -139,9 +146,9 @@ class HomeViewModel @Inject constructor(
         noteRepository.getAllNotes(),
         tagRepository.getAllTags()
     ) { allNotes, allTags ->
+        val zoneId = ZoneId.systemDefault()
         val earliestNote = allNotes.minOfOrNull { it.createdAt }
         val daysCount = if (earliestNote != null) {
-            val zoneId = ZoneId.systemDefault()
             val startDate = earliestNote.atZone(zoneId).toLocalDate()
             val today = LocalDate.now()
             val daysBetween = ChronoUnit.DAYS.between(startDate, today) + 1
@@ -159,6 +166,21 @@ class HomeViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = UserStats()
     )
+
+    /**
+     * Stage 14: Dedicated StateFlow for contribution heatmap data (LocalDate -> note count).
+     */
+    val heatmapData: StateFlow<Map<LocalDate, Int>> = noteRepository.getAllNotes()
+        .combine(MutableStateFlow(Unit)) { allNotes, _ ->
+            val zoneId = ZoneId.systemDefault()
+            allNotes
+                .groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
+                .mapValues { it.value.size }
+        }.stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyMap()
+        )
 
     /**
      * Expose allTags for navigation and tag edit screen.

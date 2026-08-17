@@ -1,7 +1,7 @@
 package com.witte.lozify.presentation.home
 
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.FloatingActionButtonDefaults
 import androidx.compose.material3.Icon
@@ -14,9 +14,11 @@ import androidx.compose.ui.unit.dp
 /**
  * Lozify custom floating action button for creating new notes.
  *
+ * Stage 15: Rounded square shape with 16dp radius, centered on home screen.
+ *
  * Design Specs:
  * - Theme green color (#00C853)
- * - Circular shape
+ * - Rounded square shape (16dp)
  * - White "+" icon
  * - Standard FAB elevation
  *
@@ -32,7 +34,7 @@ fun LozifyFloatingActionButton(
         onClick = onClick,
         containerColor = Color(0xFF00C853),
         contentColor = Color.White,
-        shape = CircleShape,
+        shape = RoundedCornerShape(16.dp),
         elevation = FloatingActionButtonDefaults.elevation(
             defaultElevation = 6.dp,
             pressedElevation = 12.dp

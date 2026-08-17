@@ -4,8 +4,14 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.expandVertically
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -19,12 +25,14 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -36,6 +44,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,24 +56,22 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.witte.lozify.core.common.RichTextUtils
+import com.witte.lozify.domain.model.Note
 
 /**
  * NoteEditorBottomSheet - Flomo-style lightweight editor.
  *
- * Stage 9 Refactor: Complete redesign for Flomo-level UX.
- *
- * Design Philosophy:
- * - Adaptive height (wrapContentHeight) - only ~50% screen, no fullscreen takeover
- * - Borderless input field with "现在的想法是..." placeholder
- * - Bottom toolbar redesign:
- *   - Left: Minimal icon buttons (#, 📷, B, ...) at 20dp size, no background
- *   - Right: Circular send icon button (paper plane style)
- * - WYSIWYG rich text engine with format locking (activeFormats state)
+ * Stage 15 Refactor:
+ * - Abolished secondary modal bottom sheet formatting menus.
+ * - Added Keyboard Accessory Toolbar docked directly above the IME keyboard.
+ * - Live markdown formatting without dismissing keyboard or losing focus.
+ * - Built-in Undo / Redo history tracking.
  *
  * @param sheetState Bottom sheet state
  * @param viewModel Editor ViewModel for format state management
@@ -80,7 +87,7 @@ fun NoteEditorBottomSheet(
     onDismiss: () -> Unit,
     onSave: (TextFieldValue, List<Uri>) -> Unit,
     initialContent: String? = null,
-    allNotes: List<com.witte.lozify.domain.model.Note> = emptyList(),
+    allNotes: List<Note> = emptyList(),
     currentNoteId: Long = 0L,
     modifier: Modifier = Modifier
 ) {
@@ -88,14 +95,17 @@ fun NoteEditorBottomSheet(
         mutableStateOf(TextFieldValue(text = initialContent ?: ""))
     }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
-    var showFormattingMenu by remember { mutableStateOf(false) }
     var showNotePicker by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
+
+    // History stack for Undo / Redo
+    val undoStack = remember { mutableStateListOf<TextFieldValue>() }
+    val redoStack = remember { mutableStateListOf<TextFieldValue>() }
 
     // Collect activeFormats from ViewModel
     val activeFormats by viewModel.activeFormats.collectAsState()
 
-    // Stage 6: Image picker launcher
+    // Image picker launcher
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
@@ -104,10 +114,20 @@ fun NoteEditorBottomSheet(
         }
     }
 
-    // Normal value change - no interception needed
-    // Cursor is already positioned inside markers by toggleFormat
+    // Helper to update text with undo history tracking
+    fun updateTextWithHistory(newValue: TextFieldValue) {
+        if (newValue.text != textFieldValue.text) {
+            undoStack.add(textFieldValue)
+            if (undoStack.size > 50) {
+                undoStack.removeAt(0)
+            }
+            redoStack.clear()
+        }
+        textFieldValue = newValue
+    }
+
+    // Normal value change
     fun onValueChange(newValue: TextFieldValue) {
-        // Detect @ trigger for mention picker
         val cursorPos = newValue.selection.end
         if (cursorPos > 0 && cursorPos <= newValue.text.length) {
             val lastChar = newValue.text[cursorPos - 1]
@@ -115,9 +135,7 @@ fun NoteEditorBottomSheet(
                 showNotePicker = true
             }
         }
-
-        // Just update normally - no wrapping needed
-        textFieldValue = newValue
+        updateTextWithHistory(newValue)
     }
 
     // Helper function to apply formatting with bounds checking
@@ -156,9 +174,11 @@ fun NoteEditorBottomSheet(
 
         val safeCursorPos = newCursorPos.coerceIn(0, newText.length)
 
-        textFieldValue = TextFieldValue(
-            text = newText,
-            selection = TextRange(safeCursorPos)
+        updateTextWithHistory(
+            TextFieldValue(
+                text = newText,
+                selection = TextRange(safeCursorPos)
+            )
         )
     }
 
@@ -169,300 +189,223 @@ fun NoteEditorBottomSheet(
         },
         sheetState = sheetState,
         containerColor = Color.White,
-        modifier = modifier.wrapContentHeight() // Key: Adaptive height, not fullscreen
+        modifier = modifier.wrapContentHeight()
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .imePadding()
-                .padding(horizontal = 16.dp, vertical = 12.dp)
         ) {
-            // NotePicker ABOVE TextField to avoid keyboard occlusion
-            if (showNotePicker) {
-                NotePicker(
-                    allNotes = allNotes,
-                    currentNoteId = currentNoteId,
-                    onDismiss = { showNotePicker = false },
-                    onNoteSelected = { noteId, mentionText ->
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-
-                        // Remove the @ trigger character if present
-                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
-                            currentText.substring(0, maxOf(0, cursorPos - 1))
-                        } else {
-                            currentText.substring(0, cursorPos)
-                        }
-                        val afterCursor = currentText.substring(cursorPos)
-
-                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                        val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(newCursorPos)
-                        )
-
-                        showNotePicker = false
-                    }
-                )
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Borderless text input field
-            TextField(
-                value = textFieldValue,
-                onValueChange = ::onValueChange,
-                placeholder = {
-                    Text(
-                        text = "现在的想法是...",
-                        color = Color(0xFF999999),
-                        fontSize = 16.sp
-                    )
-                },
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = Color.Transparent,
-                    unfocusedContainerColor = Color.Transparent,
-                    disabledContainerColor = Color.Transparent,
-                    focusedIndicatorColor = Color.Transparent,
-                    unfocusedIndicatorColor = Color.Transparent,
-                    disabledIndicatorColor = Color.Transparent
-                ),
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(150.dp)
-                    .focusRequester(focusRequester)
-            )
-
-            Spacer(modifier = Modifier.height(8.dp))
-
-            // Image thumbnail preview
-            if (selectedImageUris.isNotEmpty()) {
-                LazyRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    items(selectedImageUris) { uri ->
-                        Box(
-                            modifier = Modifier
-                                .size(80.dp)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(Color(0xFFF0F0F0))
-                        ) {
-                            AsyncImage(
-                                model = uri,
-                                contentDescription = "预览图片",
-                                contentScale = ContentScale.Crop,
-                                modifier = Modifier.size(80.dp)
-                            )
-
-                            IconButton(
-                                onClick = {
-                                    selectedImageUris = selectedImageUris.filter { it != uri }
-                                },
-                                modifier = Modifier
-                                    .align(Alignment.TopEnd)
-                                    .size(24.dp)
-                                    .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Close,
-                                    contentDescription = "移除图片",
-                                    tint = Color.White,
-                                    modifier = Modifier.size(16.dp)
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-            }
-
-            // Bottom toolbar: Flomo-style minimal layout
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(horizontal = 16.dp, vertical = 8.dp)
             ) {
-                // Left: Minimal function icons
-                FlomoToolbar(
-                    activeFormats = activeFormats,
-                    isNotPickerActive = showNotePicker,
-                    onTagClick = {
-                        // Insert # at cursor position
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(cursorPos + 1)
-                        )
-                    },
-                    onMentionClick = {
-                        // Manual @ trigger - insert @ and show picker
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(cursorPos + 1)
-                        )
-                        showNotePicker = true
-                    },
-                    onImageClick = {
-                        imagePickerLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
-                    onBoldClick = {
-                        val selection = textFieldValue.selection
-                        if (selection.start == selection.end) {
-                            // No selection: toggle format lock with cursor positioning
-                            val isBoldActive = activeFormats.contains(RichTextUtils.FormatType.BOLD)
+                // NotePicker ABOVE TextField to avoid keyboard occlusion
+                if (showNotePicker) {
+                    NotePicker(
+                        allNotes = allNotes,
+                        currentNoteId = currentNoteId,
+                        onDismiss = { showNotePicker = false },
+                        onNoteSelected = { noteId, mentionText ->
+                            val currentText = textFieldValue.text
+                            val cursorPos = textFieldValue.selection.start
 
-                            if (!isBoldActive) {
-                                // Lock ON: Insert **** and move cursor to middle
-                                val currentText = textFieldValue.text
-                                val cursorPos = textFieldValue.selection.start
-                                val newText = currentText.substring(0, cursorPos) + "****" + currentText.substring(cursorPos)
-                                textFieldValue = TextFieldValue(
-                                    text = newText,
-                                    selection = TextRange(cursorPos + 2)  // Cursor between **|**
-                                )
-                                viewModel.toggleFormat(RichTextUtils.FormatType.BOLD)
+                            val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
+                                currentText.substring(0, maxOf(0, cursorPos - 1))
                             } else {
-                                // Lock OFF: Move cursor right 2 positions to jump out
-                                val currentText = textFieldValue.text
-                                val cursorPos = textFieldValue.selection.start
-                                val newCursorPos = (cursorPos + 2).coerceIn(0, currentText.length)
-                                textFieldValue = TextFieldValue(
-                                    text = currentText,
+                                currentText.substring(0, cursorPos)
+                            }
+                            val afterCursor = currentText.substring(cursorPos)
+
+                            val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                            val newText = beforeCursor + mentionMarkdown + afterCursor
+
+                            val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                            updateTextWithHistory(
+                                TextFieldValue(
+                                    text = newText,
                                     selection = TextRange(newCursorPos)
                                 )
-                                viewModel.toggleFormat(RichTextUtils.FormatType.BOLD)
-                            }
-                        } else {
-                            // Has selection: apply formatting immediately
-                            applyFormatting(RichTextUtils.FormatType.BOLD)
+                            )
+
+                            showNotePicker = false
                         }
-                    },
-                    onMoreClick = {
-                        showFormattingMenu = true
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+                }
+
+                // Top action bar: Title & Save send button
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = if (initialContent != null) "编辑笔记" else "记录想法",
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF666666)
+                    )
+
+                    // Send Button
+                    IconButton(
+                        onClick = {
+                            if (textFieldValue.text.isNotBlank()) {
+                                onSave(textFieldValue, selectedImageUris)
+                                textFieldValue = TextFieldValue("")
+                                selectedImageUris = emptyList()
+                                viewModel.clearActiveFormats()
+                                onDismiss()
+                            }
+                        },
+                        enabled = textFieldValue.text.isNotBlank(),
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = if (textFieldValue.text.isNotBlank()) Color(0xFF00C853) else Color(0xFFE0E0E0),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "保存",
+                            tint = Color.White,
+                            modifier = Modifier.size(18.dp)
+                        )
                     }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                // Borderless text input field
+                TextField(
+                    value = textFieldValue,
+                    onValueChange = ::onValueChange,
+                    placeholder = {
+                        Text(
+                            text = "现在的想法是...",
+                            color = Color(0xFF999999),
+                            fontSize = 16.sp
+                        )
+                    },
+                    colors = TextFieldDefaults.colors(
+                        focusedContainerColor = Color.Transparent,
+                        unfocusedContainerColor = Color.Transparent,
+                        disabledContainerColor = Color.Transparent,
+                        focusedIndicatorColor = Color.Transparent,
+                        unfocusedIndicatorColor = Color.Transparent,
+                        disabledIndicatorColor = Color.Transparent
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(140.dp)
+                        .focusRequester(focusRequester)
                 )
 
-                // Right: Circular send button
-                IconButton(
-                    onClick = {
-                        if (textFieldValue.text.isNotBlank()) {
-                            onSave(textFieldValue, selectedImageUris)
-                            textFieldValue = TextFieldValue("")
-                            selectedImageUris = emptyList()
-                            viewModel.clearActiveFormats()
-                            onDismiss()
+                // Image thumbnail preview
+                if (selectedImageUris.isNotEmpty()) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    LazyRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(selectedImageUris) { uri ->
+                            Box(
+                                modifier = Modifier
+                                    .size(72.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .background(Color(0xFFF0F0F0))
+                            ) {
+                                AsyncImage(
+                                    model = uri,
+                                    contentDescription = "预览图片",
+                                    contentScale = ContentScale.Crop,
+                                    modifier = Modifier.size(72.dp)
+                                )
+
+                                IconButton(
+                                    onClick = {
+                                        selectedImageUris = selectedImageUris.filter { it != uri }
+                                    },
+                                    modifier = Modifier
+                                        .align(Alignment.TopEnd)
+                                        .size(20.dp)
+                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "移除图片",
+                                        tint = Color.White,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                }
+                            }
                         }
-                    },
-                    enabled = textFieldValue.text.isNotBlank(),
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            color = if (textFieldValue.text.isNotBlank()) Color(0xFF00C853) else Color(0xFFCCCCCC),
-                            shape = CircleShape
-                        )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Send,
-                        contentDescription = "保存",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                    }
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 0.8.dp)
+
+            // Stage 15: Keyboard Accessory Toolbar (常驻键盘上方工具栏)
+            KeyboardAccessoryToolbar(
+                activeFormats = activeFormats,
+                canUndo = undoStack.isNotEmpty(),
+                canRedo = redoStack.isNotEmpty(),
+                onTagClick = {
+                    val currentText = textFieldValue.text
+                    val cursorPos = textFieldValue.selection.start
+                    val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
+                    updateTextWithHistory(
+                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
                     )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(8.dp))
-        }
-    }
-
-    // Formatting menu bottom sheet
-    if (showFormattingMenu) {
-        FormattingMenu(
-            onDismiss = { showFormattingMenu = false },
-            onUnderlineClick = {
-                val selection = textFieldValue.selection
-                if (selection.start == selection.end) {
-                    // No selection: toggle format lock with cursor positioning
-                    val isUnderlineActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE)
-
-                    if (!isUnderlineActive) {
-                        // Lock ON: Insert ____ and move cursor to middle
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newText = currentText.substring(0, cursorPos) + "____" + currentText.substring(cursorPos)
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(cursorPos + 2)  // Cursor between __|__
-                        )
-                        viewModel.toggleFormat(RichTextUtils.FormatType.UNDERLINE)
-                    } else {
-                        // Lock OFF: Move cursor right 2 positions to jump out
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newCursorPos = (cursorPos + 2).coerceIn(0, currentText.length)
-                        textFieldValue = TextFieldValue(
-                            text = currentText,
-                            selection = TextRange(newCursorPos)
-                        )
-                        viewModel.toggleFormat(RichTextUtils.FormatType.UNDERLINE)
-                    }
-                } else {
-                    applyFormatting(RichTextUtils.FormatType.UNDERLINE)
-                }
-            },
-            onHighlightClick = {
-                val selection = textFieldValue.selection
-                if (selection.start == selection.end) {
-                    // No selection: toggle format lock with cursor positioning
-                    val isHighlightActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT)
-
-                    if (!isHighlightActive) {
-                        // Lock ON: Insert ==== and move cursor to middle
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newText = currentText.substring(0, cursorPos) + "====" + currentText.substring(cursorPos)
-                        textFieldValue = TextFieldValue(
-                            text = newText,
-                            selection = TextRange(cursorPos + 2)  // Cursor between ==|==
-                        )
-                        viewModel.toggleFormat(RichTextUtils.FormatType.HIGHLIGHT)
-                    } else {
-                        // Lock OFF: Move cursor right 2 positions to jump out
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-                        val newCursorPos = (cursorPos + 2).coerceIn(0, currentText.length)
-                        textFieldValue = TextFieldValue(
-                            text = currentText,
-                            selection = TextRange(newCursorPos)
-                        )
-                        viewModel.toggleFormat(RichTextUtils.FormatType.HIGHLIGHT)
-                    }
-                } else {
+                },
+                onMentionClick = {
+                    val currentText = textFieldValue.text
+                    val cursorPos = textFieldValue.selection.start
+                    val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
+                    updateTextWithHistory(
+                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
+                    )
+                    showNotePicker = true
+                },
+                onImageClick = {
+                    imagePickerLauncher.launch(
+                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                    )
+                },
+                onBoldClick = {
+                    applyFormatting(RichTextUtils.FormatType.BOLD)
+                },
+                onHighlightClick = {
                     applyFormatting(RichTextUtils.FormatType.HIGHLIGHT)
-                }
-            },
-            onCheckboxClick = {
-                applyFormatting(RichTextUtils.FormatType.CHECKBOX_UNCHECKED)
-            },
-            onUndoClick = {
-                // MVP: Placeholder
-            },
-            onRedoClick = {
-                // MVP: Placeholder
-            }
-        )
+                },
+                onUnderlineClick = {
+                    applyFormatting(RichTextUtils.FormatType.UNDERLINE)
+                },
+                onCheckboxClick = {
+                    applyFormatting(RichTextUtils.FormatType.CHECKBOX_UNCHECKED)
+                },
+                onUndoClick = {
+                    if (undoStack.isNotEmpty()) {
+                        val prev = undoStack.removeAt(undoStack.lastIndex)
+                        redoStack.add(textFieldValue)
+                        textFieldValue = prev
+                    }
+                },
+                onRedoClick = {
+                    if (redoStack.isNotEmpty()) {
+                        val next = redoStack.removeAt(redoStack.lastIndex)
+                        undoStack.add(textFieldValue)
+                        textFieldValue = next
+                    }
+                },
+                modifier = Modifier.fillMaxWidth()
+            )
+        }
     }
 
     // Auto-focus when sheet opens
@@ -472,110 +415,173 @@ fun NoteEditorBottomSheet(
 }
 
 /**
- * FlomoToolbar - Minimal left-aligned toolbar with format lock indicators.
+ * KeyboardAccessoryToolbar - Persistent formatting toolbar docked directly above the soft keyboard.
  *
- * Stage 9 Refactor: Replaces FormattingToolbar with Flomo-style minimal design.
- * Stage 9 Fix: Added manual @mention trigger button to avoid input method issues.
- *
- * Features:
- * - 20dp icon size (not 24dp - more subtle)
- * - No background for icons (borderless)
- * - Selected state: circular background highlight when format is locked
+ * Stage 15: Flomo-Style Collapsible Toolbar ("..." Expand/Collapse)
+ * - Primary row (bottom): Core actions (#, @, 📷, B, ☑, ...)
+ * - Secondary row (top, animated): Extended formatting (H, U, ↩, ↪)
+ * - Retains soft keyboard focus and cursor state during expand/collapse transitions
  *
  * @param activeFormats Currently active format locks from ViewModel
- * @param isNotPickerActive Whether the note picker is currently visible
- * @param onTagClick Callback for # button
- * @param onMentionClick Callback for @ button (manual trigger)
- * @param onImageClick Callback for image button
- * @param onBoldClick Callback for bold button
- * @param onMoreClick Callback for more options button
+ * @param canUndo Whether undo action is available
+ * @param canRedo Whether redo action is available
  */
 @Composable
-private fun FlomoToolbar(
-    activeFormats: Set<RichTextUtils.FormatType>,
-    isNotPickerActive: Boolean,
+fun KeyboardAccessoryToolbar(
+    activeFormats: Set<RichTextUtils.FormatType> = emptySet(),
+    canUndo: Boolean = false,
+    canRedo: Boolean = false,
     onTagClick: () -> Unit,
     onMentionClick: () -> Unit,
     onImageClick: () -> Unit,
     onBoldClick: () -> Unit,
-    onMoreClick: () -> Unit,
+    onHighlightClick: () -> Unit,
+    onUnderlineClick: () -> Unit,
+    onCheckboxClick: () -> Unit,
+    onUndoClick: () -> Unit,
+    onRedoClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Row(
-        modifier = modifier,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalAlignment = Alignment.CenterVertically
+    var isExpanded by remember { mutableStateOf(false) }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .background(Color(0xFFFAFAFA))
     ) {
-        // Tag button (#)
-        MinimalIconButton(
-            text = "#",
-            isActive = false,
-            onClick = onTagClick
-        )
+        // Secondary Row (Extended Tools: H, U, Undo, Redo)
+        AnimatedVisibility(
+            visible = isExpanded,
+            enter = fadeIn() + expandVertically(),
+            exit = fadeOut() + shrinkVertically()
+        ) {
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(40.dp)
+                    .horizontalScroll(rememberScrollState())
+                    .padding(horizontal = 8.dp),
+                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                ToolbarIconButton(
+                    text = "H",
+                    fontWeight = FontWeight.Bold,
+                    contentDescription = "高亮",
+                    isActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT),
+                    onClick = onHighlightClick
+                )
 
-        // Mention button (@) - manual trigger
-        MinimalIconButton(
-            text = "@",
-            isActive = isNotPickerActive,
-            onClick = onMentionClick
-        )
+                ToolbarIconButton(
+                    text = "U",
+                    fontWeight = FontWeight.Medium,
+                    contentDescription = "下划线",
+                    isActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE),
+                    onClick = onUnderlineClick
+                )
 
-        // Image picker button (📷)
-        MinimalIconButton(
-            text = "📷",
-            isActive = false,
-            onClick = onImageClick
-        )
+                ToolbarIconButton(
+                    text = "↩",
+                    contentDescription = "撤销",
+                    enabled = canUndo,
+                    onClick = onUndoClick
+                )
 
-        // Bold button (B) - shows active state
-        MinimalIconButton(
-            text = "B",
-            isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
-            onClick = onBoldClick
-        )
+                ToolbarIconButton(
+                    text = "↪",
+                    contentDescription = "重做",
+                    enabled = canRedo,
+                    onClick = onRedoClick
+                )
+            }
+        }
 
-        // More options button (...)
-        MinimalIconButton(
-            text = "...",
-            isActive = false,
-            onClick = onMoreClick
-        )
+        if (isExpanded) {
+            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 0.5.dp)
+        }
+
+        // Primary Row (Core Tools: #, @, 📷, B, ☑, ...)
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .horizontalScroll(rememberScrollState())
+                .padding(horizontal = 8.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            ToolbarIconButton(
+                text = "#",
+                contentDescription = "插入标签",
+                onClick = onTagClick
+            )
+
+            ToolbarIconButton(
+                text = "@",
+                contentDescription = "提及笔记",
+                onClick = onMentionClick
+            )
+
+            ToolbarIconButton(
+                text = "📷",
+                contentDescription = "添加图片",
+                onClick = onImageClick
+            )
+
+            ToolbarIconButton(
+                text = "B",
+                fontWeight = FontWeight.Bold,
+                contentDescription = "加粗",
+                isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
+                onClick = onBoldClick
+            )
+
+            ToolbarIconButton(
+                text = "☑",
+                contentDescription = "待办事项框",
+                onClick = onCheckboxClick
+            )
+
+            // More / Collapse toggle button ("...") right next to todo icon
+            ToolbarIconButton(
+                text = "...",
+                contentDescription = if (isExpanded) "收起更多格式" else "展开更多格式",
+                isActive = isExpanded,
+                onClick = { isExpanded = !isExpanded }
+            )
+        }
     }
 }
 
-/**
- * MinimalIconButton - Flomo-style minimal icon button.
- *
- * Design:
- * - 20dp text size (subtle, not prominent)
- * - No border or background by default
- * - When active (format locked): light blue circular background
- *
- * @param text Icon text (e.g., "B", "#", "📷")
- * @param isActive Whether this format is currently locked
- * @param onClick Click callback
- */
 @Composable
-private fun MinimalIconButton(
+private fun ToolbarIconButton(
     text: String,
-    isActive: Boolean,
+    contentDescription: String,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    fontWeight: FontWeight = FontWeight.Normal,
+    isActive: Boolean = false,
+    enabled: Boolean = true
 ) {
     Box(
         modifier = modifier
-            .size(32.dp)
-            .clip(CircleShape)
+            .size(36.dp)
+            .clip(RoundedCornerShape(8.dp))
             .background(
-                color = if (isActive) Color(0xFFE3F2FD) else Color.Transparent
+                if (isActive) Color(0xFFE8F0FE) else Color.Transparent
             )
-            .clickable(onClick = onClick),
+            .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            fontSize = 18.sp,
-            color = if (isActive) Color(0xFF4C88FF) else Color(0xFF666666)
+            fontSize = 16.sp,
+            fontWeight = fontWeight,
+            color = when {
+                !enabled -> Color(0xFFCCCCCC)
+                isActive -> Color(0xFF1A73E8)
+                else -> Color(0xFF555555)
+            }
         )
     }
 }

@@ -23,17 +23,19 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.model.UserStats
+import java.time.LocalDate
 
 /**
  * DrawerContent - Flomo-inspired side navigation drawer.
  *
  * Stage 11 Major Refactor: Pixel-perfect Flomo design replication.
  * Stage 12 Update: Added bottom system entries (Trash, Help Center), tag operations integration.
- * Stage 14 Update: Added top achievement panel (Personal Data Center).
+ * Stage 14 Update: Added top achievement panel and GitHub-style contribution heatmap calendar.
  *
  * Design System:
  * - Pure white background (#FFFFFF), no heavy shadows
  * - Top achievement panel: notes count, tags count, days count
+ * - Contribution heatmap: 52-week punchcard activity grid
  * - Section titles: 12sp, very light warm gray (#B0B0B0), non-bold
  * - Tag text: 15sp, deep charcoal (#222222), medium weight
  * - Selected state: subtle light gray background, NO blue rounded blocks
@@ -42,6 +44,7 @@ import com.witte.lozify.domain.model.UserStats
  * @param tags List of all available tags
  * @param selectedTag Currently selected tag (null = show all)
  * @param stats User stats for achievement panel
+ * @param dailyCounts Daily note counts map for contribution heatmap
  * @param onTagSelected Callback when a tag is selected (null = show all)
  * @param onCloseDrawer Callback to close the drawer after selection
  * @param onNavigateToTrash Callback to navigate to trash screen
@@ -54,6 +57,7 @@ fun DrawerContent(
     tags: List<Tag>,
     selectedTag: Tag?,
     stats: UserStats = UserStats(),
+    dailyCounts: Map<LocalDate, Int> = emptyMap(),
     onTagSelected: (Long?) -> Unit,
     onCloseDrawer: () -> Unit,
     onNavigateToTrash: () -> Unit = {},
@@ -80,6 +84,34 @@ fun DrawerContent(
             DrawerStatsPanel(
                 stats = stats,
                 modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            HorizontalDivider(
+                color = Color(0xFFF0F0F0),
+                thickness = 1.dp,
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Stage 14: Contribution Heatmap Section (打卡日历)
+            Text(
+                text = "打卡日历",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF222222),
+                modifier = Modifier.padding(horizontal = 20.dp)
+            )
+
+            Spacer(modifier = Modifier.height(10.dp))
+
+            ContributionHeatmap(
+                dailyCounts = dailyCounts,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 20.dp)
             )
 
             Spacer(modifier = Modifier.height(16.dp))

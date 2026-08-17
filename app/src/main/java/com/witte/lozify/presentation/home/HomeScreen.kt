@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FabPosition
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -155,6 +156,7 @@ fun HomeScreen(
                 tags = uiState.allTags,
                 selectedTag = uiState.selectedTag,
                 stats = uiState.userStats,
+                dailyCounts = uiState.heatmapData,
                 onTagSelected = { tagId ->
                     homeViewModel.selectTag(tagId)
                 },
@@ -253,6 +255,7 @@ fun HomeScreen(
                 }
             )
         },
+        floatingActionButtonPosition = FabPosition.Center,
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = Color(0xFFF7F8FA),
         modifier = modifier
