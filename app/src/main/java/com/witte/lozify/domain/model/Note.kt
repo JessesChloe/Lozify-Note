@@ -13,6 +13,7 @@ import java.time.Instant
  * @property createdAt Creation timestamp
  * @property updatedAt Last modification timestamp
  * @property isPinned Whether note is pinned to top of feed
+ * @property isArchived Whether note is archived (hidden from main feed)
  * @property isDeleted Soft delete flag (for trash/undo functionality)
  * @property tags List of associated tags
  * @property attachments List of image attachments
@@ -25,6 +26,7 @@ data class Note(
     val createdAt: Instant,
     val updatedAt: Instant,
     val isPinned: Boolean = false,
+    val isArchived: Boolean = false,
     val isDeleted: Boolean = false,
     val tags: List<Tag> = emptyList(),
     val attachments: List<Attachment> = emptyList(),

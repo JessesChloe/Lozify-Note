@@ -2,8 +2,13 @@ package com.witte.lozify.core.navigation
 
 /**
  * Navigation routes for Lozify app.
+ *
+ * Stage 12: Renamed ARCHIVE to TRASH, added TAG_EDIT route.
  */
 object Routes {
     const val HOME = "home"
-    const val ARCHIVE = "archive"
+    const val TRASH = "trash"
+    const val TAG_EDIT = "tag_edit/{tagId}"
+
+    fun tagEdit(tagId: Long): String = "tag_edit/$tagId"
 }

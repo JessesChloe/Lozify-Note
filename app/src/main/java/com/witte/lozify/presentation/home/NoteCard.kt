@@ -13,6 +13,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -37,6 +40,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Attachment
@@ -129,14 +133,45 @@ fun NoteCard(
         }.joinToString("\n")
     }
 
-    // Build AnnotatedString for non-checkbox content
-    val annotatedContent = remember(nonCheckboxContent) {
-        RichTextUtils.buildAnnotatedStringWithFormatting(
+    // Stage 13: Parse rich text into annotated string, inline tags, and relation mentions
+    val parsedRichText = remember(nonCheckboxContent) {
+        RichTextUtils.parseRichText(
             content = nonCheckboxContent,
-            tagColor = Color(0xFF4C88FF),
-            onTagClick = onTagClick,
-            onMentionClick = onMentionClick
+            tagColor = Color(0xFF1A73E8),
+            onTagClick = onTagClick
         )
+    }
+
+    // Stage 13: Build inlineContent map for capsule tag badges
+    val inlineContentMap = remember(parsedRichText.tags) {
+        parsedRichText.tags.distinct().associate { tagName ->
+            val tagId = "tag_$tagName"
+            val badgeWidth = RichTextUtils.calculateTagBadgeWidth(tagName)
+            tagId to InlineTextContent(
+                placeholder = Placeholder(
+                    width = badgeWidth,
+                    height = 18.sp,
+                    placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                )
+            ) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFE8F0FE))
+                        .clickable { onTagClick?.invoke(tagName) }
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "#$tagName",
+                        color = Color(0xFF1A73E8),
+                        fontSize = 12.sp,
+                        fontWeight = FontWeight.Medium,
+                        lineHeight = 14.sp
+                    )
+                }
+            }
+        }
     }
 
     Box(
@@ -285,10 +320,11 @@ fun NoteCard(
                     }
                 }
 
-                // Render non-checkbox content with formatting
+                // Render non-checkbox content with formatting and inline capsule badges
                 if (nonCheckboxContent.isNotBlank()) {
-                    ClickableText(
-                        text = annotatedContent,
+                    Text(
+                        text = parsedRichText.annotatedString,
+                        inlineContent = inlineContentMap,
                         style = androidx.compose.ui.text.TextStyle(
                             fontSize = 16.sp,
                             color = Color(0xFF333333),
@@ -299,20 +335,6 @@ fun NoteCard(
                         onTextLayout = { textLayoutResult: TextLayoutResult ->
                             if (!isExpanded && textLayoutResult.hasVisualOverflow) {
                                 showExpandButton = true
-                            }
-                        },
-                        onClick = { offset ->
-                            // Stage 4: Handle tag clicks if callback provided
-                            onTagClick?.let { callback ->
-                                RichTextUtils.getTagAtOffset(annotatedContent, offset)?.let { tagName ->
-                                    callback(tagName)
-                                }
-                            }
-                            // Stage 8: Handle @mention clicks if callback provided
-                            onMentionClick?.let { callback ->
-                                RichTextUtils.getMentionAtOffset(annotatedContent, offset)?.let { noteId ->
-                                    callback(noteId)
-                                }
                             }
                         },
                         modifier = Modifier.fillMaxWidth()
@@ -368,49 +390,117 @@ fun NoteCard(
                 }
             }
 
-            // Stage 8 UX Refactor: Flomo-style relation display with preview
-            // Show "关联自" section only if not in detail view and has incoming relations
-            if (!hideOperations && incomingRelationsCount > 0 && incomingRelations.isNotEmpty()) {
+            // Stage 13 UI Refactor: Flomo-style Relation Block (底部双向链接块)
+            val hasOutgoingMentions = parsedRichText.mentions.isNotEmpty()
+            val hasIncoming = !hideOperations && incomingRelationsCount > 0 && incomingRelations.isNotEmpty()
+
+            if (hasOutgoingMentions || hasIncoming) {
                 Spacer(modifier = Modifier.height(12.dp))
 
-                // Divider line
+                // Extremely subtle divider line
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(1.dp)
-                        .background(Color(0xFFE0E0E0))
+                        .background(Color(0xFFF0F0F0))
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Get first incoming relation
-                val firstIncoming = incomingRelations.first()
-
-                // "关联自：[笔记标题] ▶"
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable {
-                            onRelationsClick?.invoke(incomingRelations, "反链列表")
+                // Outgoing relation blocks (from @[text](note:id) in this note)
+                parsedRichText.mentions.forEach { mention ->
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(Color(0xFFF9FAFB))
+                            .clickable {
+                                onMentionClick?.invoke(mention.noteId)
+                            }
+                            .padding(8.dp)
+                    ) {
+                        // "关联自：MEMO ▶"
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "关联自：MEMO ▶",
+                                fontSize = 12.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF1A73E8)
+                            )
                         }
-                        .padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    Text(
-                        text = "关联自：",
-                        fontSize = 12.sp,
-                        color = Color(0xFF888888)
-                    )
-                    // Display cleaned mention text
-                    Text(
-                        text = "${firstIncoming.mentionText} ▶",
-                        fontSize = 12.sp,
-                        color = Color(0xFF4C88FF),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                        modifier = Modifier.weight(1f)
-                    )
+
+                        Spacer(modifier = Modifier.height(4.dp))
+
+                        // Small icon and memo summary
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "📝",
+                                fontSize = 11.sp
+                            )
+                            Text(
+                                text = mention.mentionText.ifBlank { "点击查看关联笔记内容" },
+                                fontSize = 12.sp,
+                                color = Color(0xFF888888),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.height(6.dp))
+                }
+
+                // Incoming relation blocks (backlinks from other notes referencing this note)
+                if (hasIncoming) {
+                    incomingRelations.forEach { relation ->
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(Color(0xFFF9FAFB))
+                                .clickable {
+                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
+                                }
+                                .padding(8.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "反向关联：MEMO ▶",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF1A73E8)
+                                )
+                            }
+
+                            Spacer(modifier = Modifier.height(4.dp))
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "🔗",
+                                    fontSize = 11.sp
+                                )
+                                Text(
+                                    text = relation.mentionText.ifBlank { "被其他笔记引用" },
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF888888),
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                        }
+                        Spacer(modifier = Modifier.height(6.dp))
+                    }
                 }
             }
         }

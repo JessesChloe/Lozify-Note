@@ -39,5 +39,13 @@ data class TagEntity(
      * Updated via triggers or application logic when associations change.
      */
     @ColumnInfo(name = "usage_count")
-    val usageCount: Int = 0
+    val usageCount: Int = 0,
+
+    /**
+     * Optional emoji icon for this tag (e.g., "🏷️", "📌").
+     * Null means use the default # symbol in UI.
+     * Added in database version 3 (Stage 13).
+     */
+    @ColumnInfo(name = "icon")
+    val icon: String? = null
 )

@@ -16,13 +16,17 @@ import java.time.Instant
  * - created_at: For sorting notes by creation time
  * - updated_at: For syncing and sorting by last modification
  * - is_deleted: For filtering out deleted notes efficiently
+ * - is_archived: For filtering out archived notes efficiently
+ * - is_pinned: For sorting pinned notes to top
  */
 @Entity(
     tableName = "notes",
     indices = [
         Index(value = ["created_at"]),
         Index(value = ["updated_at"]),
-        Index(value = ["is_deleted"])
+        Index(value = ["is_deleted"]),
+        Index(value = ["is_archived"]),
+        Index(value = ["is_pinned"])
     ]
 )
 data class NoteEntity(
@@ -41,6 +45,9 @@ data class NoteEntity(
 
     @ColumnInfo(name = "is_pinned")
     val isPinned: Boolean = false,
+
+    @ColumnInfo(name = "is_archived")
+    val isArchived: Boolean = false,
 
     @ColumnInfo(name = "is_deleted")
     val isDeleted: Boolean = false,

@@ -19,7 +19,8 @@ fun TagEntity.toDomainModel(): Tag {
         id = id,
         name = name,
         createdAt = createdAt,
-        usageCount = usageCount
+        usageCount = usageCount,
+        icon = icon
     )
 }
 
@@ -31,7 +32,8 @@ fun Tag.toEntity(): TagEntity {
         id = id,
         name = name,
         createdAt = createdAt,
-        usageCount = usageCount
+        usageCount = usageCount,
+        icon = icon
     )
 }
 

@@ -174,45 +174,47 @@ class TagRepositoryImpl @Inject constructor(
     }
 
     /**
-     * Stage 12: Rename tag across all notes using regex replacement.
+     * Stage 12 & 13: Rename tag across all notes using regex replacement and update icon.
      *
      * Strategy:
-     * 1. Get all notes containing the old tag
-     * 2. Use word boundary regex to replace #oldName with #newName
-     * 3. Update note content
-     * 4. Update tag entity itself
-     * 5. Recreate tag associations with new tag ID
+     * 1. Get existing tag entity
+     * 2. If tag name changed, replace #oldName with #newName in note contents
+     * 3. Update tag entity itself with new name and new icon
      *
      * Regex Pattern: (?<=\s|^)#oldName(?=\s|$)
      * - Ensures tag is surrounded by whitespace or string boundaries
      */
-    override suspend fun renameTagInAllNotes(tagId: Long, oldName: String, newName: String) {
+    override suspend fun renameTagInAllNotes(
+        tagId: Long,
+        oldName: String,
+        newName: String,
+        newIcon: String?
+    ) {
         // Get tag entity first
         val oldTag = tagDao.getTagById(tagId).first() ?: return
 
-        // Get all notes with this tag
-        val notes = noteDao.getNotesByTag(tagId).first()
+        // If name changed, update tag name in each note's content
+        if (oldName != newName) {
+            val notes = noteDao.getNotesByTag(tagId).first()
 
-        // Update tag name in each note's content
-        notes.forEach { noteEntity ->
-            // Build regex pattern with word boundaries for old tag
-            val oldTagPattern = Regex("""(?<=\s|^)#${Regex.escape(oldName)}(?=\s|$)""")
+            notes.forEach { noteEntity ->
+                // Build regex pattern with word boundaries for old tag
+                val oldTagPattern = Regex("""(?<=\s|^)#${Regex.escape(oldName)}(?=\s|$)""")
 
-            // Replace with new tag name
-            val updatedContent = noteEntity.content.replace(oldTagPattern, "#$newName")
+                // Replace with new tag name
+                val updatedContent = noteEntity.content.replace(oldTagPattern, "#$newName")
 
-            // Update note entity
-            val updatedEntity = noteEntity.copy(
-                content = updatedContent,
-                updatedAt = Instant.now()
-            )
-            noteDao.updateNote(updatedEntity)
+                // Update note entity
+                val updatedEntity = noteEntity.copy(
+                    content = updatedContent,
+                    updatedAt = Instant.now()
+                )
+                noteDao.updateNote(updatedEntity)
+            }
         }
 
-        // Update tag entity itself
-        val updatedTag = oldTag.copy(name = newName)
+        // Update tag entity itself (name and icon)
+        val updatedTag = oldTag.copy(name = newName, icon = newIcon)
         tagDao.updateTag(updatedTag)
-
-        // Note: No need to update cross-ref table, as it references tag.id which remains the same
     }
 }

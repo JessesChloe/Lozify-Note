@@ -15,12 +15,14 @@ import java.time.Instant
  * @property name Tag name (without # prefix)
  * @property createdAt Creation timestamp
  * @property usageCount Number of notes currently using this tag
+ * @property icon Optional emoji icon (null = use default # symbol)
  */
 data class Tag(
     val id: Long = 0,
     val name: String,
     val createdAt: Instant,
-    val usageCount: Int = 0
+    val usageCount: Int = 0,
+    val icon: String? = null
 ) {
     /**
      * Get display name with # prefix (for UI rendering).

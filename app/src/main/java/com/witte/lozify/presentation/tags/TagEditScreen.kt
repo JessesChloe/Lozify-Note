@@ -44,7 +44,7 @@ fun TagEditScreen(
     modifier: Modifier = Modifier
 ) {
     var tagName by remember { mutableStateOf(tag.name) }
-    var selectedIcon by remember { mutableStateOf<String?>(null) } // null = use # symbol
+    var selectedIcon by remember { mutableStateOf<String?>(tag.icon) } // null = use # symbol
 
     Scaffold(
         topBar = {

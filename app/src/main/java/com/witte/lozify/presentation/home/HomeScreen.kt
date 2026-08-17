@@ -430,23 +430,17 @@ fun HomeScreen(
         )
     }
 
-    // Stage 8 UX Refactor: Note detail bottom sheet
+    // Stage 13 Refactor: Note detail context thread bottom sheet
     showNoteDetail?.let { noteId ->
-        val targetNote = uiState.notes.find { it.id == noteId }
-        if (targetNote != null) {
-            NoteDetailBottomSheet(
-                note = targetNote,
-                filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
-                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-                onDismiss = { showNoteDetail = null }
-            )
-        } else {
-            // Note not found, dismiss and show snackbar
-            LaunchedEffect(Unit) {
-                showNoteDetail = null
-                snackbarHostState.showSnackbar("目标笔记不存在或已删除")
+        NoteDetailBottomSheet(
+            noteId = noteId,
+            filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            onDismiss = { showNoteDetail = null },
+            onSelectNote = { selectedId ->
+                showNoteDetail = selectedId
             }
-        }
+        )
     }
     }
 }

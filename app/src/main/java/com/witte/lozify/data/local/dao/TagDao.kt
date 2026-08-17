@@ -31,6 +31,7 @@ interface TagDao {
             tags.id,
             tags.name,
             tags.created_at,
+            tags.icon,
             COUNT(DISTINCT note_tag_cross_ref.note_id) as usage_count
         FROM tags
         LEFT JOIN note_tag_cross_ref ON tags.id = note_tag_cross_ref.tag_id

@@ -320,9 +320,9 @@ private fun DrawerTagItem(
             horizontalArrangement = Arrangement.spacedBy(4.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // # prefix icon
+            // # prefix icon or emoji
             Text(
-                text = "#",
+                text = tag.icon ?: "#",
                 fontSize = 15.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF222222)

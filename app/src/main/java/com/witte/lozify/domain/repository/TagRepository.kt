@@ -72,4 +72,31 @@ interface TagRepository {
      * Get total count of tags.
      */
     fun getTagsCount(): Flow<Int>
+
+    /**
+     * Stage 12: Remove tag from all notes (regex replace #tagName with empty string).
+     * Does not delete the tag entity itself, only removes it from note content.
+     *
+     * @param tagName Tag name without # prefix
+     */
+    suspend fun removeTagFromAllNotes(tagName: String)
+
+    /**
+     * Stage 12: Delete tag and move all associated notes to trash.
+     * Sets is_archived = 1 for all notes containing this tag.
+     *
+     * @param tagId Tag ID to delete
+     */
+    suspend fun deleteTagAndMoveNotesToTrash(tagId: Long)
+
+    /**
+     * Stage 12 & 13: Rename tag across all notes (regex replace #oldName with #newName)
+     * and update optional emoji icon.
+     *
+     * @param tagId Tag ID to rename
+     * @param oldName Current tag name without # prefix
+     * @param newName New tag name without # prefix
+     * @param newIcon Optional new emoji icon (null = default #)
+     */
+    suspend fun renameTagInAllNotes(tagId: Long, oldName: String, newName: String, newIcon: String? = null)
 }

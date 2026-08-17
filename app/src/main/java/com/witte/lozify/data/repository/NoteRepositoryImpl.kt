@@ -9,6 +9,7 @@ import com.witte.lozify.data.mapper.toDomainModel
 import com.witte.lozify.data.mapper.toDomainModels
 import com.witte.lozify.data.mapper.toEntity
 import com.witte.lozify.domain.model.Note
+import com.witte.lozify.domain.model.NoteThread
 import com.witte.lozify.domain.repository.NoteRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
@@ -47,6 +48,28 @@ class NoteRepositoryImpl @Inject constructor(
     override fun getNoteById(noteId: Long): Flow<Note?> {
         return noteDao.getNoteById(noteId).map { noteEntity ->
             noteEntity?.toDomainModel()
+        }
+    }
+
+    override fun getNoteThread(noteId: Long): Flow<NoteThread?> {
+        return noteDao.getAllNotesWithRelations().map { notesWithRelations ->
+            val allNotes = notesWithRelations.toDomainModels()
+            val allNotesMap = allNotes.associateBy { it.id }
+            val mainNote = allNotesMap[noteId] ?: return@map null
+
+            // Parents: notes mentioning mainNote (incoming relations to mainNote)
+            val parentIds = mainNote.incomingRelations.map { it.fromNoteId }
+            val parents = parentIds.mapNotNull { allNotesMap[it] }
+
+            // Children: notes mentioned by mainNote (outgoing relations from mainNote)
+            val childIds = mainNote.outgoingRelations.map { it.toNoteId }
+            val children = childIds.mapNotNull { allNotesMap[it] }
+
+            NoteThread(
+                parents = parents,
+                mainNote = mainNote,
+                children = children
+            )
         }
     }
 

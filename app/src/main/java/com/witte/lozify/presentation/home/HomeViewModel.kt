@@ -106,6 +106,16 @@ class HomeViewModel @Inject constructor(
     )
 
     /**
+     * Expose allTags for navigation and tag edit screen.
+     */
+    val allTags: StateFlow<List<Tag>> = tagRepository.getAllTags()
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
+
+    /**
      * Stage 4: Select a tag for filtering.
      *
      * @param tagId Tag ID to filter by, or null to show all notes
@@ -145,11 +155,68 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
+     * Stage 9: Toggle pin status (simplified for swipe gesture).
+     */
+    fun togglePin(noteId: Long) {
+        viewModelScope.launch {
+            val noteFlow = noteRepository.getNoteById(noteId)
+            noteFlow.firstOrNull()?.let { currentNote ->
+                noteRepository.togglePinStatus(noteId, !currentNote.isPinned)
+            }
+        }
+    }
+
+    /**
+     * Stage 9: Move note to trash (renamed from archive in Stage 12).
+     */
+    fun moveToTrash(noteId: Long) {
+        viewModelScope.launch {
+            noteRepository.toggleTrashStatus(noteId, true)
+        }
+    }
+
+    /**
      * Soft delete a note (move to trash).
      */
     fun deleteNote(noteId: Long) {
         viewModelScope.launch {
             noteRepository.softDeleteNote(noteId)
+        }
+    }
+
+    /**
+     * Stage 12 & 13: Rename tag across all notes using regex replacement and update icon.
+     *
+     * @param tagId Tag ID to rename
+     * @param oldName Current tag name without # prefix
+     * @param newName New tag name without # prefix
+     * @param newIcon Optional new emoji icon (or null for default #)
+     */
+    fun renameTag(tagId: Long, oldName: String, newName: String, newIcon: String? = null) {
+        viewModelScope.launch {
+            tagRepository.renameTagInAllNotes(tagId, oldName, newName, newIcon)
+        }
+    }
+
+    /**
+     * Stage 12: Remove tag from all notes (regex replace #tagName with empty).
+     *
+     * @param tagName Tag name without # prefix
+     */
+    fun removeTagFromAllNotes(tagName: String) {
+        viewModelScope.launch {
+            tagRepository.removeTagFromAllNotes(tagName)
+        }
+    }
+
+    /**
+     * Stage 12: Delete tag and move all associated notes to trash.
+     *
+     * @param tagId Tag ID to delete
+     */
+    fun deleteTagAndMoveNotesToTrash(tagId: Long) {
+        viewModelScope.launch {
+            tagRepository.deleteTagAndMoveNotesToTrash(tagId)
         }
     }
 

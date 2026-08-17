@@ -1,233 +1,229 @@
 package com.witte.lozify.core.common
 
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 
 /**
  * RichTextUtils - Utility for parsing and rendering rich text formatting.
  *
- * Stage 7: Extends Stage 4's tag highlighting with full Markdown-like formatting.
- *
- * Supported Formats:
- * - **Bold**: `**text**` → FontWeight.Bold
- * - __Underline__: `__text__` → TextDecoration.Underline
- * - ==Highlight==: `==text==` → Background #FFF3C4
- * - Checkbox: `- [ ]` / `- [x]` → Rendered with Unicode checkbox symbols
- * - #Tags: `#tagname` → Blue color (from Stage 4)
- *
- * Technical Approach:
- * - Parse content with regex to find all formatting markers
- * - Build AnnotatedString with multiple SpanStyle layers
- * - Support overlapping styles (e.g., bold + highlight)
- * - Preserve original text indices for click handling
+ * Stage 13 UI Refactor (Flomo Visual Alignment):
+ * 1. Inline Tag Badges: Tags (#tag) are rendered as inline composable capsules using appendInlineContent.
+ * 2. Relation Blocks: Mentions (@[text](note:id)) are stripped from body text and extracted for bottom relation cards.
+ * 3. Markdown Formatting: Bold (**text**), Underline (__text__), Highlight (==text==), Checkbox (- [ ] / - [x]).
  */
 object RichTextUtils {
 
     private val HighlightYellow = Color(0xFFFFF3C4)
-    private val TagBlue = Color(0xFF4C88FF)
-    private val MentionBlue = Color(0xFF4C88FF)  // Bug Fix: Changed to link blue, removed background
     private val CheckboxGreen = Color(0xFF00C853)
     private val CheckboxGray = Color(0xFF9CA3AF)
 
     /**
-     * Build AnnotatedString with full rich text formatting support.
+     * Data class holding parsed rich text result.
      *
-     * Bug Fix (Stage 7): Strip Markdown markers from rendered text while preserving styling.
-     * Stage 8: Added @mention support with clickable links.
-     * Bug Fix (Stage 9): Fixed nested marker rendering - now correctly handles **==text==** without duplication.
+     * @param annotatedString Formatted text with inline content placeholders
+     * @param tags Extracted unique tag names without # prefix
+     * @param mentions Extracted mentions for bottom relation cards
+     */
+    data class ParsedRichText(
+        val annotatedString: AnnotatedString,
+        val tags: List<String>,
+        val mentions: List<ExtractedMention>
+    )
+
+    /**
+     * Data class representing an extracted mention relation.
      *
-     * Processing Order:
-     * 1. Checkboxes (- [ ] / - [x]) → Replace with Unicode
-     * 2. Strip ALL markers in one pass using position tracking (handles nesting correctly)
-     * 3. Apply styles to cleaned text positions
-     * 4. Tags (#tagname) → Apply color styling
-     * 5. Mentions (@[text](note:id)) → Apply mention styling with click
+     * @param noteId ID of the referenced note
+     * @param mentionText Display title/summary of the referenced note
+     */
+    data class ExtractedMention(
+        val noteId: Long,
+        val mentionText: String
+    )
+
+    /**
+     * Calculate appropriate badge width in SP for an inline tag.
+     */
+    fun calculateTagBadgeWidth(tagName: String): TextUnit {
+        val charWidthSum = tagName.sumOf { if (it.code > 127) 13.0 else 7.5 }
+        val totalWidth = 8.0 + charWidthSum + 12.0
+        return totalWidth.sp
+    }
+
+    /**
+     * Parse rich text content into ParsedRichText.
      *
-     * @param content Raw text with Markdown markers
-     * @param tagColor Color for #tags (default blue)
-     * @param onTagClick Callback when tag is clicked (receives tag name without #)
-     * @param onMentionClick Callback when @mention is clicked (receives note ID)
-     * @return AnnotatedString with all formatting applied, markers removed
+     * - Checkbox markers (- [ ] / - [x]) replaced with Unicode.
+     * - Mentions (@[text](note:id)) stripped from body and collected into mentions list.
+     * - Tags (#tagName) converted to inline content (appendInlineContent) and collected into tags list.
+     * - Bold (**), Underline (__), Highlight (==) mapped to SpanStyles.
+     */
+    fun parseRichText(
+        content: String,
+        tagColor: Color = Color(0xFF1A73E8),
+        onTagClick: ((String) -> Unit)? = null
+    ): ParsedRichText {
+        var processedContent = content
+
+        // Step 1: Replace checkbox markers with Unicode symbols
+        val checkboxPattern = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
+        processedContent = processedContent.replace(checkboxPattern) { matchResult ->
+            when (matchResult.groupValues[1]) {
+                "x" -> "☑"  // Checked
+                else -> "☐" // Unchecked
+            }
+        }
+
+        // Step 2: Extract and strip all @[text](note:id) mentions from body text
+        val extractedMentions = mutableListOf<ExtractedMention>()
+        val mentionRegex = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""")
+        mentionRegex.findAll(processedContent).forEach { match ->
+            val text = match.groupValues[1]
+            val noteId = match.groupValues[2].toLongOrNull()
+            if (noteId != null) {
+                extractedMentions.add(ExtractedMention(noteId, text))
+            }
+        }
+
+        // Replace mentions first so body text is clean
+        val contentWithoutMentions = processedContent.replace(mentionRegex, "").trimEnd()
+
+        val extractedTags = mutableListOf<String>()
+        val builder = AnnotatedString.Builder()
+        val markerPositions = mutableListOf<MarkerPosition>()
+
+        // Find bold markers ((?s) enables DOTALL mode)
+        Regex("""\*\*(?s)(.+?)\*\*""").findAll(contentWithoutMentions).forEach { match ->
+            markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
+            markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
+            markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.BOLD))
+        }
+
+        // Find underline markers ((?s) enables DOTALL mode)
+        Regex("""__(?s)(.+?)__""").findAll(contentWithoutMentions).forEach { match ->
+            markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
+            markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
+            markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.UNDERLINE))
+        }
+
+        // Find highlight markers ((?s) enables DOTALL mode)
+        Regex("""==(?s)(.+?)==""").findAll(contentWithoutMentions).forEach { match ->
+            markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
+            markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
+            markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.HIGHLIGHT))
+        }
+
+        // Find tags (#tagName)
+        val tagRegex = Regex("""(?<=\s|^)#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+        tagRegex.findAll(contentWithoutMentions).forEach { match ->
+            val tagName = match.value.substring(1) // remove #
+            extractedTags.add(tagName)
+            markerPositions.add(MarkerPosition(
+                start = match.range.first,
+                end = match.range.last + 1,
+                type = MarkerType.TAG,
+                tagName = tagName
+            ))
+        }
+
+        // Sort structural markers by start position
+        val structuralMarkers = markerPositions
+            .filter { it.type == MarkerType.OPEN || it.type == MarkerType.CLOSE || it.type == MarkerType.TAG }
+            .sortedBy { it.start }
+
+        val positionMap = mutableMapOf<Int, Int>() // original pos -> builder length
+        var cursor = 0
+
+        while (cursor < contentWithoutMentions.length) {
+            positionMap[cursor] = builder.length
+
+            val marker = structuralMarkers.firstOrNull { it.start == cursor }
+            if (marker != null) {
+                when (marker.type) {
+                    MarkerType.OPEN, MarkerType.CLOSE -> {
+                        for (k in cursor until marker.end) {
+                            positionMap[k] = builder.length
+                        }
+                        cursor = marker.end
+                    }
+                    MarkerType.TAG -> {
+                        val tagName = marker.tagName ?: ""
+                        builder.appendInlineContent(id = "tag_$tagName", alternateText = "#$tagName")
+                        for (k in cursor until marker.end) {
+                            positionMap[k] = builder.length
+                        }
+                        cursor = marker.end
+                    }
+                    else -> {
+                        builder.append(contentWithoutMentions[cursor])
+                        cursor++
+                    }
+                }
+            } else {
+                builder.append(contentWithoutMentions[cursor])
+                cursor++
+            }
+        }
+        positionMap[contentWithoutMentions.length] = builder.length
+
+        // Apply formatting styles (Bold, Underline, Highlight)
+        val styleMarkers = markerPositions.filter { it.type == MarkerType.STYLE }
+        styleMarkers.forEach { marker ->
+            val cleanStart = positionMap[marker.start] ?: 0
+            val mappedEnd = positionMap[marker.end] ?: builder.length
+            val cleanEnd = minOf(mappedEnd, builder.length)
+
+            if (cleanStart >= 0 && cleanStart < cleanEnd && cleanEnd <= builder.length) {
+                val style = when (marker.formatType) {
+                    FormatType.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
+                    FormatType.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
+                    FormatType.HIGHLIGHT -> SpanStyle(background = HighlightYellow)
+                    else -> null
+                }
+                style?.let { builder.addStyle(it, cleanStart, cleanEnd) }
+            }
+        }
+
+        // Apply style to checkbox symbols
+        val finalText = builder.toAnnotatedString()
+        val checkboxSymbolPattern = Regex("""[☐☑]""")
+        checkboxSymbolPattern.findAll(finalText.text).forEach { match ->
+            val isChecked = match.value == "☑"
+            builder.addStyle(
+                style = SpanStyle(
+                    color = if (isChecked) CheckboxGreen else CheckboxGray,
+                    fontWeight = FontWeight.Bold
+                ),
+                start = match.range.first,
+                end = match.range.last + 1
+            )
+        }
+
+        return ParsedRichText(
+            annotatedString = builder.toAnnotatedString(),
+            tags = extractedTags.distinct(),
+            mentions = extractedMentions
+        )
+    }
+
+    /**
+     * Backward-compatible builder for AnnotatedString.
      */
     fun buildAnnotatedStringWithFormatting(
         content: String,
-        tagColor: Color = TagBlue,
+        tagColor: Color = Color(0xFF1A73E8),
+        mentionColor: Color = Color(0xFF7C4DFF),
         onTagClick: ((String) -> Unit)? = null,
-        onMentionClick: ((Long) -> Unit)? = null
+        onMentionClick: ((Long) -> Unit)? = null,
+        onPlainMentionClick: ((String) -> Unit)? = null
     ): AnnotatedString {
-        return AnnotatedString.Builder().apply {
-            var processedContent = content
-
-            // Step 1: Replace checkbox markers with Unicode symbols
-            val checkboxPattern = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
-            processedContent = processedContent.replace(checkboxPattern) { matchResult ->
-                when (matchResult.groupValues[1]) {
-                    "x" -> "☑"  // Checked
-                    else -> "☐" // Unchecked
-                }
-            }
-
-            // Step 2: Find all marker positions (including nested ones)
-            val markerPositions = mutableListOf<MarkerPosition>()
-
-            // Find @mention markers (Stage 8: @[text](note:id) format)
-            // Bug Fix: Use stricter regex to handle brackets inside mention text (e.g., "- [ ] task")
-            Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""").findAll(processedContent).forEach { match ->
-                val mentionText = match.groupValues[1]
-                val noteId = match.groupValues[2].toLongOrNull()
-                // Opening: "@[" (2 chars)
-                val openStart = match.range.first
-                val openEnd = match.range.first + 2
-                // Closing: "](note:X)" starts after mentionText
-                val closeStart = match.range.first + 2 + mentionText.length
-                val closeEnd = match.range.last + 1
-
-                markerPositions.add(MarkerPosition(openStart, openEnd, MarkerType.OPEN))
-                markerPositions.add(MarkerPosition(closeStart, closeEnd, MarkerType.CLOSE))
-                // Track content range for mention styling (only the mentionText part)
-                markerPositions.add(MarkerPosition(
-                    openEnd,
-                    closeStart,
-                    MarkerType.STYLE,
-                    FormatType.MENTION,
-                    noteId
-                ))
-            }
-
-            // Find bold markers ((?s) enables DOTALL mode)
-            Regex("""\*\*(?s)(.+?)\*\*""").findAll(processedContent).forEach { match ->
-                markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
-                markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
-                markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, FormatType.BOLD))
-            }
-
-            // Find underline markers ((?s) enables DOTALL mode)
-            Regex("""__(?s)(.+?)__""").findAll(processedContent).forEach { match ->
-                markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
-                markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
-                markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, FormatType.UNDERLINE))
-            }
-
-            // Find highlight markers ((?s) enables DOTALL mode)
-            Regex("""==(?s)(.+?)==""").findAll(processedContent).forEach { match ->
-                markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
-                markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
-                markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, FormatType.HIGHLIGHT))
-            }
-
-            // Step 3: Build clean text by skipping marker symbols, track position mapping
-            val cleanText = StringBuilder()
-            val positionMap = mutableMapOf<Int, Int>() // original pos -> clean pos
-            val markerRanges = markerPositions.filter { it.type == MarkerType.OPEN || it.type == MarkerType.CLOSE }
-                .sortedBy { it.start }
-
-            var i = 0
-            while (i < processedContent.length) {
-                // Map current position before any operation
-                positionMap[i] = cleanText.length
-
-                // Check if current position is a marker to skip
-                val markerToSkip = markerRanges.firstOrNull { it.start == i }
-                if (markerToSkip != null) {
-                    // Skip marker symbols, but map all positions within the marker
-                    for (j in i until markerToSkip.end) {
-                        positionMap[j] = cleanText.length
-                    }
-                    i = markerToSkip.end
-                } else {
-                    // Copy character to clean text
-                    cleanText.append(processedContent[i])
-                    i++
-                }
-            }
-
-            // Map end position
-            positionMap[processedContent.length] = cleanText.length
-
-            // Append clean text
-            val finalText = cleanText.toString()
-            append(finalText)
-
-            // Step 4: Apply styles to clean text using position mapping
-            val styleMarkers = markerPositions.filter { it.type == MarkerType.STYLE }
-            styleMarkers.forEach { marker ->
-                // Map original content range to clean text range
-                val cleanStart = positionMap[marker.start] ?: 0
-                // Bug Fix: Use marker.end directly if mapped, but clamp to finalText.length
-                val mappedEnd = positionMap[marker.end] ?: cleanText.length
-                val cleanEnd = minOf(mappedEnd, finalText.length)
-
-                // Ensure valid range and prevent overflow
-                if (cleanStart >= 0 && cleanStart < cleanEnd && cleanEnd <= finalText.length) {
-                    val style = when (marker.formatType) {
-                        FormatType.BOLD -> SpanStyle(fontWeight = FontWeight.Bold)
-                        FormatType.UNDERLINE -> SpanStyle(textDecoration = TextDecoration.Underline)
-                        FormatType.HIGHLIGHT -> SpanStyle(background = HighlightYellow)
-                        FormatType.MENTION -> SpanStyle(
-                            color = MentionBlue  // Bug Fix: Removed background, only blue color
-                        )
-                        else -> null
-                    }
-                    style?.let {
-                        addStyle(style = it, start = cleanStart, end = cleanEnd)
-                    }
-
-                    // Add click annotation for mentions
-                    if (marker.formatType == FormatType.MENTION && marker.noteId != null) {
-                        onMentionClick?.let {
-                            addStringAnnotation(
-                                tag = "MENTION",
-                                annotation = marker.noteId.toString(),
-                                start = cleanStart,
-                                end = cleanEnd
-                            )
-                        }
-                    }
-                }
-            }
-
-            // Step 5: Apply tag styling (#tagname)
-            val tagPattern = Regex("""#[a-zA-Z0-9一-龥_]+""")
-            tagPattern.findAll(finalText).forEach { match ->
-                val start = match.range.first
-                val end = match.range.last + 1
-                addStyle(
-                    style = SpanStyle(color = tagColor),
-                    start = start,
-                    end = end
-                )
-
-                // Add string annotation for click handling
-                onTagClick?.let {
-                    val tagName = match.value.substring(1) // Remove # prefix
-                    addStringAnnotation(
-                        tag = "TAG",
-                        annotation = tagName,
-                        start = start,
-                        end = end
-                    )
-                }
-            }
-
-            // Step 6: Style checkbox symbols
-            val checkboxSymbolPattern = Regex("""[☐☑]""")
-            checkboxSymbolPattern.findAll(finalText).forEach { match ->
-                val start = match.range.first
-                val end = match.range.last + 1
-                val isChecked = match.value == "☑"
-                addStyle(
-                    style = SpanStyle(
-                        color = if (isChecked) CheckboxGreen else CheckboxGray,
-                        fontWeight = FontWeight.Bold
-                    ),
-                    start = start,
-                    end = end
-                )
-            }
-        }.toAnnotatedString()
+        return parseRichText(content, tagColor, onTagClick).annotatedString
     }
 
     // Helper data classes for marker parsing
@@ -236,13 +232,15 @@ object RichTextUtils {
         val end: Int,
         val type: MarkerType,
         val formatType: FormatType? = null,
+        val tagName: String? = null,
         val noteId: Long? = null
     )
 
     private enum class MarkerType {
-        OPEN,    // Opening marker (**, __, ==, @[)
-        CLOSE,   // Closing marker (**, __, ==, ](note:id))
-        STYLE    // Style range to apply (maps to clean text)
+        OPEN,
+        CLOSE,
+        STYLE,
+        TAG
     }
 
     /**
@@ -276,6 +274,20 @@ object RichTextUtils {
             .firstOrNull()
             ?.item
             ?.toLongOrNull()
+    }
+
+    /**
+     * Get plain @mention name at specific text offset.
+     *
+     * @param annotatedString AnnotatedString with plain mention annotations
+     * @param offset Click offset position
+     * @return Mention name without @ prefix, or null if no mention at offset
+     */
+    fun getPlainMentionAtOffset(annotatedString: AnnotatedString, offset: Int): String? {
+        return annotatedString
+            .getStringAnnotations(tag = "PLAIN_MENTION", start = offset, end = offset)
+            .firstOrNull()
+            ?.item
     }
 
     /**

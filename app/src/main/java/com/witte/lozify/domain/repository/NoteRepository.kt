@@ -1,6 +1,7 @@
 package com.witte.lozify.domain.repository
 
 import com.witte.lozify.domain.model.Note
+import com.witte.lozify.domain.model.NoteThread
 import com.witte.lozify.domain.model.Tag
 import kotlinx.coroutines.flow.Flow
 
@@ -26,6 +27,12 @@ interface NoteRepository {
     fun getNoteById(noteId: Long): Flow<Note?>
 
     /**
+     * Get a complete note thread including parents, main note, and children.
+     * Stage 13: Context Timeline View.
+     */
+    fun getNoteThread(noteId: Long): Flow<NoteThread?>
+
+    /**
      * Search notes by content.
      */
     fun searchNotes(query: String): Flow<List<Note>>
@@ -41,9 +48,10 @@ interface NoteRepository {
     fun getDeletedNotes(): Flow<List<Note>>
 
     /**
-     * Stage 10: Get all archived notes (not deleted, only archived).
+     * Stage 10: Get all notes in trash (not deleted, only archived).
+     * Renamed from "archived" to "trash" in Stage 12.
      */
-    fun getArchivedNotes(): Flow<List<Note>>
+    fun getTrashNotes(): Flow<List<Note>>
 
     /**
      * Get notes filtered by a specific tag.
@@ -80,9 +88,9 @@ interface NoteRepository {
     suspend fun togglePinStatus(noteId: Long, isPinned: Boolean)
 
     /**
-     * Toggle archive status for a note.
+     * Toggle trash status for a note (renamed from archive in Stage 12).
      */
-    suspend fun toggleArchiveStatus(noteId: Long, isArchived: Boolean)
+    suspend fun toggleTrashStatus(noteId: Long, isInTrash: Boolean)
 
     /**
      * Get total count of active notes.

@@ -3,6 +3,8 @@ package com.witte.lozify.core.database
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.witte.lozify.data.local.converter.Converters
 import com.witte.lozify.data.local.dao.AttachmentDao
 import com.witte.lozify.data.local.dao.NoteDao
@@ -17,11 +19,11 @@ import com.witte.lozify.data.local.entity.TagEntity
 /**
  * Room Database for Lozify application.
  *
- * Database Version: 1 (MVP initial schema)
+ * Database Version: 3 (Added icon column to tags table)
  *
  * Contains 5 tables:
  * - notes: Core note data
- * - tags: Tag metadata
+ * - tags: Tag metadata (with optional emoji icon)
  * - note_tag_cross_ref: Many-to-many note-tag associations
  * - attachments: Image attachments for notes
  * - note_relations: @mention relationships between notes
@@ -37,7 +39,7 @@ import com.witte.lozify.data.local.entity.TagEntity
         AttachmentEntity::class,
         NoteRelationEntity::class
     ],
-    version = 1,
+    version = 3,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -50,5 +52,15 @@ abstract class LozifyDatabase : RoomDatabase() {
 
     companion object {
         const val DATABASE_NAME = "lozify_database"
+
+        /**
+         * Migration from version 2 to 3: Add icon column to tags table.
+         * Stage 13: Support emoji icons for tags.
+         */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE tags ADD COLUMN icon TEXT")
+            }
+        }
     }
 }
