@@ -1,8 +1,9 @@
 <resources>
-    <color name="app_bg">#F7F8FA</color>
     <style name="Theme.Lozify" parent="android:Theme.Material.Light.NoActionBar">
         <item name="android:windowBackground">@color/app_bg</item>
         <item name="android:statusBarColor">@color/app_bg</item>
         <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowSplashScreenBackground">@color/app_bg</item>
+        <item name="android:windowSplashScreenAnimationDuration">0</item>
     </style>
 </resources>
