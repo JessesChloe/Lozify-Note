@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -18,6 +19,12 @@ import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -204,9 +211,11 @@ fun NoteCard(
                 ) {
                     // Stage 5: Pin indicator
                     if (isPinned) {
-                        Text(
-                            text = "📌",
-                            fontSize = 12.sp
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = "已置顶",
+                            tint = Color(0xFFFF9800),
+                            modifier = Modifier.size(13.dp)
                         )
                     }
                     Text(
@@ -221,12 +230,13 @@ fun NoteCard(
                     if (!hideOperations) {
                         IconButton(
                             onClick = { showMenu = true },
-                            modifier = Modifier.padding(0.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
-                                painter = painterResource(android.R.drawable.ic_menu_more),
+                                imageVector = Icons.Default.MoreHoriz,
                                 contentDescription = "更多操作",
-                                tint = Color(0xFF999999)
+                                tint = Color(0xFF999999),
+                                modifier = Modifier.size(20.dp)
                             )
                         }
 
@@ -258,12 +268,17 @@ fun NoteCard(
                                         .padding(horizontal = 12.dp, vertical = 6.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(text = "📋", fontSize = 18.sp)
+                                    Icon(
+                                        imageVector = Icons.Default.ContentCopy,
+                                        contentDescription = "复制",
+                                        tint = Color(0xFF666666),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "复制",
                                         fontSize = 12.sp,
-                                        color = Color(0xFF333333),
+                                        color = Color(0xFF666666),
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -279,12 +294,17 @@ fun NoteCard(
                                         .padding(horizontal = 12.dp, vertical = 6.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(text = "✏️", fontSize = 18.sp)
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "编辑",
+                                        tint = Color(0xFF666666),
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "编辑",
                                         fontSize = 12.sp,
-                                        color = Color(0xFF333333),
+                                        color = Color(0xFF666666),
                                         fontWeight = FontWeight.Medium
                                     )
                                 }
@@ -300,7 +320,12 @@ fun NoteCard(
                                         .padding(horizontal = 12.dp, vertical = 6.dp),
                                     horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(text = "🗑️", fontSize = 18.sp)
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "删除",
+                                        tint = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.size(20.dp)
+                                    )
                                     Spacer(modifier = Modifier.height(4.dp))
                                     Text(
                                         text = "删除",
@@ -320,7 +345,12 @@ fun NoteCard(
                                         horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(text = if (isPinned) "📌" else "📍", fontSize = 15.sp)
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = if (isPinned) "取消置顶" else "设为置顶",
+                                            tint = if (isPinned) Color(0xFFFF9800) else Color(0xFF666666),
+                                            modifier = Modifier.size(18.dp)
+                                        )
                                         Text(
                                             text = if (isPinned) "取消置顶" else "设为置顶",
                                             fontSize = 14.sp,

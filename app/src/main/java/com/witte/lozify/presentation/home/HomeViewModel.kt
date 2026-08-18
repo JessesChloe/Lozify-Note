@@ -193,12 +193,16 @@ class HomeViewModel @Inject constructor(
         )
 
     /**
-     * Stage 4: Select a tag for filtering.
+     * Stage 4: Select a tag for filtering, or toggle off if already selected.
      *
      * @param tagId Tag ID to filter by, or null to show all notes
      */
     fun selectTag(tagId: Long?) {
-        _selectedTagId.value = tagId
+        if (tagId != null && _selectedTagId.value == tagId) {
+            _selectedTagId.value = null // Toggle back to all notes
+        } else {
+            _selectedTagId.value = tagId
+        }
     }
 
     /**

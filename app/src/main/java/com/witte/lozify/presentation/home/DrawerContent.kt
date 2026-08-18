@@ -1,5 +1,6 @@
 package com.witte.lozify.presentation.home
 
+import com.witte.lozify.presentation.components.LozifyLogo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -239,12 +240,7 @@ private fun DrawerHeader(
         modifier = modifier.fillMaxWidth(),
         contentAlignment = Alignment.CenterStart
     ) {
-        Text(
-            text = "Lozify",
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Medium,
-            color = Color(0xFF222222)
-        )
+        LozifyLogo(sizeDp = 26.dp)
     }
 }
 

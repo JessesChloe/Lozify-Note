@@ -1,5 +1,6 @@
 package com.witte.lozify.presentation.home
 
+import com.witte.lozify.presentation.components.LozifyLogo
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -204,11 +205,7 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
-                        Text(
-                            text = "Lozify",
-                            fontWeight = FontWeight.Medium,
-                            fontSize = 20.sp
-                        )
+                        LozifyLogo(sizeDp = 22.dp)
                     }
                 },
                 navigationIcon = {
@@ -290,121 +287,60 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
-                            val dismissState = rememberSwipeToDismissBoxState(
-                                confirmValueChange = { dismissValue ->
-                                    when (dismissValue) {
-                                        SwipeToDismissBoxValue.StartToEnd -> {
-                                            // Right swipe: Toggle pin
-                                            homeViewModel.togglePin(note.id)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar(
-                                                    if (note.isPinned) "已取消置顶" else "已置顶"
-                                                )
-                                            }
-                                            false // Don't dismiss, reset state
-                                        }
-                                        SwipeToDismissBoxValue.EndToStart -> {
-                                            // Left swipe: Move to trash (renamed from archive in Stage 12)
-                                            homeViewModel.moveToTrash(note.id)
-                                            scope.launch {
-                                                snackbarHostState.showSnackbar("已移至回收站")
-                                            }
-                                            false // Don't dismiss, reset state
-                                        }
-                                        SwipeToDismissBoxValue.Settled -> false
+                            // =========================================================================
+                            // 【特殊标记 / 临时隐藏】：左滑/右滑快捷手势 (SwipeToDismissBox)
+                            // 提示：当前卡片右上角菜单已提供置顶与删除功能。为保障瀑布流滑动流畅度与防误触，
+                            // 滑动手势已临时隐藏。如需恢复可重新启用外层 SwipeToDismissBox。
+                            // =========================================================================
+                            NoteCard(
+                                noteId = note.id,
+                                content = note.content,
+                                timestamp = formatTimestamp(note.createdAt),
+                                isPinned = note.isPinned,
+                                attachments = note.attachments,
+                                outgoingRelationsCount = note.outgoingRelations.size,
+                                incomingRelationsCount = note.incomingRelations.size,
+                                isHighlighted = note.id == highlightedNoteId,
+                                filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+                                onTogglePinClick = {
+                                    homeViewModel.togglePinStatus(note.id, note.isPinned)
+                                },
+                                onEditClick = {
+                                    // Stage 5: Open editor with existing content
+                                    editingNoteId = note.id
+                                    editingNoteContent = note.content
+                                    showEditor = true
+                                },
+                                onDeleteClick = {
+                                    // Stage 5: Delete note with confirmation
+                                    homeViewModel.deleteNote(note.id)
+                                    scope.launch {
+                                        snackbarHostState.showSnackbar("笔记已删除")
                                     }
                                 },
-                                positionalThreshold = { totalDistance -> totalDistance * 0.4f }
+                                onCheckboxToggle = { noteId, newContent ->
+                                    // Stage 7 Bug Fix: Update note content when checkbox is toggled
+                                    homeViewModel.updateNoteContent(noteId, newContent)
+                                },
+                                onTagClick = { tagName ->
+                                    // 点击瀑布流里的标签进行筛选，若再次点击同一个标签则取消筛选回到所有笔记 (Toggle)
+                                    val tag = uiState.allTags.find { it.name == tagName }
+                                    tag?.let { homeViewModel.selectTag(it.id) }
+                                },
+                                onMentionClick = { mentionedNoteId ->
+                                    // Stage 8 UX Refactor: Show note detail instead of scrolling
+                                    showNoteDetail = mentionedNoteId
+                                },
+                                onRelationsClick = { relations: List<NoteRelation>, title: String ->
+                                    // Stage 8 UX Refactor: Show first relation's note detail
+                                    if (relations.isNotEmpty()) {
+                                        val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
+                                        showNoteDetail = targetNoteId
+                                    }
+                                },
+                                outgoingRelations = note.outgoingRelations,
+                                incomingRelations = note.incomingRelations
                             )
-
-                            SwipeToDismissBox(
-                                state = dismissState,
-                                backgroundContent = {
-                                    val color = when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Color(0xFFFF9800) // Orange for pin
-                                        SwipeToDismissBoxValue.EndToStart -> Color(0xFFE57373) // Red for archive
-                                        else -> Color.Transparent
-                                    }
-                                    val icon = when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Icons.Default.Star
-                                        SwipeToDismissBoxValue.EndToStart -> Icons.Default.Delete
-                                        else -> null
-                                    }
-                                    val alignment = when (dismissState.dismissDirection) {
-                                        SwipeToDismissBoxValue.StartToEnd -> Alignment.CenterStart
-                                        SwipeToDismissBoxValue.EndToStart -> Alignment.CenterEnd
-                                        else -> Alignment.Center
-                                    }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxSize()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(color)
-                                            .padding(horizontal = 24.dp),
-                                        contentAlignment = alignment
-                                    ) {
-                                        icon?.let {
-                                            Icon(
-                                                imageVector = it,
-                                                contentDescription = null,
-                                                tint = Color.White,
-                                                modifier = Modifier.size(24.dp)
-                                            )
-                                        }
-                                    }
-                                }
-                            ) {
-                                NoteCard(
-                                    noteId = note.id,
-                                    content = note.content,
-                                    timestamp = formatTimestamp(note.createdAt),
-                                    isPinned = note.isPinned,
-                                    attachments = note.attachments,
-                                    outgoingRelationsCount = note.outgoingRelations.size,
-                                    incomingRelationsCount = note.incomingRelations.size,
-                                    isHighlighted = note.id == highlightedNoteId,
-                                    filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
-                                    onTogglePinClick = {
-                                        homeViewModel.togglePinStatus(note.id, note.isPinned)
-                                    },
-                                    onEditClick = {
-                                        // Stage 5: Open editor with existing content
-                                        editingNoteId = note.id
-                                        editingNoteContent = note.content
-                                        showEditor = true
-                                    },
-                                    onDeleteClick = {
-                                        // Stage 5: Delete note with confirmation
-                                        homeViewModel.deleteNote(note.id)
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("笔记已删除")
-                                        }
-                                    },
-                                    onCheckboxToggle = { noteId, newContent ->
-                                        // Stage 7 Bug Fix: Update note content when checkbox is toggled
-                                        homeViewModel.updateNoteContent(noteId, newContent)
-                                    },
-                                    onTagClick = { tagName ->
-                                        // Stage 4: Filter by clicked tag
-                                        val tag = uiState.allTags.find { it.name == tagName }
-                                        tag?.let { homeViewModel.selectTag(it.id) }
-                                    },
-                                    onMentionClick = { mentionedNoteId ->
-                                        // Stage 8 UX Refactor: Show note detail instead of scrolling
-                                        showNoteDetail = mentionedNoteId
-                                    },
-                                    onRelationsClick = { relations: List<NoteRelation>, title: String ->
-                                        // Stage 8 UX Refactor: Show first relation's note detail
-                                        if (relations.isNotEmpty()) {
-                                            val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
-                                            showNoteDetail = targetNoteId
-                                        }
-                                    },
-                                    outgoingRelations = note.outgoingRelations,
-                                    incomingRelations = note.incomingRelations
-                                )
-                            }
                         }
                     }
                 }
