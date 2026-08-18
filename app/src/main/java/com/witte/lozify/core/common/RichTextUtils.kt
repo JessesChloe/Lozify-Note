@@ -66,7 +66,7 @@ object RichTextUtils {
      */
     fun parseRichText(
         content: String,
-        tagColor: Color = Color(0xFF1A73E8),
+        tagColor: Color = Color(0xFF84A2EE),
         onTagClick: ((String) -> Unit)? = null,
         searchQuery: String = ""
     ): ParsedRichText {

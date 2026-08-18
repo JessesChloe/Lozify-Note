@@ -160,7 +160,7 @@ fun NoteCard(
     val parsedRichText = remember(nonCheckboxContent, searchQuery) {
         RichTextUtils.parseRichText(
             content = nonCheckboxContent,
-            tagColor = Color(0xFF1A73E8),
+            tagColor = Color(0xFF84A2EE),
             onTagClick = onTagClick,
             searchQuery = searchQuery
         )
@@ -181,14 +181,14 @@ fun NoteCard(
                 Box(
                     modifier = Modifier
                         .clip(RoundedCornerShape(4.dp))
-                        .background(Color(0xFFE8F0FE))
+                        .background(Color(0xFFF0F4FE))
                         .clickable { onTagClick?.invoke(tagName) }
                         .padding(horizontal = 4.dp, vertical = 1.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
                         text = "#$tagName",
-                        color = Color(0xFF1A73E8),
+                        color = Color(0xFF84A2EE),
                         fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         lineHeight = 14.sp
@@ -436,7 +436,7 @@ fun NoteCard(
                         Text(
                             text = item.text,
                             fontSize = 15.sp,
-                            color = Color(0xFF2C2C2E),
+                            color = Color(0xFF444444),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -452,7 +452,7 @@ fun NoteCard(
                         inlineContent = inlineContentMap,
                         style = androidx.compose.ui.text.TextStyle(
                             fontSize = 15.sp,
-                            color = Color(0xFF2C2C2E),
+                            color = Color(0xFF444444),
                             lineHeight = 22.sp
                         ),
                         maxLines = if (effectiveExpanded) Int.MAX_VALUE else maxCollapsedLines,

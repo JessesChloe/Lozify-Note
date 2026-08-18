@@ -134,12 +134,10 @@ fun HomeScreen(
                         "笔记已保存"
                     }
                     snackbarHostState.showSnackbar(message)
-                    // Stage 8: Auto-scroll to top after saving new note
-                    // Add small delay to wait for Room Flow to update UI
+                    // Stage 8: Instant scroll to top after saving new note without lag
                     if (editingNoteId == null) {
                         scope.launch {
-                            kotlinx.coroutines.delay(150)
-                            listState.animateScrollToItem(0)
+                            listState.scrollToItem(0)
                         }
                     }
                 }
@@ -275,7 +273,7 @@ fun HomeScreen(
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White
+                    containerColor = Color(0xFFF7F8FA)
                 )
             )
         },
@@ -309,7 +307,9 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator()
+                        CircularProgressIndicator(
+                            color = Color(0xFF00C853)
+                        )
                     }
                 }
                 uiState.notes.isEmpty() -> {
@@ -323,11 +323,6 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxSize()
                     ) {
                         itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
-                            // =========================================================================
-                            // 【特殊标记 / 临时隐藏】：左滑/右滑快捷手势 (SwipeToDismissBox)
-                            // 提示：当前卡片右上角菜单已提供置顶与删除功能。为保障瀑布流滑动流畅度与防误触，
-                            // 滑动手势已临时隐藏。如需恢复可重新启用外层 SwipeToDismissBox。
-                            // =========================================================================
                             NoteCard(
                                 noteId = note.id,
                                 content = note.content,
@@ -343,33 +338,27 @@ fun HomeScreen(
                                     homeViewModel.togglePinStatus(note.id, note.isPinned)
                                 },
                                 onEditClick = {
-                                    // Stage 5: Open editor with existing content
                                     editingNoteId = note.id
                                     editingNoteContent = note.content
                                     showEditor = true
                                 },
                                 onDeleteClick = {
-                                    // Stage 5: Delete note with confirmation
                                     homeViewModel.deleteNote(note.id)
                                     scope.launch {
                                         snackbarHostState.showSnackbar("笔记已删除")
                                     }
                                 },
                                 onCheckboxToggle = { noteId, newContent ->
-                                    // Stage 7 Bug Fix: Update note content when checkbox is toggled
                                     homeViewModel.updateNoteContent(noteId, newContent)
                                 },
                                 onTagClick = { tagName ->
-                                    // 点击瀑布流里的标签进行筛选，若再次点击同一个标签则取消筛选回到所有笔记 (Toggle)
                                     val tag = uiState.allTags.find { it.name == tagName }
                                     tag?.let { homeViewModel.selectTag(it.id) }
                                 },
                                 onMentionClick = { mentionedNoteId ->
-                                    // Stage 8 UX Refactor: Show note detail instead of scrolling
                                     showNoteDetail = mentionedNoteId
                                 },
-                                onRelationsClick = { relations: List<NoteRelation>, title: String ->
-                                    // Stage 8 UX Refactor: Show first relation's note detail
+                                onRelationsClick = { relations, title ->
                                     if (relations.isNotEmpty()) {
                                         val targetNoteId = if (title == "出链列表") relations.first().toNoteId else relations.first().fromNoteId
                                         showNoteDetail = targetNoteId
@@ -377,8 +366,8 @@ fun HomeScreen(
                                 },
                                 outgoingRelations = note.outgoingRelations,
                                 incomingRelations = note.incomingRelations,
-                                onImageClick = { index, images ->
-                                    activeLightbox = Pair(index, images)
+                                onImageClick = { imgIndex, images ->
+                                    activeLightbox = Pair(imgIndex, images)
                                 },
                                 searchQuery = uiState.searchQuery
                             )
@@ -400,9 +389,11 @@ fun HomeScreen(
                 editingNoteContent = null
             },
             onSave = { textFieldValue, imageUris ->
-                // Stage 5: Support both create and update
-                // Stage 6: Pass image URIs to ViewModel
-                // Stage 9 Refactor: Now receives TextFieldValue instead of String
+                if (editingNoteId == null) {
+                    scope.launch {
+                        listState.scrollToItem(0)
+                    }
+                }
                 editorViewModel.saveNote(textFieldValue, imageUris, editingNoteId)
             },
             initialContent = editingNoteContent,

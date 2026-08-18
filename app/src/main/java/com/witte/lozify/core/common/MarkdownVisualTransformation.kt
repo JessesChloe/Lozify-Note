@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
  * @param checkboxUncheckedColor Color for unchecked todo boxes (- [ ])
  */
 class MarkdownVisualTransformation(
-    private val tagColor: Color = Color(0xFF1A73E8),
+    private val tagColor: Color = Color(0xFF84A2EE),
     private val highlightColor: Color = Color(0xFFFFF59D),
     private val mentionColor: Color = Color(0xFF7C4DFF),
     private val checkboxCheckedColor: Color = Color(0xFF00C853),
@@ -74,7 +74,7 @@ class MarkdownVisualTransformation(
                     addStyle(
                         style = SpanStyle(
                             fontWeight = FontWeight.Bold,
-                            color = Color(0xFF333333)
+                            color = Color(0xFF454545)
                         ),
                         start = contentGroup.range.first,
                         end = contentGroup.range.last + 1
@@ -90,7 +90,7 @@ class MarkdownVisualTransformation(
                     addStyle(
                         style = SpanStyle(
                             background = highlightColor,
-                            color = Color(0xFF333333)
+                            color = Color(0xFF454545)
                         ),
                         start = contentGroup.range.first,
                         end = contentGroup.range.last + 1
@@ -106,7 +106,7 @@ class MarkdownVisualTransformation(
                     addStyle(
                         style = SpanStyle(
                             textDecoration = TextDecoration.Underline,
-                            color = Color(0xFF333333)
+                            color = Color(0xFF454545)
                         ),
                         start = contentGroup.range.first,
                         end = contentGroup.range.last + 1

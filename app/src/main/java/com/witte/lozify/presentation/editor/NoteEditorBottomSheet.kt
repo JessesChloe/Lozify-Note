@@ -195,13 +195,13 @@ fun NoteEditorBottomSheet(
         },
         sheetState = sheetState,
         containerColor = Color.White,
+        windowInsets = WindowInsets.ime,
         modifier = modifier.wrapContentHeight()
     ) {
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
-                .imePadding()
         ) {
             Column(
                 modifier = Modifier.fillMaxWidth()
@@ -250,21 +250,29 @@ fun NoteEditorBottomSheet(
                     TextField(
                         value = textFieldValue,
                         onValueChange = ::onValueChange,
-                        visualTransformation = remember { MarkdownVisualTransformation() },
+                        textStyle = androidx.compose.ui.text.TextStyle(
+                            fontSize = 15.sp,
+                            color = Color(0xFF454545),
+                            lineHeight = 22.sp
+                        ),
+                        visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
                         placeholder = {
                             Text(
                                 text = "现在的想法是...",
                                 color = Color(0xFFB0B0B0),
-                                fontSize = 16.sp
+                                fontSize = 15.sp
                             )
                         },
                         colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF454545),
+                            unfocusedTextColor = Color(0xFF454545),
                             focusedContainerColor = Color.Transparent,
                             unfocusedContainerColor = Color.Transparent,
                             disabledContainerColor = Color.Transparent,
                             focusedIndicatorColor = Color.Transparent,
                             unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent
+                            disabledIndicatorColor = Color.Transparent,
+                            cursorColor = Color(0xFF00C853)
                         ),
                         modifier = Modifier
                             .fillMaxWidth()
