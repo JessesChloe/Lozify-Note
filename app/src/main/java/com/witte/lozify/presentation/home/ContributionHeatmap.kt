@@ -34,17 +34,17 @@ import java.time.temporal.ChronoUnit
  * ContributionHeatmap - 1:1 Flomo-styled activity punchcard grid.
  *
  * Stage 22 Flomo Alignment:
- * - Displays a 16-week window ending at the end of the current month
- * - Strictly displays the two most recent month labels ("上月" 和 "本月"，如 "7月" 与 "8月")
- * - Completely eliminates distracting early/future month labels (no 5月/6月/9月 clutter)
- * - 100% mathematically precise calendar day mapping using LocalDate (accounts for 28/29/30/31 day months & leap years)
- * - Today (e.g. Aug 18) sits naturally in the middle of the current month with an emerald outline (#00C853)
+ * - 13-week window (7 rows x 13 columns, ~3 full months)
+ * - Large, comfortable, tactile square blocks (~18.5dp) with 4dp spacing and 4dp corner radius
+ * - Strictly displays the two most recent month labels ("7月" 与 "8月")
+ * - 100% mathematically precise calendar day mapping using LocalDate
+ * - Today (e.g. Aug 18) sits naturally in the current month with an emerald outline (#00C853)
  */
 @Composable
 fun ContributionHeatmap(
     dailyCounts: Map<LocalDate, Int>,
     modifier: Modifier = Modifier,
-    numWeeks: Int = 16,
+    numWeeks: Int = 13,
     onClick: (() -> Unit)? = null
 ) {
     val density = LocalDensity.current
@@ -91,10 +91,10 @@ fun ContributionHeatmap(
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
         val availableWidth = maxWidth
-        val spacing = 3.5.dp
+        val spacing = 4.dp
         val totalSpacing = spacing * (numWeeks - 1)
-        val blockSize = ((availableWidth - totalSpacing) / numWeeks).coerceAtLeast(10.dp)
-        val cornerRadius = 3.dp
+        val blockSize = ((availableWidth - totalSpacing) / numWeeks).coerceAtLeast(12.dp)
+        val cornerRadius = 4.dp
 
         val blockSizePx = with(density) { blockSize.toPx() }
         val spacingPx = with(density) { spacing.toPx() }
@@ -141,7 +141,7 @@ fun ContributionHeatmap(
                                 topLeft = Offset(x, y),
                                 size = Size(blockSizePx, blockSizePx),
                                 cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx),
-                                style = Stroke(width = 1.3f * density.density)
+                                style = Stroke(width = 1.4f * density.density)
                             )
                         }
                     }
