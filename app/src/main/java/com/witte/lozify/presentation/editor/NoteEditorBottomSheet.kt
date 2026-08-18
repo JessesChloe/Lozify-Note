@@ -63,6 +63,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.witte.lozify.core.common.MarkdownVisualTransformation
 import com.witte.lozify.core.common.RichTextUtils
+import com.witte.lozify.core.common.SmartInputFilter
 import com.witte.lozify.domain.model.Note
 
 /**
@@ -127,16 +128,17 @@ fun NoteEditorBottomSheet(
         textFieldValue = newValue
     }
 
-    // Normal value change
-    fun onValueChange(newValue: TextFieldValue) {
-        val cursorPos = newValue.selection.end
-        if (cursorPos > 0 && cursorPos <= newValue.text.length) {
-            val lastChar = newValue.text[cursorPos - 1]
+    // Smart value change with input filtering
+    fun onValueChange(incomingValue: TextFieldValue) {
+        val filteredValue = SmartInputFilter.applySmartInputFilter(textFieldValue, incomingValue)
+        val cursorPos = filteredValue.selection.end
+        if (cursorPos > 0 && cursorPos <= filteredValue.text.length) {
+            val lastChar = filteredValue.text[cursorPos - 1]
             if (lastChar == '@') {
                 showNotePicker = true
             }
         }
-        updateTextWithHistory(newValue)
+        updateTextWithHistory(filteredValue)
     }
 
     // Helper function to apply formatting with bounds checking
