@@ -24,6 +24,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
@@ -198,7 +199,6 @@ fun HomeScreen(
         topBar = {
             TopAppBar(
                 title = {
-                    // Stage 5: Toggle between title and search input
                     if (isSearchActive) {
                         TextField(
                             value = uiState.searchQuery,
@@ -206,7 +206,7 @@ fun HomeScreen(
                             placeholder = {
                                 Text(
                                     text = "搜索笔记内容...",
-                                    fontSize = 16.sp,
+                                    fontSize = 14.sp,
                                     color = Color(0xFF999999)
                                 )
                             },
@@ -220,41 +220,62 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
-                        LozifyLogo(sizeDp = 22.dp)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text(
+                                text = "Lozify",
+                                fontSize = 18.sp,
+                                fontWeight = FontWeight.Bold,
+                                color = Color(0xFF1C1C1E)
+                            )
+                            Icon(
+                                imageVector = Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = Color(0xFF888888),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
                     }
                 },
                 navigationIcon = {
-                    // Stage 5 Refactor: Hamburger menu icon to open drawer
-                    IconButton(onClick = {
-                        scope.launch {
-                            drawerState.open()
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            scope.launch {
+                                drawerState.open()
+                            }
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Menu,
-                            contentDescription = "菜单"
+                            contentDescription = "菜单",
+                            tint = Color(0xFF333333),
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                 },
                 actions = {
-                    // Stage 5: Search toggle button
-                    IconButton(onClick = {
-                        isSearchActive = !isSearchActive
-                        if (!isSearchActive) {
-                            homeViewModel.clearSearch()
-                        }
-                    }) {
+                    IconButton(
+                        onClick = {
+                            isSearchActive = !isSearchActive
+                            if (!isSearchActive) {
+                                homeViewModel.clearSearch()
+                            }
+                        },
+                        modifier = Modifier.size(40.dp)
+                    ) {
                         Icon(
                             imageVector = if (isSearchActive) Icons.Default.Close else Icons.Default.Search,
-                            contentDescription = if (isSearchActive) "关闭搜索" else "搜索"
+                            contentDescription = if (isSearchActive) "关闭搜索" else "搜索",
+                            tint = Color(0xFF555555),
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = Color.White,
-                    titleContentColor = Color(0xFF333333),
-                    navigationIconContentColor = Color(0xFF666666),
-                    actionIconContentColor = Color(0xFF666666)
+                    containerColor = Color.White
                 )
             )
         },

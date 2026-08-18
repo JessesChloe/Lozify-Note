@@ -197,357 +197,359 @@ fun NoteEditorBottomSheet(
         containerColor = Color.White,
         modifier = modifier.wrapContentHeight()
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .wrapContentHeight()
                 .imePadding()
         ) {
             Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 4.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
-                // NotePicker ABOVE TextField to avoid keyboard occlusion
-                if (showNotePicker) {
-                    NotePicker(
-                        allNotes = allNotes,
-                        currentNoteId = currentNoteId,
-                        onDismiss = { showNotePicker = false },
-                        onNoteSelected = { noteId, mentionText ->
-                            val currentText = textFieldValue.text
-                            val cursorPos = textFieldValue.selection.start
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
+                ) {
+                    // NotePicker ABOVE TextField to avoid keyboard occlusion
+                    if (showNotePicker) {
+                        NotePicker(
+                            allNotes = allNotes,
+                            currentNoteId = currentNoteId,
+                            onDismiss = { showNotePicker = false },
+                            onNoteSelected = { noteId, mentionText ->
+                                val currentText = textFieldValue.text
+                                val cursorPos = textFieldValue.selection.start
 
-                            val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
-                                currentText.substring(0, maxOf(0, cursorPos - 1))
-                            } else {
-                                currentText.substring(0, cursorPos)
-                            }
-                            val afterCursor = currentText.substring(cursorPos)
+                                val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
+                                    currentText.substring(0, maxOf(0, cursorPos - 1))
+                                } else {
+                                    currentText.substring(0, cursorPos)
+                                }
+                                val afterCursor = currentText.substring(cursorPos)
 
-                            val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                            val newText = beforeCursor + mentionMarkdown + afterCursor
+                                val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                                val newText = beforeCursor + mentionMarkdown + afterCursor
 
-                            val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                            updateTextWithHistory(
-                                TextFieldValue(
-                                    text = newText,
-                                    selection = TextRange(newCursorPos)
+                                val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                                updateTextWithHistory(
+                                    TextFieldValue(
+                                        text = newText,
+                                        selection = TextRange(newCursorPos)
+                                    )
                                 )
-                            )
 
-                            showNotePicker = false
-                        }
+                                showNotePicker = false
+                            }
+                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+                    }
+
+                    // Borderless text input field with real-time Markdown syntax highlighting
+                    TextField(
+                        value = textFieldValue,
+                        onValueChange = ::onValueChange,
+                        visualTransformation = remember { MarkdownVisualTransformation() },
+                        placeholder = {
+                            Text(
+                                text = "现在的想法是...",
+                                color = Color(0xFFB0B0B0),
+                                fontSize = 16.sp
+                            )
+                        },
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = Color.Transparent,
+                            unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(130.dp)
+                            .focusRequester(focusRequester)
                     )
+
+                    // Image thumbnail preview
+                    if (selectedImageUris.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(selectedImageUris) { uri ->
+                                Box(
+                                    modifier = Modifier
+                                        .size(68.dp)
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFF0F0F0))
+                                ) {
+                                    AsyncImage(
+                                        model = uri,
+                                        contentDescription = "预览图片",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(68.dp)
+                                    )
+
+                                    IconButton(
+                                        onClick = {
+                                            val updated = selectedImageUris.filter { it != uri }
+                                            selectedImageUris = updated
+                                            if (initialContent == null) {
+                                                viewModel.saveDraft(textFieldValue.text, updated)
+                                            }
+                                        },
+                                        modifier = Modifier
+                                            .align(Alignment.TopEnd)
+                                            .size(20.dp)
+                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "移除图片",
+                                            tint = Color.White,
+                                            modifier = Modifier.size(12.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
 
                     Spacer(modifier = Modifier.height(10.dp))
                 }
 
-                // Borderless text input field with real-time Markdown syntax highlighting
-                TextField(
-                    value = textFieldValue,
-                    onValueChange = ::onValueChange,
-                    visualTransformation = remember { MarkdownVisualTransformation() },
-                    placeholder = {
-                        Text(
-                            text = "现在的想法是...",
-                            color = Color(0xFFB0B0B0),
-                            fontSize = 16.sp
-                        )
-                    },
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Color.Transparent,
-                        unfocusedContainerColor = Color.Transparent,
-                        disabledContainerColor = Color.Transparent,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
+                HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
+
+                // Flomo Style Primary Row Toolbar
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(130.dp)
-                        .focusRequester(focusRequester)
-                )
-
-                // Image thumbnail preview
-                if (selectedImageUris.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(6.dp))
-                    LazyRow(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .height(52.dp)
+                        .background(Color.White)
+                        .padding(horizontal = 14.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Left formatting tools: #, 🖼️, B, ≡, ...
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        items(selectedImageUris) { uri ->
-                            Box(
-                                modifier = Modifier
-                                    .size(68.dp)
-                                    .clip(RoundedCornerShape(8.dp))
-                                    .background(Color(0xFFF0F0F0))
-                            ) {
-                                AsyncImage(
-                                    model = uri,
-                                    contentDescription = "预览图片",
-                                    contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(68.dp)
+                        // Tag (#)
+                        TextToolbarButton(
+                            text = "#",
+                            fontSize = 19.sp,
+                            fontWeight = FontWeight.Bold,
+                            contentDescription = "插入标签",
+                            onClick = {
+                                val currentText = textFieldValue.text
+                                val cursorPos = textFieldValue.selection.start
+                                val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
+                                updateTextWithHistory(
+                                    TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
                                 )
-
-                                IconButton(
-                                    onClick = {
-                                        val updated = selectedImageUris.filter { it != uri }
-                                        selectedImageUris = updated
-                                        if (initialContent == null) {
-                                            viewModel.saveDraft(textFieldValue.text, updated)
-                                        }
-                                    },
-                                    modifier = Modifier
-                                        .align(Alignment.TopEnd)
-                                        .size(20.dp)
-                                        .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Close,
-                                        contentDescription = "移除图片",
-                                        tint = Color.White,
-                                        modifier = Modifier.size(12.dp)
-                                    )
-                                }
                             }
+                        )
+
+                        // Gallery Image (🖼️)
+                        IconToolbarButton(
+                            icon = Icons.Outlined.Image,
+                            contentDescription = "选择图片",
+                            onClick = {
+                                imagePickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+
+                        // Bold (B)
+                        TextToolbarButton(
+                            text = "B",
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Bold,
+                            contentDescription = "加粗",
+                            isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
+                            onClick = { applyFormatting(RichTextUtils.FormatType.BOLD) }
+                        )
+
+                        // Unordered List (≡)
+                        IconToolbarButton(
+                            icon = Icons.Outlined.FormatListBulleted,
+                            contentDescription = "无序列表",
+                            onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) }
+                        )
+
+                        // More toggle (...)
+                        IconToolbarButton(
+                            icon = Icons.Default.MoreHoriz,
+                            contentDescription = "更多格式",
+                            isActive = isSecondaryCapsuleOpen,
+                            onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen }
+                        )
+                    }
+
+                    // Right action tools: Mic (🎙️) & Send (🚀)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Mic button (Green circular outline)
+                        Box(
+                            modifier = Modifier
+                                .size(36.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFFF0FDF4))
+                                .clickable { /* Mic feature placeholder */ },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.Mic,
+                                contentDescription = "语音输入",
+                                tint = Color(0xFF00C853),
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        // Send arrow button
+                        val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
+                        IconButton(
+                            onClick = {
+                                if (hasContent) {
+                                    onSave(textFieldValue, selectedImageUris)
+                                    textFieldValue = TextFieldValue("")
+                                    selectedImageUris = emptyList()
+                                    viewModel.clearActiveFormats()
+                                    viewModel.clearDraft()
+                                    onDismiss()
+                                }
+                            },
+                            enabled = hasContent,
+                            modifier = Modifier
+                                .size(36.dp)
+                                .background(
+                                    color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED),
+                                    shape = CircleShape
+                                )
+                        ) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.Send,
+                                contentDescription = "发送保存",
+                                tint = if (hasContent) Color.White else Color(0xFFAAAAAA),
+                                modifier = Modifier.size(18.dp)
+                            )
                         }
                     }
                 }
             }
 
-            // Flomo Style Floating Secondary Capsule Toolbar (Floating Card)
-            AnimatedVisibility(
+            // Flomo Style Floating Secondary Capsule Toolbar (Floats stably above primary row)
+            androidx.compose.animation.AnimatedVisibility(
                 visible = isSecondaryCapsuleOpen,
                 enter = fadeIn() + slideInVertically { it / 2 },
-                exit = fadeOut() + slideOutVertically { it / 2 }
-            ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    Card(
-                        shape = RoundedCornerShape(12.dp),
-                        colors = CardDefaults.cardColors(containerColor = Color.White),
-                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-                        border = BorderStroke(0.8.dp, Color(0xFFEFEFEF))
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            // 1. Highlight
-                            IconToolbarButton(
-                                icon = Icons.Outlined.BorderColor,
-                                contentDescription = "高亮",
-                                isActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT),
-                                onClick = { applyFormatting(RichTextUtils.FormatType.HIGHLIGHT) }
-                            )
-
-                            // 2. Underline
-                            IconToolbarButton(
-                                icon = Icons.Outlined.FormatUnderlined,
-                                contentDescription = "下划线",
-                                isActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE),
-                                onClick = { applyFormatting(RichTextUtils.FormatType.UNDERLINE) }
-                            )
-
-                            // Divider
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(16.dp)
-                                    .background(Color(0xFFE0E0E0))
-                            )
-
-                            // 3. Mention (@)
-                            TextToolbarButton(
-                                text = "@",
-                                fontSize = 17.sp,
-                                contentDescription = "提及笔记",
-                                onClick = {
-                                    val currentText = textFieldValue.text
-                                    val cursorPos = textFieldValue.selection.start
-                                    val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
-                                    updateTextWithHistory(
-                                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
-                                    )
-                                    showNotePicker = true
-                                }
-                            )
-
-                            // 4. Camera (Photo)
-                            IconToolbarButton(
-                                icon = Icons.Outlined.PhotoCamera,
-                                contentDescription = "拍照",
-                                onClick = {
-                                    imagePickerLauncher.launch(
-                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                    )
-                                }
-                            )
-
-                            // Divider
-                            Box(
-                                modifier = Modifier
-                                    .width(1.dp)
-                                    .height(16.dp)
-                                    .background(Color(0xFFE0E0E0))
-                            )
-
-                            // 5. Undo
-                            IconToolbarButton(
-                                icon = Icons.AutoMirrored.Filled.Undo,
-                                contentDescription = "撤销",
-                                enabled = undoStack.isNotEmpty(),
-                                onClick = {
-                                    if (undoStack.isNotEmpty()) {
-                                        val prev = undoStack.removeAt(undoStack.lastIndex)
-                                        redoStack.add(textFieldValue)
-                                        textFieldValue = prev
-                                    }
-                                }
-                            )
-
-                            // 6. Redo
-                            IconToolbarButton(
-                                icon = Icons.AutoMirrored.Filled.Redo,
-                                contentDescription = "重做",
-                                enabled = redoStack.isNotEmpty(),
-                                onClick = {
-                                    if (redoStack.isNotEmpty()) {
-                                        val next = redoStack.removeAt(redoStack.lastIndex)
-                                        undoStack.add(textFieldValue)
-                                        textFieldValue = next
-                                    }
-                                }
-                            )
-                        }
-                    }
-                }
-            }
-
-            HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
-
-            // Flomo Style Primary Row Toolbar
-            Row(
+                exit = fadeOut() + slideOutVertically { it / 2 },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .background(Color.White)
-                    .padding(horizontal = 14.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .align(Alignment.BottomStart)
+                    .padding(start = 14.dp, bottom = 58.dp)
             ) {
-                // Left formatting tools: #, 🖼️, B, ≡, ...
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                Card(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    border = BorderStroke(0.8.dp, Color(0xFFEFEFEF))
                 ) {
-                    // Tag (#)
-                    TextToolbarButton(
-                        text = "#",
-                        fontSize = 19.sp,
-                        fontWeight = FontWeight.Bold,
-                        contentDescription = "插入标签",
-                        onClick = {
-                            val currentText = textFieldValue.text
-                            val cursorPos = textFieldValue.selection.start
-                            val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
-                            updateTextWithHistory(
-                                TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
-                            )
-                        }
-                    )
-
-                    // Gallery Image (🖼️)
-                    IconToolbarButton(
-                        icon = Icons.Outlined.Image,
-                        contentDescription = "选择图片",
-                        onClick = {
-                            imagePickerLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        }
-                    )
-
-                    // Bold (B)
-                    TextToolbarButton(
-                        text = "B",
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Bold,
-                        contentDescription = "加粗",
-                        isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
-                        onClick = { applyFormatting(RichTextUtils.FormatType.BOLD) }
-                    )
-
-                    // Unordered List (≡)
-                    IconToolbarButton(
-                        icon = Icons.Outlined.FormatListBulleted,
-                        contentDescription = "无序列表",
-                        onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) }
-                    )
-
-                    // More toggle (...)
-                    IconToolbarButton(
-                        icon = Icons.Default.MoreHoriz,
-                        contentDescription = "更多格式",
-                        isActive = isSecondaryCapsuleOpen,
-                        onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen }
-                    )
-                }
-
-                // Right action tools: Mic (🎙️) & Send (🚀)
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(10.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Mic button (Green circular outline)
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(Color(0xFFF0FDF4))
-                            .clickable { /* Mic feature placeholder */ },
-                        contentAlignment = Alignment.Center
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Icon(
-                            imageVector = Icons.Outlined.Mic,
-                            contentDescription = "语音输入",
-                            tint = Color(0xFF00C853),
-                            modifier = Modifier.size(20.dp)
+                        // 1. Highlight
+                        IconToolbarButton(
+                            icon = Icons.Outlined.BorderColor,
+                            contentDescription = "高亮",
+                            isActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT),
+                            onClick = { applyFormatting(RichTextUtils.FormatType.HIGHLIGHT) }
                         )
-                    }
 
-                    // Send arrow button
-                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
-                    IconButton(
-                        onClick = {
-                            if (hasContent) {
-                                onSave(textFieldValue, selectedImageUris)
-                                textFieldValue = TextFieldValue("")
-                                selectedImageUris = emptyList()
-                                viewModel.clearActiveFormats()
-                                viewModel.clearDraft()
-                                onDismiss()
+                        // 2. Underline
+                        IconToolbarButton(
+                            icon = Icons.Outlined.FormatUnderlined,
+                            contentDescription = "下划线",
+                            isActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE),
+                            onClick = { applyFormatting(RichTextUtils.FormatType.UNDERLINE) }
+                        )
+
+                        // Divider
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(16.dp)
+                                .background(Color(0xFFE0E0E0))
+                        )
+
+                        // 3. Mention (@)
+                        TextToolbarButton(
+                            text = "@",
+                            fontSize = 17.sp,
+                            contentDescription = "提及笔记",
+                            onClick = {
+                                val currentText = textFieldValue.text
+                                val cursorPos = textFieldValue.selection.start
+                                val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
+                                updateTextWithHistory(
+                                    TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
+                                )
+                                showNotePicker = true
                             }
-                        },
-                        enabled = hasContent,
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "发送保存",
-                            tint = if (hasContent) Color.White else Color(0xFFAAAAAA),
-                            modifier = Modifier.size(18.dp)
+                        )
+
+                        // 4. Camera (Photo)
+                        IconToolbarButton(
+                            icon = Icons.Outlined.PhotoCamera,
+                            contentDescription = "拍照",
+                            onClick = {
+                                imagePickerLauncher.launch(
+                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                )
+                            }
+                        )
+
+                        // Divider
+                        Box(
+                            modifier = Modifier
+                                .width(1.dp)
+                                .height(16.dp)
+                                .background(Color(0xFFE0E0E0))
+                        )
+
+                        // 5. Undo
+                        IconToolbarButton(
+                            icon = Icons.AutoMirrored.Filled.Undo,
+                            contentDescription = "撤销",
+                            enabled = undoStack.isNotEmpty(),
+                            onClick = {
+                                if (undoStack.isNotEmpty()) {
+                                    val prev = undoStack.removeAt(undoStack.lastIndex)
+                                    redoStack.add(textFieldValue)
+                                    textFieldValue = prev
+                                }
+                            }
+                        )
+
+                        // 6. Redo
+                        IconToolbarButton(
+                            icon = Icons.AutoMirrored.Filled.Redo,
+                            contentDescription = "重做",
+                            enabled = redoStack.isNotEmpty(),
+                            onClick = {
+                                if (redoStack.isNotEmpty()) {
+                                    val next = redoStack.removeAt(redoStack.lastIndex)
+                                    undoStack.add(textFieldValue)
+                                    textFieldValue = next
+                                }
+                            }
                         )
                     }
                 }

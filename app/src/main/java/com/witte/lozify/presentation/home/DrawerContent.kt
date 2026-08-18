@@ -9,11 +9,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
 import androidx.compose.material.icons.filled.Backup
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.GridView
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
@@ -105,7 +107,9 @@ fun DrawerContent(
     }
 
     ModalDrawerSheet(
-        modifier = modifier,
+        modifier = modifier
+            .widthIn(max = 310.dp)
+            .fillMaxWidth(0.82f),
         drawerContainerColor = Color.White
     ) {
         Column(
@@ -528,13 +532,13 @@ private fun DrawerStatItem(
     Column(
         modifier = modifier,
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(4.dp)
+        verticalArrangement = Arrangement.spacedBy(2.dp)
     ) {
         Text(
             text = value,
-            fontSize = 24.sp,
-            fontWeight = FontWeight.Bold,
-            color = Color(0xFF222222)
+            fontSize = 22.sp,
+            fontWeight = FontWeight.SemiBold,
+            color = Color(0xFF2C2C2E)
         )
         Text(
             text = label,
@@ -558,15 +562,15 @@ private fun DrawerSectionTitle(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 6.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Text(
             text = title,
-            fontSize = 12.sp,
-            fontWeight = FontWeight.Normal,
-            color = Color(0xFFB0B0B0),
+            fontSize = 11.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF9E9E9E),
             letterSpacing = 0.5.sp
         )
 
@@ -579,7 +583,7 @@ private fun DrawerSectionTitle(
                     imageVector = Icons.Default.MoreVert,
                     contentDescription = "排序筛选",
                     tint = Color(0xFFCCCCCC),
-                    modifier = Modifier.size(18.dp)
+                    modifier = Modifier.size(16.dp)
                 )
             }
         }
@@ -587,7 +591,7 @@ private fun DrawerSectionTitle(
 }
 
 /**
- * DrawerAllNotesItem - "全部笔记" special menu item.
+ * DrawerAllNotesItem - "全部笔记" Flomo-styled highlighted card.
  */
 @Composable
 private fun DrawerAllNotesItem(
@@ -595,23 +599,43 @@ private fun DrawerAllNotesItem(
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val backgroundColor = if (isSelected) Color(0xFFF5F5F5) else Color.Transparent
-    val textColor = Color(0xFF222222)
-    val textWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium
+    val backgroundColor = if (isSelected) Color(0xFF00C853) else Color(0xFFF7F8FA)
+    val textColor = if (isSelected) Color.White else Color(0xFF333333)
+    val iconColor = if (isSelected) Color.White else Color(0xFF666666)
 
-    Box(
+    Row(
         modifier = modifier
             .fillMaxWidth()
-            .clip(RoundedCornerShape(6.dp))
+            .clip(RoundedCornerShape(8.dp))
             .background(backgroundColor)
             .clickable(onClick = onClick)
-            .padding(horizontal = 8.dp, vertical = 12.dp)
+            .padding(horizontal = 12.dp, vertical = 11.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        Text(
-            text = "全部笔记",
-            fontSize = 15.sp,
-            fontWeight = textWeight,
-            color = textColor
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Default.GridView,
+                contentDescription = null,
+                tint = iconColor,
+                modifier = Modifier.size(17.dp)
+            )
+            Text(
+                text = "全部笔记",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = textColor
+            )
+        }
+
+        Icon(
+            imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+            contentDescription = null,
+            tint = iconColor.copy(alpha = 0.8f),
+            modifier = Modifier.size(12.dp)
         )
     }
 }

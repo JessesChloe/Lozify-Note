@@ -2,6 +2,7 @@ package com.witte.lozify.presentation.home
 
 import android.widget.Toast
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -201,10 +202,14 @@ fun NoteCard(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
-            .background(if (isHighlighted) Color(0xFFE3F2FD) else Color.White)
+            .background(if (isHighlighted) Color(0xFFF0F7FF) else Color.White)
+            .border(
+                androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFFEBEBEB)),
+                RoundedCornerShape(12.dp)
+            )
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
         ) {
             // Header: Pinned indicator + Timestamp + More Icon with Menu
             Row(
@@ -434,8 +439,8 @@ fun NoteCard(
                         )
                         Text(
                             text = item.text,
-                            fontSize = 16.sp,
-                            color = Color(0xFF333333),
+                            fontSize = 15.sp,
+                            color = Color(0xFF2C2C2E),
                             modifier = Modifier.weight(1f)
                         )
                     }
@@ -450,9 +455,9 @@ fun NoteCard(
                         text = parsedRichText.annotatedString,
                         inlineContent = inlineContentMap,
                         style = androidx.compose.ui.text.TextStyle(
-                            fontSize = 16.sp,
-                            color = Color(0xFF333333),
-                            lineHeight = 24.sp
+                            fontSize = 15.sp,
+                            color = Color(0xFF2C2C2E),
+                            lineHeight = 22.sp
                         ),
                         maxLines = if (effectiveExpanded) Int.MAX_VALUE else maxCollapsedLines,
                         overflow = if (effectiveExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
@@ -469,12 +474,12 @@ fun NoteCard(
                 if (showExpandButton && !isSearchMatched) {
                     Text(
                         text = if (isExpanded) "收起 ▲" else "展开全文 ▼",
-                        fontSize = 13.sp,
+                        fontSize = 12.sp,
                         fontWeight = FontWeight.Medium,
                         color = Color(0xFF4C88FF),
                         textAlign = TextAlign.Start,
                         modifier = Modifier
-                            .padding(top = 6.dp)
+                            .padding(top = 4.dp)
                             .clickable { isExpanded = !isExpanded }
                     )
                 }
@@ -482,7 +487,7 @@ fun NoteCard(
 
             // Stage 13 UI Refactor: Dynamic Responsive Image Grid (AttachmentGrid)
             if (attachments.isNotEmpty() && filesDir != null) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(10.dp))
                 AttachmentGrid(
                     attachments = attachments,
                     filesDir = filesDir,
@@ -491,52 +496,72 @@ fun NoteCard(
                 )
             }
 
-            // Stage 13 UI Refactor: Flomo-style Relation Block (底部双向链接块)
+            // Stage 13 & 18 UI Refactor: Flomo-style Relation Block (去冗余标题，直出灰色引用行)
             val hasOutgoingMentions = parsedRichText.mentions.isNotEmpty()
             val hasIncoming = !hideOperations && incomingRelationsCount > 0 && incomingRelations.isNotEmpty()
 
             if (hasOutgoingMentions || hasIncoming) {
-                Spacer(modifier = Modifier.height(12.dp))
+                Spacer(modifier = Modifier.height(8.dp))
 
                 // Extremely subtle divider line
                 Spacer(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(1.dp)
-                        .background(Color(0xFFF0F0F0))
+                        .height(0.6.dp)
+                        .background(Color(0xFFF2F2F2))
                 )
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(6.dp))
 
                 // Outgoing relation blocks (from @[text](note:id) in this note)
                 parsedRichText.mentions.forEach { mention ->
-                    Column(
+                    Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(Color(0xFFF9FAFB))
                             .clickable {
                                 onMentionClick?.invoke(mention.noteId)
                             }
-                            .padding(8.dp)
+                            .padding(vertical = 3.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
                     ) {
-                        // "关联自：MEMO ▶"
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        Box(
+                            modifier = Modifier
+                                .size(15.dp)
+                                .clip(CircleShape)
+                                .background(Color(0xFF8E8E93)),
+                            contentAlignment = Alignment.Center
                         ) {
-                            Text(
-                                text = "关联自：MEMO ▶",
-                                fontSize = 12.sp,
-                                fontWeight = FontWeight.Medium,
-                                color = Color(0xFF1A73E8)
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier
+                                    .size(9.dp)
+                                    .graphicsLayer(rotationZ = 45f)
                             )
                         }
+                        Text(
+                            text = mention.mentionText.ifBlank { "点击查看关联笔记内容" },
+                            fontSize = 12.sp,
+                            color = Color(0xFF757575),
+                            lineHeight = 17.sp,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
 
-                        Spacer(modifier = Modifier.height(4.dp))
-
-                        // Small icon and memo summary
+                // Incoming relation blocks (backlinks from other notes referencing this note)
+                if (hasIncoming) {
+                    incomingRelations.forEach { relation ->
                         Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable {
+                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
+                                }
+                                .padding(vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
@@ -548,81 +573,21 @@ fun NoteCard(
                                 contentAlignment = Alignment.Center
                             ) {
                                 Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    imageVector = Icons.Default.Link,
                                     contentDescription = null,
                                     tint = Color.White,
-                                    modifier = Modifier
-                                        .size(9.dp)
-                                        .graphicsLayer(rotationZ = 45f)
+                                    modifier = Modifier.size(9.dp)
                                 )
                             }
                             Text(
-                                text = mention.mentionText.ifBlank { "点击查看关联笔记内容" },
+                                text = relation.mentionText.ifBlank { "被其他笔记引用" },
                                 fontSize = 12.sp,
-                                color = Color(0xFF777777),
+                                color = Color(0xFF757575),
+                                lineHeight = 17.sp,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                }
-
-                // Incoming relation blocks (backlinks from other notes referencing this note)
-                if (hasIncoming) {
-                    incomingRelations.forEach { relation ->
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(6.dp))
-                                .background(Color(0xFFF9FAFB))
-                            .clickable {
-                                onRelationsClick?.invoke(incomingRelations, "反链列表")
-                            }
-                            .padding(8.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "反向关联：MEMO ▶",
-                                    fontSize = 12.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF1A73E8)
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(4.dp))
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(15.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF8E8E93)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Link,
-                                        contentDescription = null,
-                                        tint = Color.White,
-                                        modifier = Modifier.size(9.dp)
-                                    )
-                                }
-                                Text(
-                                    text = relation.mentionText.ifBlank { "被其他笔记引用" },
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF777777),
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(6.dp))
                     }
                 }
             }
