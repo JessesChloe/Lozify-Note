@@ -16,22 +16,32 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.Sort
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.CheckCircle
+import androidx.compose.material.icons.outlined.FilterAlt
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DrawerValue
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FabPosition
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -43,6 +53,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SwipeToDismissBox
 import androidx.compose.material3.SwipeToDismissBoxValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.TopAppBar
@@ -58,6 +69,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -116,6 +128,10 @@ fun HomeScreen(
 
     // Stage 16: Fullscreen Image Lightbox State
     var activeLightbox by remember { mutableStateOf<Pair<Int, List<File>>?>(null) }
+
+    // Stage 21: TopBar dropdown menu & sort dialog state
+    var showHeaderMenu by remember { mutableStateOf(false) }
+    var showSortDialog by remember { mutableStateOf(false) }
 
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
@@ -218,22 +234,160 @@ fun HomeScreen(
                             modifier = Modifier.fillMaxWidth()
                         )
                     } else {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
-                        ) {
-                            Text(
-                                text = "Lozify",
-                                fontSize = 18.sp,
-                                fontWeight = FontWeight.Bold,
-                                color = Color(0xFF1C1C1E)
-                            )
-                            Icon(
-                                imageVector = Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = Color(0xFF888888),
-                                modifier = Modifier.size(16.dp)
-                            )
+                        Box {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp),
+                                modifier = Modifier
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .clickable { showHeaderMenu = true }
+                                    .padding(horizontal = 4.dp, vertical = 4.dp)
+                            ) {
+                                Text(
+                                    text = uiState.selectedTag?.name ?: "Lozify",
+                                    fontSize = 18.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    color = Color(0xFF1C1C1E)
+                                )
+                                Icon(
+                                    imageVector = Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "切换视图与排序",
+                                    tint = Color(0xFF888888),
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+
+                            // 1:1 Flomo 风格顶部气泡下拉菜单
+                            DropdownMenu(
+                                expanded = showHeaderMenu,
+                                onDismissRequest = { showHeaderMenu = false },
+                                modifier = Modifier
+                                    .background(Color.White, RoundedCornerShape(12.dp))
+                                    .width(220.dp)
+                            ) {
+                                // 1. 选择笔记
+                                DropdownMenuItem(
+                                    text = {
+                                        Text(
+                                            text = "选择笔记",
+                                            fontSize = 14.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF222222)
+                                        )
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Outlined.CheckCircle,
+                                            contentDescription = null,
+                                            tint = Color(0xFF444444),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        scope.launch {
+                                            snackbarHostState.showSnackbar("批量选择管理功能即将在后续版本推出")
+                                        }
+                                    }
+                                )
+
+                                HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 0.5.dp)
+
+                                // 2. 排序方式
+                                DropdownMenuItem(
+                                    text = {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "排序方式",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFF222222)
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFCCCCCC),
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                            Text(
+                                                text = uiState.sortOrder.displayName,
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF8E8E93)
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.AutoMirrored.Outlined.Sort,
+                                            contentDescription = null,
+                                            tint = Color(0xFF444444),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        showSortDialog = true
+                                    }
+                                )
+
+                                HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 0.5.dp)
+
+                                // 3. 笔记来源
+                                DropdownMenuItem(
+                                    text = {
+                                        Column(
+                                            verticalArrangement = Arrangement.spacedBy(2.dp)
+                                        ) {
+                                            Row(
+                                                modifier = Modifier.fillMaxWidth(),
+                                                horizontalArrangement = Arrangement.SpaceBetween,
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    text = "笔记来源",
+                                                    fontSize = 14.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFF222222)
+                                                )
+                                                Icon(
+                                                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
+                                                    contentDescription = null,
+                                                    tint = Color(0xFFCCCCCC),
+                                                    modifier = Modifier.size(12.dp)
+                                                )
+                                            }
+                                            val currentTag = uiState.selectedTag
+                                            Text(
+                                                text = if (currentTag != null) "#${currentTag.name}" else "全部",
+                                                fontSize = 11.sp,
+                                                color = Color(0xFF8E8E93)
+                                            )
+                                        }
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            imageVector = Icons.Outlined.FilterAlt,
+                                            contentDescription = null,
+                                            tint = Color(0xFF444444),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    },
+                                    onClick = {
+                                        showHeaderMenu = false
+                                        scope.launch {
+                                            drawerState.open()
+                                        }
+                                    }
+                                )
+                            }
                         }
                     }
                 },
@@ -421,6 +575,66 @@ fun HomeScreen(
             images = images,
             initialIndex = initialIndex,
             onDismiss = { activeLightbox = null }
+        )
+    }
+
+    // Stage 21: Sort Order Selection Dialog
+    if (showSortDialog) {
+        AlertDialog(
+            onDismissRequest = { showSortDialog = false },
+            title = {
+                Text(
+                    text = "选择排序方式",
+                    fontSize = 16.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF222222)
+                )
+            },
+            text = {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    HomeViewModel.NoteSortOrder.values().forEach { order ->
+                        val isSelected = uiState.sortOrder == order
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(if (isSelected) Color(0xFFE8F5E9) else Color.Transparent)
+                                .clickable {
+                                    homeViewModel.setSortOrder(order)
+                                    showSortDialog = false
+                                }
+                                .padding(horizontal = 12.dp, vertical = 10.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = order.displayName,
+                                fontSize = 14.sp,
+                                fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Normal,
+                                color = if (isSelected) Color(0xFF00C853) else Color(0xFF333333)
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00C853),
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { showSortDialog = false }) {
+                    Text("取消", color = Color(0xFF666666))
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
         )
     }
     }

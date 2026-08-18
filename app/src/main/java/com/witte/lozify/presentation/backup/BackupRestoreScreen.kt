@@ -372,8 +372,8 @@ private fun ImportCard(
 
             ActionOptionRow(
                 icon = Icons.Default.Download,
-                title = "从 JSON 备份文件恢复",
-                description = "选取此前导出的 Lozify 备份文件，数据与图片将增量合并还原至本地沙盒中，自动重构标签与引用。",
+                title = "从备份文件或 Markdown 知识包恢复",
+                description = "支持选取 Lozify 全量 JSON 备份文件 (.json) 或 Markdown 图文知识包 (.zip)，数据与图片将智能识别并增量合并还原至本地沙盒中。",
                 buttonText = "选择文件恢复",
                 buttonColor = Color(0xFF00C853),
                 onClick = onImportJson

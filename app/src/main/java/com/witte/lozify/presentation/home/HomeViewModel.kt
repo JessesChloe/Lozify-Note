@@ -40,11 +40,21 @@ class HomeViewModel @Inject constructor(
 ) : ViewModel() {
 
     /**
+     * Stage 21: Sorting order for notes stream.
+     */
+    enum class NoteSortOrder(val displayName: String) {
+        CREATED_DESC("创建时间，从新到旧"),
+        CREATED_ASC("创建时间，从旧到新"),
+        UPDATED_DESC("更新时间，从新到旧")
+    }
+
+    /**
      * UI state representing the home screen data.
      *
      * Stage 5: Added searchQuery for real-time search.
      * Stage 14: Added userStats and heatmapData for drawer dashboard.
      * Stage 17: Added maxCollapseLines.
+     * Stage 21: Added sortOrder.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
@@ -55,7 +65,8 @@ class HomeViewModel @Inject constructor(
         val searchQuery: String = "",
         val userStats: UserStats = UserStats(),
         val heatmapData: Map<LocalDate, Int> = emptyMap(),
-        val maxCollapseLines: Int = 5
+        val maxCollapseLines: Int = 5,
+        val sortOrder: NoteSortOrder = NoteSortOrder.CREATED_DESC
     )
 
     /**
@@ -69,22 +80,37 @@ class HomeViewModel @Inject constructor(
     private val _searchQuery = MutableStateFlow("")
 
     /**
-     * Reactive state flow combining notes, tags, filter state, and search query.
-     * Automatically updates UI when database changes, filter changes, or search query changes.
-     *
-     * Stage 4 Bug Fix: Added content-based fallback matching to ensure tags
-     * are always detected even if database cross-ref is missing.
-     * Stage 5: Added real-time search filtering.
-     * Stage 14: Computes userStats and heatmapData (daily note counts).
-     * Stage 16: Computes pinnedTags for drawer quick access.
+     * Stage 21: Active sort order.
+     */
+    private val _sortOrder = MutableStateFlow(NoteSortOrder.CREATED_DESC)
+
+    private data class BaseHomeData(
+        val allNotes: List<Note>,
+        val allTags: List<Tag>,
+        val selectedTagId: Long?,
+        val searchQuery: String
+    )
+
+    /**
+     * Reactive state flow combining notes, tags, filter state, search query, and sort order.
      */
     val uiState: StateFlow<HomeUiState> = combine(
-        noteRepository.getAllNotes(),
-        tagRepository.getAllTags(),
-        _selectedTagId,
-        _searchQuery,
-        preferencesManager.maxCollapseLines
-    ) { allNotes, allTags, selectedTagId, searchQuery, maxCollapseLines ->
+        combine(
+            noteRepository.getAllNotes(),
+            tagRepository.getAllTags(),
+            _selectedTagId,
+            _searchQuery
+        ) { allNotes, allTags, selectedTagId, searchQuery ->
+            BaseHomeData(allNotes, allTags, selectedTagId, searchQuery)
+        },
+        preferencesManager.maxCollapseLines,
+        _sortOrder
+    ) { base, maxCollapseLines, sortOrder ->
+        val allNotes = base.allNotes
+        val allTags = base.allTags
+        val selectedTagId = base.selectedTagId
+        val searchQuery = base.searchQuery
+
         // Stage 4: Filter by tag
         var filteredNotes = if (selectedTagId == null) {
             allNotes
@@ -108,6 +134,19 @@ class HomeViewModel @Inject constructor(
             filteredNotes = filteredNotes.filter { note ->
                 note.content.contains(searchQuery, ignoreCase = true)
             }
+        }
+
+        // Stage 21: Apply sorting (preserve pinned notes at top)
+        filteredNotes = when (sortOrder) {
+            NoteSortOrder.CREATED_DESC -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }.thenByDescending { it.createdAt }
+            )
+            NoteSortOrder.CREATED_ASC -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }.thenBy { it.createdAt }
+            )
+            NoteSortOrder.UPDATED_DESC -> filteredNotes.sortedWith(
+                compareByDescending<Note> { it.isPinned }.thenByDescending { it.updatedAt }
+            )
         }
 
         // Stage 14: Calculate user stats
@@ -144,7 +183,8 @@ class HomeViewModel @Inject constructor(
             searchQuery = searchQuery,
             userStats = userStats,
             heatmapData = heatmapData,
-            maxCollapseLines = maxCollapseLines
+            maxCollapseLines = maxCollapseLines,
+            sortOrder = sortOrder
         )
     }.stateIn(
         scope = viewModelScope,
@@ -204,6 +244,13 @@ class HomeViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
+
+    /**
+     * Stage 21: Change notes stream sort order.
+     */
+    fun setSortOrder(order: NoteSortOrder) {
+        _sortOrder.value = order
+    }
 
     /**
      * Stage 4: Select a tag for filtering, or toggle off if already selected.

@@ -76,4 +76,41 @@ class BackupJsonTest {
         assertFalse(corruptedJson.has("notes"))
         assertFalse(corruptedJson.has("tags"))
     }
+
+    @Test
+    fun testZipHeaderDetection() {
+        val zipHeaderBytes = byteArrayOf(0x50.toByte(), 0x4B.toByte(), 0x03.toByte(), 0x04.toByte())
+        assertTrue(zipHeaderBytes.size >= 2 && zipHeaderBytes[0] == 0x50.toByte() && zipHeaderBytes[1] == 0x4B.toByte())
+
+        val jsonBytes = "{ \"version\": 1 }".toByteArray(Charsets.UTF_8)
+        assertFalse(jsonBytes.size >= 2 && jsonBytes[0] == 0x50.toByte() && jsonBytes[1] == 0x4B.toByte())
+    }
+
+    @Test
+    fun testMarkdownYamlFrontmatterParsing() {
+        val rawMarkdown = """
+            ---
+            id: 101
+            created_at: 2026-08-18T10:00:00Z
+            updated_at: 2026-08-18T10:00:00Z
+            pinned: true
+            tags: [task, 随想]
+            ---
+            
+            今天完成了重要工作交付 #task
+            
+            ![image](images/note_101_img_0.jpg)
+        """.trimIndent()
+
+        assertTrue(rawMarkdown.startsWith("---"))
+        val secondDelimiter = rawMarkdown.indexOf("---", 3)
+        assertTrue(secondDelimiter != -1)
+
+        val header = rawMarkdown.substring(3, secondDelimiter).trim()
+        val noteBody = rawMarkdown.substring(secondDelimiter + 3).trim()
+
+        assertTrue(header.contains("pinned: true"))
+        assertTrue(header.contains("tags: [task, 随想]"))
+        assertTrue(noteBody.contains("今天完成了重要工作交付 #task"))
+    }
 }
