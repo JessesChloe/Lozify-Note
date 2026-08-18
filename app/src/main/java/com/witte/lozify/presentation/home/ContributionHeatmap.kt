@@ -26,67 +26,68 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import java.time.DayOfWeek
 import java.time.LocalDate
+import java.time.YearMonth
 
 /**
  * ContributionHeatmap - 1:1 Flomo-styled activity punchcard grid.
  *
- * Stage 22 Polish 2:
- * - Exact Flomo 15-week column grid (7 rows x 15 columns)
- * - Comfortably sized rounded blocks (~15dp) with 3.5dp spacing and 3dp corner radius
- * - BoxWithConstraints for full responsive width
- * - Clearly rendered and properly positioned month labels ("7月", "8月") without clipping
- * - Soft neutral empty cells (#F2F3F5)
- * - Gentle mint green active cells (#A5D6A7)
- * - Today cell marked with emerald stroke outline (#00C853)
+ * Stage 22 Flomo Calendar Alignment:
+ * - Displays a 16-week window ending at the END of the CURRENT MONTH (complete month view)
+ * - 7 rows (Monday to Sunday, row 0 = Mon ... row 6 = Sun)
+ * - 16 columns spanning ~4 months (e.g. May, June, July, August)
+ * - Today (e.g. Aug 18) is highlighted in the current month's week with an emerald outline
+ * - Future days in the current month are shown as clean light gray blocks
+ * - Month labels ("7月", "8月") precisely aligned under the column where each month begins
  */
 @Composable
 fun ContributionHeatmap(
     dailyCounts: Map<LocalDate, Int>,
     modifier: Modifier = Modifier,
-    numWeeks: Int = 15,
+    numWeeks: Int = 16,
     onClick: (() -> Unit)? = null
 ) {
     val density = LocalDensity.current
     val today = remember { LocalDate.now() }
     val numDaysInWeek = 7
 
-    // Offset for Monday (0) to Sunday (6)
-    val dayOfWeekOffset = remember(today) {
-        when (today.dayOfWeek) {
-            DayOfWeek.MONDAY -> 0
-            DayOfWeek.TUESDAY -> 1
-            DayOfWeek.WEDNESDAY -> 2
-            DayOfWeek.THURSDAY -> 3
-            DayOfWeek.FRIDAY -> 4
-            DayOfWeek.SATURDAY -> 5
-            DayOfWeek.SUNDAY -> 6
-            null -> 0
-        }
+    // End date: Sunday of the week containing the end of the current month
+    val endOfGridDate = remember(today) {
+        val endOfMonth = YearMonth.from(today).atEndOfMonth()
+        val daysUntilSunday = (7 - endOfMonth.dayOfWeek.value) % 7
+        endOfMonth.plusDays(daysUntilSunday.toLong())
     }
 
-    // Start date for the 15-week grid
-    val startDate = remember(today, dayOfWeekOffset, numWeeks) {
-        today.minusWeeks((numWeeks - 1).toLong()).minusDays(dayOfWeekOffset.toLong())
+    // Start date: Monday of the week (numWeeks - 1) weeks before endOfGridDate
+    val startDate = remember(endOfGridDate, numWeeks) {
+        endOfGridDate.minusWeeks((numWeeks - 1).toLong()).minusDays(6)
     }
 
-    // Identify month label positions with non-overlapping spacing
+    // Identify month label positions
     val monthTransitions = remember(startDate, numWeeks) {
         val rawList = mutableListOf<Pair<Int, String>>()
         var lastMonth = -1
         for (col in 0 until numWeeks) {
             val colMonday = startDate.plusDays((col * 7).toLong())
-            val month = colMonday.monthValue
+            val colSunday = colMonday.plusDays(6)
+            
+            // Check if month changes in this week or if week contains day 1 of a month
+            val month = if (colMonday.monthValue != colSunday.monthValue) {
+                colSunday.monthValue
+            } else {
+                colMonday.monthValue
+            }
+
             if (month != lastMonth) {
                 rawList.add(Pair(col, "${month}月"))
                 lastMonth = month
             }
         }
+        // Keep prominent spaced month labels (e.g. at least 3 weeks apart)
         val result = mutableListOf<Pair<Int, String>>()
         for (item in rawList) {
             if (result.isEmpty()) {
-                if (item.first > 0 || numWeeks > 4) {
+                if (item.first >= 1) {
                     result.add(item)
                 }
             } else {
@@ -148,7 +149,7 @@ fun ContributionHeatmap(
                             cornerRadius = CornerRadius(cornerRadiusPx, cornerRadiusPx)
                         )
 
-                        // Today special emerald stroke outline
+                        // Today emerald outline stroke
                         if (isToday) {
                             drawRoundRect(
                                 color = Color(0xFF00C853),
