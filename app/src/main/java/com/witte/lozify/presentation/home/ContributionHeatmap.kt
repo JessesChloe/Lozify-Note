@@ -28,17 +28,17 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 /**
  * ContributionHeatmap - 1:1 Flomo-styled activity punchcard grid.
  *
- * Stage 22 Flomo Calendar Alignment:
- * - Displays a 16-week window ending at the END of the CURRENT MONTH (complete month view)
- * - 7 rows (Monday to Sunday, row 0 = Mon ... row 6 = Sun)
- * - 16 columns spanning ~4 months (e.g. May, June, July, August)
- * - Today (e.g. Aug 18) is highlighted in the current month's week with an emerald outline
- * - Future days in the current month are shown as clean light gray blocks
- * - Month labels ("7月", "8月") precisely aligned under the column where each month begins
+ * Stage 22 Flomo Alignment:
+ * - Displays a 16-week window ending at the end of the current month
+ * - Strictly displays the two most recent month labels ("上月" 和 "本月"，如 "7月" 与 "8月")
+ * - Completely eliminates distracting early/future month labels (no 5月/6月/9月 clutter)
+ * - 100% mathematically precise calendar day mapping using LocalDate (accounts for 28/29/30/31 day months & leap years)
+ * - Today (e.g. Aug 18) sits naturally in the middle of the current month with an emerald outline (#00C853)
  */
 @Composable
 fun ContributionHeatmap(
@@ -63,40 +63,25 @@ fun ContributionHeatmap(
         endOfGridDate.minusWeeks((numWeeks - 1).toLong()).minusDays(6)
     }
 
-    // Identify month label positions
-    val monthTransitions = remember(startDate, numWeeks) {
-        val rawList = mutableListOf<Pair<Int, String>>()
-        var lastMonth = -1
-        for (col in 0 until numWeeks) {
-            val colMonday = startDate.plusDays((col * 7).toLong())
-            val colSunday = colMonday.plusDays(6)
-            
-            // Check if month changes in this week or if week contains day 1 of a month
-            val month = if (colMonday.monthValue != colSunday.monthValue) {
-                colSunday.monthValue
-            } else {
-                colMonday.monthValue
-            }
+    // 1:1 Flomo Month Labels: Strictly show previous month and current month (e.g. "7月", "8月")
+    val monthTransitions = remember(startDate, today, numWeeks) {
+        val list = mutableListOf<Pair<Int, String>>()
 
-            if (month != lastMonth) {
-                rawList.add(Pair(col, "${month}月"))
-                lastMonth = month
-            }
+        val prevMonth = today.minusMonths(1)
+        val firstDayOfPrevMonth = YearMonth.from(prevMonth).atDay(1)
+        val prevMonthCol = (ChronoUnit.DAYS.between(startDate, firstDayOfPrevMonth) / 7).toInt()
+        if (prevMonthCol in 0 until numWeeks) {
+            list.add(Pair(prevMonthCol, "${prevMonth.monthValue}月"))
         }
-        // Keep prominent spaced month labels (e.g. at least 3 weeks apart)
-        val result = mutableListOf<Pair<Int, String>>()
-        for (item in rawList) {
-            if (result.isEmpty()) {
-                if (item.first >= 1) {
-                    result.add(item)
-                }
-            } else {
-                if (item.first - result.last().first >= 3) {
-                    result.add(item)
-                }
-            }
+
+        val currMonth = today
+        val firstDayOfCurrMonth = YearMonth.from(currMonth).atDay(1)
+        val currMonthCol = (ChronoUnit.DAYS.between(startDate, firstDayOfCurrMonth) / 7).toInt()
+        if (currMonthCol in 0 until numWeeks) {
+            list.add(Pair(currMonthCol, "${currMonth.monthValue}月"))
         }
-        result
+
+        list
     }
 
     BoxWithConstraints(
@@ -165,7 +150,7 @@ fun ContributionHeatmap(
 
             Spacer(modifier = Modifier.height(6.dp))
 
-            // Month Labels Row (precisely aligned without clipping)
+            // Month Labels Row: Cleanly renders only "7月" and "8月"
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
