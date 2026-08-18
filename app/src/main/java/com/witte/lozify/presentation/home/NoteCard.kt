@@ -14,15 +14,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
 import androidx.compose.foundation.text.InlineTextContent
 import androidx.compose.ui.text.Placeholder
 import androidx.compose.ui.text.PlaceholderVerticalAlign
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.Checkbox
@@ -43,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
@@ -534,16 +538,28 @@ fun NoteCard(
                         // Small icon and memo summary
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
                         ) {
-                            Text(
-                                text = "📝",
-                                fontSize = 11.sp
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .size(15.dp)
+                                    .clip(CircleShape)
+                                    .background(Color(0xFF8E8E93)),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier
+                                        .size(9.dp)
+                                        .graphicsLayer(rotationZ = 45f)
+                                )
+                            }
                             Text(
                                 text = mention.mentionText.ifBlank { "点击查看关联笔记内容" },
                                 fontSize = 12.sp,
-                                color = Color(0xFF888888),
+                                color = Color(0xFF777777),
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -560,10 +576,10 @@ fun NoteCard(
                                 .fillMaxWidth()
                                 .clip(RoundedCornerShape(6.dp))
                                 .background(Color(0xFFF9FAFB))
-                                .clickable {
-                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
-                                }
-                                .padding(8.dp)
+                            .clickable {
+                                onRelationsClick?.invoke(incomingRelations, "反链列表")
+                            }
+                            .padding(8.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -581,16 +597,26 @@ fun NoteCard(
 
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                             ) {
-                                Text(
-                                    text = "🔗",
-                                    fontSize = 11.sp
-                                )
+                                Box(
+                                    modifier = Modifier
+                                        .size(15.dp)
+                                        .clip(CircleShape)
+                                        .background(Color(0xFF8E8E93)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Link,
+                                        contentDescription = null,
+                                        tint = Color.White,
+                                        modifier = Modifier.size(9.dp)
+                                    )
+                                }
                                 Text(
                                     text = relation.mentionText.ifBlank { "被其他笔记引用" },
                                     fontSize = 12.sp,
-                                    color = Color(0xFF888888),
+                                    color = Color(0xFF777777),
                                     maxLines = 2,
                                     overflow = TextOverflow.Ellipsis
                                 )

@@ -17,14 +17,19 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -214,40 +219,87 @@ fun NoteDetailBottomSheet(
                                             Row(
                                                 modifier = Modifier.padding(bottom = 6.dp),
                                                 verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
                                             ) {
                                                 Box(
                                                     modifier = Modifier
-                                                        .clip(RoundedCornerShape(4.dp))
-                                                        .background(Color(0xFFE8F0FE))
-                                                        .padding(horizontal = 6.dp, vertical = 2.dp)
+                                                        .size(15.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF00C853)),
+                                                    contentAlignment = Alignment.Center
                                                 ) {
-                                                    Text(
-                                                        text = "🎯 当前焦点笔记",
-                                                        fontSize = 11.sp,
-                                                        fontWeight = FontWeight.Bold,
-                                                        color = Color(0xFF1A73E8)
+                                                    Box(
+                                                        modifier = Modifier
+                                                            .size(5.dp)
+                                                            .clip(CircleShape)
+                                                            .background(Color.White)
                                                     )
                                                 }
+                                                Text(
+                                                    text = "当前焦点笔记",
+                                                    fontSize = 12.sp,
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = Color(0xFF222222)
+                                                )
                                             }
                                         }
                                         ThreadItemType.PARENT -> {
-                                            Text(
-                                                text = "🔗 ${item.label}",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = Color(0xFF757575),
-                                                modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(15.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF8E8E93)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Link,
+                                                        contentDescription = null,
+                                                        tint = Color.White,
+                                                        modifier = Modifier.size(9.dp)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = item.label,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFF757575)
+                                                )
+                                            }
                                         }
                                         ThreadItemType.CHILD -> {
-                                            Text(
-                                                text = "↳ ${item.label}",
-                                                fontSize = 11.sp,
-                                                fontWeight = FontWeight.Medium,
-                                                color = Color(0xFF1A73E8),
-                                                modifier = Modifier.padding(bottom = 4.dp, start = 2.dp)
-                                            )
+                                            Row(
+                                                modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .size(15.dp)
+                                                        .clip(CircleShape)
+                                                        .background(Color(0xFF8E8E93)),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                                        contentDescription = null,
+                                                        tint = Color.White,
+                                                        modifier = Modifier
+                                                            .size(9.dp)
+                                                            .graphicsLayer(rotationZ = 45f)
+                                                    )
+                                                }
+                                                Text(
+                                                    text = item.label,
+                                                    fontSize = 11.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = Color(0xFF1A73E8)
+                                                )
+                                            }
                                         }
                                     }
 
