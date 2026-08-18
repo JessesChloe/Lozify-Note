@@ -107,9 +107,7 @@ fun DrawerContent(
     }
 
     ModalDrawerSheet(
-        modifier = modifier
-            .widthIn(max = 310.dp)
-            .fillMaxWidth(0.82f),
+        modifier = modifier.fillMaxWidth(0.85f),
         drawerContainerColor = Color.White
     ) {
         Column(
