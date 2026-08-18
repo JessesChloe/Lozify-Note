@@ -133,6 +133,9 @@ fun HomeScreen(
     var showHeaderMenu by remember { mutableStateOf(false) }
     var showSortDialog by remember { mutableStateOf(false) }
 
+    // Stage 22: Activity & punchcard calendar bottom sheet state
+    var showActivityCalendar by remember { mutableStateOf(false) }
+
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
     var editingNoteId by remember { mutableStateOf<Long?>(null) }
@@ -197,6 +200,12 @@ fun HomeScreen(
                 onNavigateToHelp = onNavigateToHelp,
                 onNavigateToBackup = onNavigateToBackup,
                 onNavigateToSettings = onNavigateToSettings,
+                onOpenCalendarDetail = {
+                    scope.launch {
+                        drawerState.close()
+                    }
+                    showActivityCalendar = true
+                },
                 onEditTag = { tag ->
                     onNavigateToTagEdit(tag.id)
                 },
@@ -635,6 +644,14 @@ fun HomeScreen(
             },
             containerColor = Color.White,
             shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Stage 22: Activity & Punchcard Calendar Detail Bottom Sheet
+    if (showActivityCalendar) {
+        ActivityCalendarBottomSheet(
+            allNotes = uiState.notes,
+            onDismiss = { showActivityCalendar = false }
         )
     }
     }

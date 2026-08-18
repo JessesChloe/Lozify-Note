@@ -85,6 +85,7 @@ fun DrawerContent(
     onNavigateToHelp: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onOpenCalendarDetail: () -> Unit = {},
     onTogglePinTag: (Long, Boolean) -> Unit = { _, _ -> },
     onEditTag: (Tag) -> Unit = {},
     onRemoveTag: (String) -> Unit = {},
@@ -123,49 +124,25 @@ fun DrawerContent(
                 )
             }
 
-            // Stage 14: Achievement Panel (个人数据中心 / 统计面板)
+            // Stage 14 & 22: Achievement Panel (个人数据中心 / 统计面板)
             DrawerStatsPanel(
                 stats = stats,
+                onClick = onOpenCalendarDetail,
                 modifier = Modifier.padding(horizontal = 20.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(14.dp))
 
-            HorizontalDivider(
-                color = Color(0xFFF0F0F0),
-                thickness = 1.dp,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // Stage 14: Contribution Heatmap Section (打卡日历)
-            Text(
-                text = "打卡日历",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Bold,
-                color = Color(0xFF222222),
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.height(10.dp))
-
+            // Stage 14 & 22: Contribution Heatmap Section (1:1 Flomo 雅致日历图)
             ContributionHeatmap(
                 dailyCounts = dailyCounts,
+                onClick = onOpenCalendarDetail,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp)
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            HorizontalDivider(
-                color = Color(0xFFF0F0F0),
-                thickness = 1.dp,
-                modifier = Modifier.padding(horizontal = 20.dp)
-            )
-
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(18.dp))
 
             // Scrollable Content (tags list) - takes remaining space
             LazyColumn(
@@ -496,26 +473,31 @@ private fun DrawerHeader(
 @Composable
 private fun DrawerStatsPanel(
     stats: UserStats,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable { onClick() }
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         DrawerStatItem(
             value = stats.notesCount.toString(),
-            label = "条笔记",
+            label = "笔记",
             modifier = Modifier.weight(1f)
         )
         DrawerStatItem(
             value = stats.tagsCount.toString(),
-            label = "个标签",
+            label = "标签",
             modifier = Modifier.weight(1f)
         )
         DrawerStatItem(
             value = stats.daysCount.toString(),
-            label = "天记录",
+            label = "天",
             modifier = Modifier.weight(1f)
         )
     }
@@ -534,14 +516,14 @@ private fun DrawerStatItem(
     ) {
         Text(
             text = value,
-            fontSize = 22.sp,
-            fontWeight = FontWeight.SemiBold,
-            color = Color(0xFF2C2C2E)
+            fontSize = 24.sp,
+            fontWeight = FontWeight.Bold,
+            color = Color(0xFF9D9D9D)
         )
         Text(
             text = label,
             fontSize = 12.sp,
-            color = Color(0xFF888888),
+            color = Color(0xFF9D9D9D),
             fontWeight = FontWeight.Normal
         )
     }
