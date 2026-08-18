@@ -61,6 +61,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
+import com.witte.lozify.core.common.MarkdownVisualTransformation
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Note
 
@@ -280,10 +281,11 @@ fun NoteEditorBottomSheet(
 
                 Spacer(modifier = Modifier.height(8.dp))
 
-                // Borderless text input field
+                // Borderless text input field with real-time Markdown syntax highlighting
                 TextField(
                     value = textFieldValue,
                     onValueChange = ::onValueChange,
+                    visualTransformation = remember { MarkdownVisualTransformation() },
                     placeholder = {
                         Text(
                             text = "现在的想法是...",
