@@ -5,6 +5,7 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.witte.lozify.core.common.RichTextUtils
+import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.repository.AttachmentRepository
@@ -26,19 +27,20 @@ import javax.inject.Inject
 /**
  * ViewModel for note editor.
  *
- * Handles note creation and saving to Room database.
- * Uses SharedFlow to emit one-time events like save success.
+ * Handles note creation, saving to Room database, and draft persistence.
  *
  * Stage 4: Integrated automatic #tag extraction and database persistence.
  * Stage 6: Integrated image attachment handling with AttachmentRepository.
  * Stage 9 Refactor: Upgraded to TextFieldValue + activeFormats for WYSIWYG editing.
+ * Stage 17: Draft auto-saving and restoring.
  */
 @HiltViewModel
 class EditorViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val tagRepository: TagRepository,
     private val attachmentRepository: AttachmentRepository,
-    private val noteRelationRepository: NoteRelationRepository
+    private val noteRelationRepository: NoteRelationRepository,
+    private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     /**
@@ -182,12 +184,43 @@ class EditorViewModel @Inject constructor(
                     _events.emit(EditorEvent.NoteSaved(newNoteId, tags.size))
                 }
 
-                // Clear active formats after successful save
+                // Clear active formats and draft after successful save
                 clearActiveFormats()
+                preferencesManager.clearDraft()
             } catch (e: Exception) {
                 _events.emit(EditorEvent.SaveError(e.message ?: "保存失败"))
             }
         }
+    }
+
+    /**
+     * Retrieve currently saved draft text and image URIs if draft persistence is enabled.
+     */
+    fun getSavedDraft(): Pair<String, List<Uri>> {
+        if (!preferencesManager.isDraftPersistenceEnabled.value) {
+            return Pair("", emptyList())
+        }
+        val text = preferencesManager.draftText.value
+        val uris = preferencesManager.draftImageUris.value.mapNotNull {
+            try { Uri.parse(it) } catch (e: Exception) { null }
+        }
+        return Pair(text, uris)
+    }
+
+    /**
+     * Save draft text and image URIs when editor content changes.
+     */
+    fun saveDraft(text: String, uris: List<Uri>) {
+        if (preferencesManager.isDraftPersistenceEnabled.value) {
+            preferencesManager.saveDraft(text, uris.map { it.toString() })
+        }
+    }
+
+    /**
+     * Clear draft from preferences.
+     */
+    fun clearDraft() {
+        preferencesManager.clearDraft()
     }
 
     /**

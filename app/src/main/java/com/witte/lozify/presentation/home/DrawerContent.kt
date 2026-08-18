@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -81,6 +82,7 @@ fun DrawerContent(
     onNavigateToTrash: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     onTogglePinTag: (Long, Boolean) -> Unit = { _, _ -> },
     onEditTag: (Tag) -> Unit = {},
     onRemoveTag: (String) -> Unit = {},
@@ -112,8 +114,11 @@ fun DrawerContent(
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
             // Header Section (with horizontal padding)
-            Box(modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = 24.dp, bottom = 12.dp)) {
-                DrawerHeader()
+            Box(modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 20.dp, bottom = 12.dp)) {
+                DrawerHeader(
+                    onNavigateToSettings = onNavigateToSettings,
+                    onCloseDrawer = onCloseDrawer
+                )
             }
 
             // Stage 14: Achievement Panel (个人数据中心 / 统计面板)
@@ -420,16 +425,6 @@ fun DrawerContent(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // Backup Entry
-                DrawerSystemEntry(
-                    icon = Icons.Default.Backup,
-                    label = "数据备份与迁移",
-                    onClick = {
-                        onNavigateToBackup()
-                        onCloseDrawer()
-                    }
-                )
-
                 // Trash Entry
                 DrawerSystemEntry(
                     icon = Icons.Default.Delete,
@@ -455,17 +450,35 @@ fun DrawerContent(
 }
 
 /**
- * DrawerHeader - Minimal branding header.
+ * DrawerHeader - Minimal branding header with settings gear on top right.
  */
 @Composable
 private fun DrawerHeader(
+    onNavigateToSettings: () -> Unit,
+    onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Box(
+    Row(
         modifier = modifier.fillMaxWidth(),
-        contentAlignment = Alignment.CenterStart
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
     ) {
         LozifyLogo(sizeDp = 26.dp)
+
+        IconButton(
+            onClick = {
+                onNavigateToSettings()
+                onCloseDrawer()
+            },
+            modifier = Modifier.size(36.dp)
+        ) {
+            Icon(
+                imageVector = Icons.Outlined.Settings,
+                contentDescription = "设置",
+                tint = Color(0xFF666666),
+                modifier = Modifier.size(20.dp)
+            )
+        }
     }
 }
 

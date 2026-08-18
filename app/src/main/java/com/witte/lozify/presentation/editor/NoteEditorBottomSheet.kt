@@ -5,55 +5,41 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkVertically
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.List
+import androidx.compose.material.icons.automirrored.filled.Redo
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.SheetState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.BorderColor
+import androidx.compose.material.icons.outlined.FormatListBulleted
+import androidx.compose.material.icons.outlined.FormatUnderlined
+import androidx.compose.material.icons.outlined.Image
+import androidx.compose.material.icons.outlined.Mic
+import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
@@ -67,13 +53,9 @@ import com.witte.lozify.core.common.SmartInputFilter
 import com.witte.lozify.domain.model.Note
 
 /**
- * NoteEditorBottomSheet - Flomo-style lightweight editor.
+ * NoteEditorBottomSheet - Flomo-style lightweight editor with floating secondary capsule toolbar.
  *
- * Stage 15 Refactor:
- * - Abolished secondary modal bottom sheet formatting menus.
- * - Added Keyboard Accessory Toolbar docked directly above the IME keyboard.
- * - Live markdown formatting without dismissing keyboard or losing focus.
- * - Built-in Undo / Redo history tracking.
+ * Stage 17: 1:1 Flomo Visual Toolbar & List Functionality Alignment.
  *
  * @param sheetState Bottom sheet state
  * @param viewModel Editor ViewModel for format state management
@@ -98,6 +80,7 @@ fun NoteEditorBottomSheet(
     }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showNotePicker by remember { mutableStateOf(false) }
+    var isSecondaryCapsuleOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
 
     // History stack for Undo / Redo
@@ -107,16 +90,31 @@ fun NoteEditorBottomSheet(
     // Collect activeFormats from ViewModel
     val activeFormats by viewModel.activeFormats.collectAsState()
 
-    // Image picker launcher
+    // Restore draft if creating a new note and editor is empty
+    LaunchedEffect(Unit) {
+        if (initialContent == null && textFieldValue.text.isEmpty() && selectedImageUris.isEmpty()) {
+            val (draftText, draftUris) = viewModel.getSavedDraft()
+            if (draftText.isNotEmpty() || draftUris.isNotEmpty()) {
+                textFieldValue = TextFieldValue(text = draftText, selection = TextRange(draftText.length))
+                selectedImageUris = draftUris
+            }
+        }
+    }
+
+    // Image picker launcher (Gallery)
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? ->
         uri?.let {
-            selectedImageUris = selectedImageUris + it
+            val updatedList = selectedImageUris + it
+            selectedImageUris = updatedList
+            if (initialContent == null) {
+                viewModel.saveDraft(textFieldValue.text, updatedList)
+            }
         }
     }
 
-    // Helper to update text with undo history tracking
+    // Helper to update text with undo history and auto-draft
     fun updateTextWithHistory(newValue: TextFieldValue) {
         if (newValue.text != textFieldValue.text) {
             undoStack.add(textFieldValue)
@@ -124,6 +122,10 @@ fun NoteEditorBottomSheet(
                 undoStack.removeAt(0)
             }
             redoStack.clear()
+
+            if (initialContent == null) {
+                viewModel.saveDraft(newValue.text, selectedImageUris)
+            }
         }
         textFieldValue = newValue
     }
@@ -141,7 +143,7 @@ fun NoteEditorBottomSheet(
         updateTextWithHistory(filteredValue)
     }
 
-    // Helper function to apply formatting with bounds checking
+    // Helper function to apply formatting
     fun applyFormatting(formatType: RichTextUtils.FormatType) {
         val currentText = textFieldValue.text
         val selection = textFieldValue.selection
@@ -164,6 +166,7 @@ fun NoteEditorBottomSheet(
             RichTextUtils.FormatType.BOLD,
             RichTextUtils.FormatType.UNDERLINE,
             RichTextUtils.FormatType.HIGHLIGHT -> 2
+            RichTextUtils.FormatType.LIST_UNORDERED -> 2
             RichTextUtils.FormatType.MENTION -> 0
             RichTextUtils.FormatType.CHECKBOX_UNCHECKED -> 6
             RichTextUtils.FormatType.CHECKBOX_CHECKED -> 6
@@ -203,7 +206,7 @@ fun NoteEditorBottomSheet(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
+                    .padding(horizontal = 16.dp, vertical = 4.dp)
             ) {
                 // NotePicker ABOVE TextField to avoid keyboard occlusion
                 if (showNotePicker) {
@@ -237,51 +240,8 @@ fun NoteEditorBottomSheet(
                         }
                     )
 
-                    Spacer(modifier = Modifier.height(12.dp))
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
-
-                // Top action bar: Title & Save send button
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = if (initialContent != null) "编辑笔记" else "记录想法",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF666666)
-                    )
-
-                    // Send Button
-                    IconButton(
-                        onClick = {
-                            if (textFieldValue.text.isNotBlank()) {
-                                onSave(textFieldValue, selectedImageUris)
-                                textFieldValue = TextFieldValue("")
-                                selectedImageUris = emptyList()
-                                viewModel.clearActiveFormats()
-                                onDismiss()
-                            }
-                        },
-                        enabled = textFieldValue.text.isNotBlank(),
-                        modifier = Modifier
-                            .size(36.dp)
-                            .background(
-                                color = if (textFieldValue.text.isNotBlank()) Color(0xFF00C853) else Color(0xFFE0E0E0),
-                                shape = CircleShape
-                            )
-                    ) {
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.Send,
-                            contentDescription = "保存",
-                            tint = Color.White,
-                            modifier = Modifier.size(18.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(8.dp))
 
                 // Borderless text input field with real-time Markdown syntax highlighting
                 TextField(
@@ -291,7 +251,7 @@ fun NoteEditorBottomSheet(
                     placeholder = {
                         Text(
                             text = "现在的想法是...",
-                            color = Color(0xFF999999),
+                            color = Color(0xFFB0B0B0),
                             fontSize = 16.sp
                         )
                     },
@@ -305,13 +265,13 @@ fun NoteEditorBottomSheet(
                     ),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(140.dp)
+                        .height(130.dp)
                         .focusRequester(focusRequester)
                 )
 
                 // Image thumbnail preview
                 if (selectedImageUris.isNotEmpty()) {
-                    Spacer(modifier = Modifier.height(8.dp))
+                    Spacer(modifier = Modifier.height(6.dp))
                     LazyRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
@@ -319,7 +279,7 @@ fun NoteEditorBottomSheet(
                         items(selectedImageUris) { uri ->
                             Box(
                                 modifier = Modifier
-                                    .size(72.dp)
+                                    .size(68.dp)
                                     .clip(RoundedCornerShape(8.dp))
                                     .background(Color(0xFFF0F0F0))
                             ) {
@@ -327,12 +287,16 @@ fun NoteEditorBottomSheet(
                                     model = uri,
                                     contentDescription = "预览图片",
                                     contentScale = ContentScale.Crop,
-                                    modifier = Modifier.size(72.dp)
+                                    modifier = Modifier.size(68.dp)
                                 )
 
                                 IconButton(
                                     onClick = {
-                                        selectedImageUris = selectedImageUris.filter { it != uri }
+                                        val updated = selectedImageUris.filter { it != uri }
+                                        selectedImageUris = updated
+                                        if (initialContent == null) {
+                                            viewModel.saveDraft(textFieldValue.text, updated)
+                                        }
                                     },
                                     modifier = Modifier
                                         .align(Alignment.TopEnd)
@@ -343,7 +307,7 @@ fun NoteEditorBottomSheet(
                                         imageVector = Icons.Default.Close,
                                         contentDescription = "移除图片",
                                         tint = Color.White,
-                                        modifier = Modifier.size(14.dp)
+                                        modifier = Modifier.size(12.dp)
                                     )
                                 }
                             }
@@ -352,63 +316,242 @@ fun NoteEditorBottomSheet(
                 }
             }
 
-            HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 0.8.dp)
+            // Flomo Style Floating Secondary Capsule Toolbar (Floating Card)
+            AnimatedVisibility(
+                visible = isSecondaryCapsuleOpen,
+                enter = fadeIn() + slideInVertically { it / 2 },
+                exit = fadeOut() + slideOutVertically { it / 2 }
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    Card(
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+                        border = BorderStroke(0.8.dp, Color(0xFFEFEFEF))
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // 1. Highlight
+                            IconToolbarButton(
+                                icon = Icons.Outlined.BorderColor,
+                                contentDescription = "高亮",
+                                isActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT),
+                                onClick = { applyFormatting(RichTextUtils.FormatType.HIGHLIGHT) }
+                            )
 
-            // Stage 15: Keyboard Accessory Toolbar (常驻键盘上方工具栏)
-            KeyboardAccessoryToolbar(
-                activeFormats = activeFormats,
-                canUndo = undoStack.isNotEmpty(),
-                canRedo = redoStack.isNotEmpty(),
-                onTagClick = {
-                    val currentText = textFieldValue.text
-                    val cursorPos = textFieldValue.selection.start
-                    val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
-                    updateTextWithHistory(
-                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
-                    )
-                },
-                onMentionClick = {
-                    val currentText = textFieldValue.text
-                    val cursorPos = textFieldValue.selection.start
-                    val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
-                    updateTextWithHistory(
-                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
-                    )
-                    showNotePicker = true
-                },
-                onImageClick = {
-                    imagePickerLauncher.launch(
-                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                    )
-                },
-                onBoldClick = {
-                    applyFormatting(RichTextUtils.FormatType.BOLD)
-                },
-                onHighlightClick = {
-                    applyFormatting(RichTextUtils.FormatType.HIGHLIGHT)
-                },
-                onUnderlineClick = {
-                    applyFormatting(RichTextUtils.FormatType.UNDERLINE)
-                },
-                onCheckboxClick = {
-                    applyFormatting(RichTextUtils.FormatType.CHECKBOX_UNCHECKED)
-                },
-                onUndoClick = {
-                    if (undoStack.isNotEmpty()) {
-                        val prev = undoStack.removeAt(undoStack.lastIndex)
-                        redoStack.add(textFieldValue)
-                        textFieldValue = prev
+                            // 2. Underline
+                            IconToolbarButton(
+                                icon = Icons.Outlined.FormatUnderlined,
+                                contentDescription = "下划线",
+                                isActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE),
+                                onClick = { applyFormatting(RichTextUtils.FormatType.UNDERLINE) }
+                            )
+
+                            // Divider
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(16.dp)
+                                    .background(Color(0xFFE0E0E0))
+                            )
+
+                            // 3. Mention (@)
+                            TextToolbarButton(
+                                text = "@",
+                                fontSize = 17.sp,
+                                contentDescription = "提及笔记",
+                                onClick = {
+                                    val currentText = textFieldValue.text
+                                    val cursorPos = textFieldValue.selection.start
+                                    val newText = currentText.substring(0, cursorPos) + "@" + currentText.substring(cursorPos)
+                                    updateTextWithHistory(
+                                        TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
+                                    )
+                                    showNotePicker = true
+                                }
+                            )
+
+                            // 4. Camera (Photo)
+                            IconToolbarButton(
+                                icon = Icons.Outlined.PhotoCamera,
+                                contentDescription = "拍照",
+                                onClick = {
+                                    imagePickerLauncher.launch(
+                                        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                                    )
+                                }
+                            )
+
+                            // Divider
+                            Box(
+                                modifier = Modifier
+                                    .width(1.dp)
+                                    .height(16.dp)
+                                    .background(Color(0xFFE0E0E0))
+                            )
+
+                            // 5. Undo
+                            IconToolbarButton(
+                                icon = Icons.AutoMirrored.Filled.Undo,
+                                contentDescription = "撤销",
+                                enabled = undoStack.isNotEmpty(),
+                                onClick = {
+                                    if (undoStack.isNotEmpty()) {
+                                        val prev = undoStack.removeAt(undoStack.lastIndex)
+                                        redoStack.add(textFieldValue)
+                                        textFieldValue = prev
+                                    }
+                                }
+                            )
+
+                            // 6. Redo
+                            IconToolbarButton(
+                                icon = Icons.AutoMirrored.Filled.Redo,
+                                contentDescription = "重做",
+                                enabled = redoStack.isNotEmpty(),
+                                onClick = {
+                                    if (redoStack.isNotEmpty()) {
+                                        val next = redoStack.removeAt(redoStack.lastIndex)
+                                        undoStack.add(textFieldValue)
+                                        textFieldValue = next
+                                    }
+                                }
+                            )
+                        }
                     }
-                },
-                onRedoClick = {
-                    if (redoStack.isNotEmpty()) {
-                        val next = redoStack.removeAt(redoStack.lastIndex)
-                        undoStack.add(textFieldValue)
-                        textFieldValue = next
+                }
+            }
+
+            HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
+
+            // Flomo Style Primary Row Toolbar
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .background(Color.White)
+                    .padding(horizontal = 14.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                // Left formatting tools: #, 🖼️, B, ≡, ...
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Tag (#)
+                    TextToolbarButton(
+                        text = "#",
+                        fontSize = 19.sp,
+                        fontWeight = FontWeight.Bold,
+                        contentDescription = "插入标签",
+                        onClick = {
+                            val currentText = textFieldValue.text
+                            val cursorPos = textFieldValue.selection.start
+                            val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
+                            updateTextWithHistory(
+                                TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
+                            )
+                        }
+                    )
+
+                    // Gallery Image (🖼️)
+                    IconToolbarButton(
+                        icon = Icons.Outlined.Image,
+                        contentDescription = "选择图片",
+                        onClick = {
+                            imagePickerLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        }
+                    )
+
+                    // Bold (B)
+                    TextToolbarButton(
+                        text = "B",
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        contentDescription = "加粗",
+                        isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
+                        onClick = { applyFormatting(RichTextUtils.FormatType.BOLD) }
+                    )
+
+                    // Unordered List (≡)
+                    IconToolbarButton(
+                        icon = Icons.Outlined.FormatListBulleted,
+                        contentDescription = "无序列表",
+                        onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) }
+                    )
+
+                    // More toggle (...)
+                    IconToolbarButton(
+                        icon = Icons.Default.MoreHoriz,
+                        contentDescription = "更多格式",
+                        isActive = isSecondaryCapsuleOpen,
+                        onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen }
+                    )
+                }
+
+                // Right action tools: Mic (🎙️) & Send (🚀)
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Mic button (Green circular outline)
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFF0FDF4))
+                            .clickable { /* Mic feature placeholder */ },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.Mic,
+                            contentDescription = "语音输入",
+                            tint = Color(0xFF00C853),
+                            modifier = Modifier.size(20.dp)
+                        )
                     }
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+
+                    // Send arrow button
+                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
+                    IconButton(
+                        onClick = {
+                            if (hasContent) {
+                                onSave(textFieldValue, selectedImageUris)
+                                textFieldValue = TextFieldValue("")
+                                selectedImageUris = emptyList()
+                                viewModel.clearActiveFormats()
+                                viewModel.clearDraft()
+                                onDismiss()
+                            }
+                        },
+                        enabled = hasContent,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .background(
+                                color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED),
+                                shape = CircleShape
+                            )
+                    ) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.Send,
+                            contentDescription = "发送保存",
+                            tint = if (hasContent) Color.White else Color(0xFFAAAAAA),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 
@@ -418,151 +561,13 @@ fun NoteEditorBottomSheet(
     }
 }
 
-/**
- * KeyboardAccessoryToolbar - Persistent formatting toolbar docked directly above the soft keyboard.
- *
- * Stage 15: Flomo-Style Collapsible Toolbar ("..." Expand/Collapse)
- * - Primary row (bottom): Core actions (#, @, 📷, B, ☑, ...)
- * - Secondary row (top, animated): Extended formatting (H, U, ↩, ↪)
- * - Retains soft keyboard focus and cursor state during expand/collapse transitions
- *
- * @param activeFormats Currently active format locks from ViewModel
- * @param canUndo Whether undo action is available
- * @param canRedo Whether redo action is available
- */
 @Composable
-fun KeyboardAccessoryToolbar(
-    activeFormats: Set<RichTextUtils.FormatType> = emptySet(),
-    canUndo: Boolean = false,
-    canRedo: Boolean = false,
-    onTagClick: () -> Unit,
-    onMentionClick: () -> Unit,
-    onImageClick: () -> Unit,
-    onBoldClick: () -> Unit,
-    onHighlightClick: () -> Unit,
-    onUnderlineClick: () -> Unit,
-    onCheckboxClick: () -> Unit,
-    onUndoClick: () -> Unit,
-    onRedoClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var isExpanded by remember { mutableStateOf(false) }
-
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .background(Color(0xFFFAFAFA))
-    ) {
-        // Secondary Row (Extended Tools: H, U, Undo, Redo)
-        AnimatedVisibility(
-            visible = isExpanded,
-            enter = fadeIn() + expandVertically(),
-            exit = fadeOut() + shrinkVertically()
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(40.dp)
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 8.dp),
-                horizontalArrangement = Arrangement.spacedBy(4.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ToolbarIconButton(
-                    text = "H",
-                    fontWeight = FontWeight.Bold,
-                    contentDescription = "高亮",
-                    isActive = activeFormats.contains(RichTextUtils.FormatType.HIGHLIGHT),
-                    onClick = onHighlightClick
-                )
-
-                ToolbarIconButton(
-                    text = "U",
-                    fontWeight = FontWeight.Medium,
-                    contentDescription = "下划线",
-                    isActive = activeFormats.contains(RichTextUtils.FormatType.UNDERLINE),
-                    onClick = onUnderlineClick
-                )
-
-                ToolbarIconButton(
-                    text = "↩",
-                    contentDescription = "撤销",
-                    enabled = canUndo,
-                    onClick = onUndoClick
-                )
-
-                ToolbarIconButton(
-                    text = "↪",
-                    contentDescription = "重做",
-                    enabled = canRedo,
-                    onClick = onRedoClick
-                )
-            }
-        }
-
-        if (isExpanded) {
-            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 0.5.dp)
-        }
-
-        // Primary Row (Core Tools: #, @, 📷, B, ☑, ...)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .horizontalScroll(rememberScrollState())
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            ToolbarIconButton(
-                text = "#",
-                contentDescription = "插入标签",
-                onClick = onTagClick
-            )
-
-            ToolbarIconButton(
-                text = "@",
-                contentDescription = "提及笔记",
-                onClick = onMentionClick
-            )
-
-            ToolbarIconButton(
-                text = "📷",
-                contentDescription = "添加图片",
-                onClick = onImageClick
-            )
-
-            ToolbarIconButton(
-                text = "B",
-                fontWeight = FontWeight.Bold,
-                contentDescription = "加粗",
-                isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
-                onClick = onBoldClick
-            )
-
-            ToolbarIconButton(
-                text = "☑",
-                contentDescription = "待办事项框",
-                onClick = onCheckboxClick
-            )
-
-            // More / Collapse toggle button ("...") right next to todo icon
-            ToolbarIconButton(
-                text = "...",
-                contentDescription = if (isExpanded) "收起更多格式" else "展开更多格式",
-                isActive = isExpanded,
-                onClick = { isExpanded = !isExpanded }
-            )
-        }
-    }
-}
-
-@Composable
-private fun ToolbarIconButton(
+private fun TextToolbarButton(
     text: String,
     contentDescription: String,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
+    fontSize: androidx.compose.ui.unit.TextUnit = 16.sp,
     fontWeight: FontWeight = FontWeight.Normal,
     isActive: Boolean = false,
     enabled: Boolean = true
@@ -571,21 +576,49 @@ private fun ToolbarIconButton(
         modifier = modifier
             .size(36.dp)
             .clip(RoundedCornerShape(8.dp))
-            .background(
-                if (isActive) Color(0xFFE8F0FE) else Color.Transparent
-            )
+            .background(if (isActive) Color(0xFFE8F5E9) else Color.Transparent)
             .clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center
     ) {
         Text(
             text = text,
-            fontSize = 16.sp,
+            fontSize = fontSize,
             fontWeight = fontWeight,
             color = when {
                 !enabled -> Color(0xFFCCCCCC)
-                isActive -> Color(0xFF1A73E8)
-                else -> Color(0xFF555555)
+                isActive -> Color(0xFF00C853)
+                else -> Color(0xFF444444)
             }
+        )
+    }
+}
+
+@Composable
+private fun IconToolbarButton(
+    icon: ImageVector,
+    contentDescription: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    isActive: Boolean = false,
+    enabled: Boolean = true
+) {
+    Box(
+        modifier = modifier
+            .size(36.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(if (isActive) Color(0xFFE8F5E9) else Color.Transparent)
+            .clickable(enabled = enabled, onClick = onClick),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = icon,
+            contentDescription = contentDescription,
+            tint = when {
+                !enabled -> Color(0xFFCCCCCC)
+                isActive -> Color(0xFF00C853)
+                else -> Color(0xFF444444)
+            },
+            modifier = Modifier.size(20.dp)
         )
     }
 }

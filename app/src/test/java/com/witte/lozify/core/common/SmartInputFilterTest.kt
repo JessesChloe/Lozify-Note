@@ -62,4 +62,32 @@ class SmartInputFilterTest {
         // Cursor should be cleanly repelled to 0 or 2, not stuck at 1
         assertTrue(result.selection.start == 0 || result.selection.start == 2)
     }
+
+    @Test
+    fun testListContinuation_automaticallyInsertsDashOnEnter() {
+        // Current line is "- Buy milk|" (pos: 10)
+        val oldValue = TextFieldValue(text = "- Buy milk", selection = TextRange(10))
+        // User presses Enter -> standard input inserts "\n"
+        val newValue = TextFieldValue(text = "- Buy milk\n", selection = TextRange(11))
+
+        val result = SmartInputFilter.applySmartInputFilter(oldValue, newValue)
+
+        // SmartInputFilter should continue list with "\n- "
+        assertEquals("- Buy milk\n- ", result.text)
+        assertEquals(13, result.selection.start)
+    }
+
+    @Test
+    fun testListContinuation_emptyItemDeletesDashAndExitsListMode() {
+        // Current line is just "- |" (empty list item, pos: 2)
+        val oldValue = TextFieldValue(text = "- ", selection = TextRange(2))
+        // User presses Enter -> standard input inserts "\n"
+        val newValue = TextFieldValue(text = "- \n", selection = TextRange(3))
+
+        val result = SmartInputFilter.applySmartInputFilter(oldValue, newValue)
+
+        // SmartInputFilter should delete "- " and output "\n" to exit list mode
+        assertEquals("\n", result.text)
+        assertEquals(1, result.selection.start)
+    }
 }

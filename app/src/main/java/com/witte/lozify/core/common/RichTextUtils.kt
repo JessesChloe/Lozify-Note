@@ -72,7 +72,10 @@ object RichTextUtils {
     ): ParsedRichText {
         var processedContent = content
 
-        // Step 1: Replace checkbox markers with Unicode symbols
+        // Step 1: Replace list markers (excluding checkboxes) and checkbox markers with symbols
+        val listPattern = Regex("""(?m)^\s*-\s+(?!\[[ x]\])""")
+        processedContent = processedContent.replace(listPattern, "• ")
+
         val checkboxPattern = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
         processedContent = processedContent.replace(checkboxPattern) { matchResult ->
             when (matchResult.groupValues[1]) {
@@ -350,8 +353,18 @@ object RichTextUtils {
             FormatType.UNDERLINE -> "__" to "__"
             FormatType.HIGHLIGHT -> "==" to "=="
             FormatType.MENTION -> "@[" to "](note:0)"  // Not used in toolbar, placeholder only
+            FormatType.LIST_UNORDERED -> "- " to ""
             FormatType.CHECKBOX_UNCHECKED -> "- [ ] " to ""
             FormatType.CHECKBOX_CHECKED -> "- [x] " to ""
+        }
+
+        if (formatType == FormatType.LIST_UNORDERED) {
+            val lineStart = content.lastIndexOf('\n', (safeStart - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
+            val linePrefix = content.substring(lineStart, safeStart)
+            if (!linePrefix.trimStart().startsWith("- ")) {
+                return content.substring(0, lineStart) + "- " + content.substring(lineStart)
+            }
+            return content
         }
 
         return if (safeStart == safeEnd) {
@@ -436,6 +449,7 @@ object RichTextUtils {
         UNDERLINE,
         HIGHLIGHT,
         MENTION,
+        LIST_UNORDERED,
         CHECKBOX_UNCHECKED,
         CHECKBOX_CHECKED
     }

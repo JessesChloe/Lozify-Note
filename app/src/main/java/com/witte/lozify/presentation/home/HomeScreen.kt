@@ -91,6 +91,7 @@ fun HomeScreen(
     onNavigateToTagEdit: (Long) -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
+    onNavigateToSettings: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -180,6 +181,7 @@ fun HomeScreen(
                 onNavigateToTrash = onNavigateToTrash,
                 onNavigateToHelp = onNavigateToHelp,
                 onNavigateToBackup = onNavigateToBackup,
+                onNavigateToSettings = onNavigateToSettings,
                 onEditTag = { tag ->
                     onNavigateToTagEdit(tag.id)
                 },
@@ -315,6 +317,7 @@ fun HomeScreen(
                                 incomingRelationsCount = note.incomingRelations.size,
                                 isHighlighted = note.id == highlightedNoteId,
                                 filesDir = androidx.compose.ui.platform.LocalContext.current.filesDir,
+                                maxCollapsedLines = uiState.maxCollapseLines,
                                 onTogglePinClick = {
                                     homeViewModel.togglePinStatus(note.id, note.isPinned)
                                 },

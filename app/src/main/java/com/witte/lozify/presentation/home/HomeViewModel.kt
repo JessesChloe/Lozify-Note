@@ -2,6 +2,7 @@ package com.witte.lozify.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.model.UserStats
@@ -29,11 +30,13 @@ import javax.inject.Inject
  *
  * Stage 4: Added tag filtering functionality.
  * Stage 14: Added user achievement and statistics tracking.
+ * Stage 17: Connected UserPreferencesManager for dynamic card collapse lines.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
 
     /**
@@ -41,6 +44,7 @@ class HomeViewModel @Inject constructor(
      *
      * Stage 5: Added searchQuery for real-time search.
      * Stage 14: Added userStats and heatmapData for drawer dashboard.
+     * Stage 17: Added maxCollapseLines.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
@@ -50,7 +54,8 @@ class HomeViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val searchQuery: String = "",
         val userStats: UserStats = UserStats(),
-        val heatmapData: Map<LocalDate, Int> = emptyMap()
+        val heatmapData: Map<LocalDate, Int> = emptyMap(),
+        val maxCollapseLines: Int = 5
     )
 
     /**
@@ -77,8 +82,9 @@ class HomeViewModel @Inject constructor(
         noteRepository.getAllNotes(),
         tagRepository.getAllTags(),
         _selectedTagId,
-        _searchQuery
-    ) { allNotes, allTags, selectedTagId, searchQuery ->
+        _searchQuery,
+        preferencesManager.maxCollapseLines
+    ) { allNotes, allTags, selectedTagId, searchQuery, maxCollapseLines ->
         // Stage 4: Filter by tag
         var filteredNotes = if (selectedTagId == null) {
             allNotes
@@ -137,7 +143,8 @@ class HomeViewModel @Inject constructor(
             isLoading = false,
             searchQuery = searchQuery,
             userStats = userStats,
-            heatmapData = heatmapData
+            heatmapData = heatmapData,
+            maxCollapseLines = maxCollapseLines
         )
     }.stateIn(
         scope = viewModelScope,

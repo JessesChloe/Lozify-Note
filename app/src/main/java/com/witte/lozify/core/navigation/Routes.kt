@@ -10,6 +10,7 @@ object Routes {
     const val TRASH = "trash"
     const val HELP = "help"
     const val BACKUP = "backup"
+    const val SETTINGS = "settings"
     const val TAG_EDIT = "tag_edit/{tagId}"
 
     fun tagEdit(tagId: Long): String = "tag_edit/$tagId"

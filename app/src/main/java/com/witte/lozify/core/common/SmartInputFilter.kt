@@ -96,20 +96,39 @@ object SmartInputFilter {
             if (oldCursor >= 0 && oldCursor + addedCount <= newValue.text.length) {
                 val insertedText = newValue.text.substring(oldCursor, oldCursor + addedCount)
                 if (insertedText.contains('\n')) {
-                    for (marker in MARKER_PAIRS) {
-                        // Check if right after oldCursor in oldValue there is a closing marker (e.g. "**", "==", "__")
-                        if (oldCursor + 2 <= oldValue.text.length) {
-                            val nextTwo = oldValue.text.substring(oldCursor, oldCursor + 2)
-                            if (nextTwo == marker) {
-                                val prefix = oldValue.text.substring(0, oldCursor)
-                                val suffix = oldValue.text.substring(oldCursor + 2)
-                                val newText = prefix + marker + insertedText + suffix
-                                val newCursor = (oldCursor + 2 + addedCount).coerceIn(0, newText.length)
-                                tempValue = TextFieldValue(
-                                    text = newText,
-                                    selection = TextRange(newCursor)
-                                )
-                                break
+                    // Check list continuation (- item)
+                    val lineStart = oldValue.text.lastIndexOf('\n', (oldCursor - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
+                    val currentLine = oldValue.text.substring(lineStart, oldCursor)
+
+                    if (currentLine.matches(Regex("""^\s*-\s*$"""))) {
+                        // Case A: User pressed Enter on empty list item "- " -> exit list mode (delete the "- ")
+                        val prefix = oldValue.text.substring(0, lineStart)
+                        val suffix = oldValue.text.substring(oldCursor)
+                        val newText = prefix + "\n" + suffix
+                        tempValue = TextFieldValue(text = newText, selection = TextRange((prefix.length + 1).coerceIn(0, newText.length)))
+                    } else if (currentLine.matches(Regex("""^\s*-\s+(?!\[[ x]\])(.+)$"""))) {
+                        // Case B: User pressed Enter on non-empty list item -> automatically continue with "- "
+                        val prefix = oldValue.text.substring(0, oldCursor)
+                        val suffix = oldValue.text.substring(oldCursor)
+                        val newText = prefix + "\n- " + suffix
+                        val newCursor = (oldCursor + 3).coerceIn(0, newText.length)
+                        tempValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
+                    } else {
+                        for (marker in MARKER_PAIRS) {
+                            // Check if right after oldCursor in oldValue there is a closing marker (e.g. "**", "==", "__")
+                            if (oldCursor + 2 <= oldValue.text.length) {
+                                val nextTwo = oldValue.text.substring(oldCursor, oldCursor + 2)
+                                if (nextTwo == marker) {
+                                    val prefix = oldValue.text.substring(0, oldCursor)
+                                    val suffix = oldValue.text.substring(oldCursor + 2)
+                                    val newText = prefix + marker + insertedText + suffix
+                                    val newCursor = (oldCursor + 2 + addedCount).coerceIn(0, newText.length)
+                                    tempValue = TextFieldValue(
+                                        text = newText,
+                                        selection = TextRange(newCursor)
+                                    )
+                                    break
+                                }
                             }
                         }
                     }

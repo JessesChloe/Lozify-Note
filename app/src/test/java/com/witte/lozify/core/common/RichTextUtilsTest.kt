@@ -80,4 +80,13 @@ class RichTextUtilsTest {
         assertTrue(parsed.annotatedString.text.contains("☐ 写代码"))
         assertTrue(parsed.annotatedString.text.contains("☑ 读书"))
     }
+
+    @Test
+    fun testParseRichText_convertsListPrefixToBullets() {
+        val input = "今日备忘:\n- 第一项任务\n- 第二项任务"
+        val parsed = RichTextUtils.parseRichText(input)
+
+        assertTrue(parsed.annotatedString.text.contains("• 第一项任务"))
+        assertTrue(parsed.annotatedString.text.contains("• 第二项任务"))
+    }
 }

@@ -116,13 +116,13 @@ fun NoteCard(
     onRelationsClick: ((List<NoteRelation>, String) -> Unit)? = null,
     onImageClick: ((index: Int, images: List<File>) -> Unit)? = null,
     searchQuery: String = "",
+    maxCollapsedLines: Int = 5,
     hideOperations: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
     var showExpandButton by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
-    val maxCollapsedLines = 5
 
     val context = LocalContext.current
     val clipboardManager = LocalClipboardManager.current
@@ -461,16 +461,17 @@ fun NoteCard(
                     )
                 }
 
-                // Show "展开" link only when content has overflow and not expanded
-                if (!effectiveExpanded && showExpandButton) {
+                // Show "展开全文 ▼" or "收起 ▲" when content has overflow
+                if (showExpandButton && !isSearchMatched) {
                     Text(
-                        text = "展开",
-                        fontSize = 14.sp,
+                        text = if (isExpanded) "收起 ▲" else "展开全文 ▼",
+                        fontSize = 13.sp,
+                        fontWeight = FontWeight.Medium,
                         color = Color(0xFF4C88FF),
                         textAlign = TextAlign.Start,
                         modifier = Modifier
-                            .padding(top = 4.dp)
-                            .clickable { isExpanded = true }
+                            .padding(top = 6.dp)
+                            .clickable { isExpanded = !isExpanded }
                     )
                 }
             }

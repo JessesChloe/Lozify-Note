@@ -14,6 +14,7 @@ import com.witte.lozify.presentation.backup.BackupRestoreScreen
 import com.witte.lozify.presentation.help.HelpCenterScreen
 import com.witte.lozify.presentation.home.HomeScreen
 import com.witte.lozify.presentation.home.HomeViewModel
+import com.witte.lozify.presentation.settings.SettingsScreen
 import com.witte.lozify.presentation.tags.TagEditScreen
 
 /**
@@ -22,6 +23,7 @@ import com.witte.lozify.presentation.tags.TagEditScreen
  *
  * Stage 12: Renamed ARCHIVE to TRASH, added TAG_EDIT route.
  * Stage 16: Added HELP and BACKUP routes.
+ * Stage 17: Added SETTINGS route.
  */
 @Composable
 fun LozifyNavGraph(
@@ -45,6 +47,9 @@ fun LozifyNavGraph(
                 },
                 onNavigateToBackup = {
                     navController.navigate(Routes.BACKUP)
+                },
+                onNavigateToSettings = {
+                    navController.navigate(Routes.SETTINGS)
                 }
             )
         }
@@ -69,6 +74,20 @@ fun LozifyNavGraph(
             BackupRestoreScreen(
                 onNavigateBack = {
                     navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.SETTINGS) {
+            SettingsScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                },
+                onNavigateToBackup = {
+                    navController.navigate(Routes.BACKUP)
+                },
+                onNavigateToHelp = {
+                    navController.navigate(Routes.HELP)
                 }
             )
         }
