@@ -8,7 +8,8 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,6 +22,7 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.coerceAtLeast
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -28,23 +30,22 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 
 /**
- * ContributionHeatmap - 1:1 Flomo-styled full-width activity punchcard grid.
+ * ContributionHeatmap - 1:1 Flomo-styled activity punchcard grid.
  *
- * Stage 22 Polish:
- * - Automatically fills 100% of the drawer width using BoxWithConstraints
- * - 7 rows (Monday to Sunday)
- * - 18 responsive columns (~4.5 months)
- * - Dynamic block sizing to span the complete drawer width with 3dp spacing
+ * Stage 22 Polish 2:
+ * - Exact Flomo 15-week column grid (7 rows x 15 columns)
+ * - Comfortably sized rounded blocks (~15dp) with 3.5dp spacing and 3dp corner radius
+ * - BoxWithConstraints for full responsive width
+ * - Clearly rendered and properly positioned month labels ("7月", "8月") without clipping
  * - Soft neutral empty cells (#F2F3F5)
  * - Gentle mint green active cells (#A5D6A7)
  * - Today cell marked with emerald stroke outline (#00C853)
- * - Month labels ("7月", "8月") aligned at the bottom
  */
 @Composable
 fun ContributionHeatmap(
     dailyCounts: Map<LocalDate, Int>,
     modifier: Modifier = Modifier,
-    numWeeks: Int = 18,
+    numWeeks: Int = 15,
     onClick: (() -> Unit)? = null
 ) {
     val density = LocalDensity.current
@@ -65,24 +66,36 @@ fun ContributionHeatmap(
         }
     }
 
-    // Start on Monday of the first week
+    // Start date for the 15-week grid
     val startDate = remember(today, dayOfWeekOffset, numWeeks) {
         today.minusWeeks((numWeeks - 1).toLong()).minusDays(dayOfWeekOffset.toLong())
     }
 
-    // Identify month label positions
-    val monthLabels = remember(startDate, numWeeks) {
-        val list = mutableListOf<Pair<Int, String>>() // (columnIndex, "X月")
+    // Identify month label positions with non-overlapping spacing
+    val monthTransitions = remember(startDate, numWeeks) {
+        val rawList = mutableListOf<Pair<Int, String>>()
         var lastMonth = -1
         for (col in 0 until numWeeks) {
             val colMonday = startDate.plusDays((col * 7).toLong())
             val month = colMonday.monthValue
-            if (month != lastMonth && col < numWeeks - 1) {
-                list.add(Pair(col, "${month}月"))
+            if (month != lastMonth) {
+                rawList.add(Pair(col, "${month}月"))
                 lastMonth = month
             }
         }
-        list
+        val result = mutableListOf<Pair<Int, String>>()
+        for (item in rawList) {
+            if (result.isEmpty()) {
+                if (item.first > 0 || numWeeks > 4) {
+                    result.add(item)
+                }
+            } else {
+                if (item.first - result.last().first >= 3) {
+                    result.add(item)
+                }
+            }
+        }
+        result
     }
 
     BoxWithConstraints(
@@ -92,10 +105,10 @@ fun ContributionHeatmap(
             .then(if (onClick != null) Modifier.clickable { onClick() } else Modifier)
     ) {
         val availableWidth = maxWidth
-        val spacing = 3.dp
+        val spacing = 3.5.dp
         val totalSpacing = spacing * (numWeeks - 1)
-        val blockSize = ((availableWidth - totalSpacing) / numWeeks).coerceAtLeast(8.dp)
-        val cornerRadius = (blockSize * 0.22f).coerceAtLeast(2.dp)
+        val blockSize = ((availableWidth - totalSpacing) / numWeeks).coerceAtLeast(10.dp)
+        val cornerRadius = 3.dp
 
         val blockSizePx = with(density) { blockSize.toPx() }
         val spacingPx = with(density) { spacing.toPx() }
@@ -149,21 +162,27 @@ fun ContributionHeatmap(
                 }
             }
 
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(6.dp))
 
-            // Month Labels Row
+            // Month Labels Row (precisely aligned without clipping)
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(16.dp)
+                    .height(18.dp)
             ) {
-                monthLabels.forEach { (colIndex, label) ->
-                    val leftOffset = (blockSize + spacing) * colIndex
+                monthTransitions.forEach { (colIndex, label) ->
+                    val colCenterX = (blockSize + spacing) * colIndex + (blockSize / 2)
+                    val labelWidth = 32.dp
+                    val labelOffset = (colCenterX - (labelWidth / 2))
+                        .coerceIn(0.dp, (availableWidth - labelWidth).coerceAtLeast(0.dp))
                     Text(
                         text = label,
-                        fontSize = 10.sp,
-                        color = Color(0xFFB0B0B0),
-                        modifier = Modifier.padding(start = leftOffset)
+                        fontSize = 11.sp,
+                        color = Color(0xFF9E9E9E),
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier
+                            .offset(x = labelOffset)
+                            .width(labelWidth)
                     )
                 }
             }
