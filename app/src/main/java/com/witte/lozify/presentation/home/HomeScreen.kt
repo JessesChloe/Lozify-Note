@@ -142,6 +142,18 @@ fun HomeScreen(
     var editingNoteContent by remember { mutableStateOf<String?>(null) }
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
+    // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
+    var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
+
+    val topNoteId = uiState.notes.firstOrNull()?.id
+    val notesCount = uiState.notes.size
+    LaunchedEffect(topNoteId, notesCount) {
+        if (shouldScrollToTopOnNewNote) {
+            shouldScrollToTopOnNewNote = false
+            listState.scrollToItem(0, 0)
+        }
+    }
+
     // Listen for editor events
     LaunchedEffect(Unit) {
         editorViewModel.events.collect { event ->
@@ -153,10 +165,11 @@ fun HomeScreen(
                         "笔记已保存"
                     }
                     snackbarHostState.showSnackbar(message)
-                    // Stage 8: Instant scroll to top after saving new note without lag
+                    // Mark flag to scroll to index 0 when new note arrives in UI
                     if (editingNoteId == null) {
+                        shouldScrollToTopOnNewNote = true
                         scope.launch {
-                            listState.scrollToItem(0)
+                            listState.scrollToItem(0, 0)
                         }
                     }
                 }
