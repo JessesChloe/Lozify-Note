@@ -203,10 +203,6 @@ fun NoteCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(if (isHighlighted) Color(0xFFF0F7FF) else Color.White)
-            .border(
-                androidx.compose.foundation.BorderStroke(0.8.dp, Color(0xFFEBEBEB)),
-                RoundedCornerShape(12.dp)
-            )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
