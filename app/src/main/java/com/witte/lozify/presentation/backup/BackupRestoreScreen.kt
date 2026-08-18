@@ -312,8 +312,8 @@ private fun ExportCard(
             // Option 1: Full JSON Backup
             ActionOptionRow(
                 icon = Icons.Default.Backup,
-                title = "全量 JSON 备份 (.json)",
-                description = "推荐方式。包含全部笔记正文、创建时间、置顶状态、分类标签与 @双向链接 索引，可完整恢复。",
+                title = "全量图文 JSON 备份 (.json)",
+                description = "完整备份。包含全部笔记正文、图片附件（Base64 编码）、创建时间、置顶状态、分类标签与 @双向链接 索引，可完整恢复。",
                 buttonText = "导出 JSON",
                 onClick = onExportJson
             )
@@ -323,8 +323,8 @@ private fun ExportCard(
             // Option 2: Markdown ZIP
             ActionOptionRow(
                 icon = Icons.Default.Archive,
-                title = "Markdown 知识库压缩包 (.zip)",
-                description = "将每条笔记单独打包为带 YAML 标头的 .md 文件，可在 Obsidian / Logseq / Notion 等主流软件中无缝查阅。",
+                title = "Markdown 图文知识包 (.zip)",
+                description = "将每条笔记单独打包为带 YAML 标头的 .md 文件，并同步打包关联的本地图片至 images/ 目录，支持 Obsidian / Logseq / Notion 直接图文浏览。",
                 buttonText = "导出 ZIP",
                 onClick = onExportMarkdown
             )
@@ -373,7 +373,7 @@ private fun ImportCard(
             ActionOptionRow(
                 icon = Icons.Default.Download,
                 title = "从 JSON 备份文件恢复",
-                description = "选取此前导出的 Lozify 备份文件，数据将增量合并至本地知识库中，自动重构标签与引用。",
+                description = "选取此前导出的 Lozify 备份文件，数据与图片将增量合并还原至本地沙盒中，自动重构标签与引用。",
                 buttonText = "选择文件恢复",
                 buttonColor = Color(0xFF00C853),
                 onClick = onImportJson

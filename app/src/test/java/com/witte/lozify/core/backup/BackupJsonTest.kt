@@ -39,6 +39,13 @@ class BackupJsonTest {
                     put("createdAt", 1787030000000L)
                     put("updatedAt", 1787030000000L)
                     put("tags", JSONArray().apply { put("工作") })
+                    put("attachments", JSONArray().apply {
+                        put(JSONObject().apply {
+                            put("displayOrder", 0)
+                            put("mimeType", "image/jpeg")
+                            put("base64Data", "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==")
+                        })
+                    })
                 })
             }
             put("notes", notesArray)
@@ -55,6 +62,8 @@ class BackupJsonTest {
         val firstNote = parsed.getJSONArray("notes").getJSONObject(0)
         assertEquals("今天完成了重要项目交付 #工作", firstNote.getString("content"))
         assertEquals("工作", firstNote.getJSONArray("tags").getString(0))
+        assertTrue(firstNote.has("attachments"))
+        assertEquals(1, firstNote.getJSONArray("attachments").length())
     }
 
     @Test

@@ -100,6 +100,27 @@ class BackupManager @Inject constructor(
                         outgoingArray.put(relObj)
                     }
                     put("outgoingRelations", outgoingArray)
+
+                    // Stage 16.8: Image Attachments with Base64 encoding
+                    val attachmentsArray = JSONArray()
+                    note.attachments.forEach { att ->
+                        val file = java.io.File(context.filesDir, att.filePath)
+                        if (file.exists()) {
+                            try {
+                                val bytes = file.readBytes()
+                                val base64 = java.util.Base64.getEncoder().encodeToString(bytes)
+                                val attObj = JSONObject().apply {
+                                    put("displayOrder", att.displayOrder)
+                                    put("mimeType", att.mimeType ?: "image/jpeg")
+                                    put("base64Data", base64)
+                                }
+                                attachmentsArray.put(attObj)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+                    }
+                    put("attachments", attachmentsArray)
                 }
                 notesArray.put(noteObj)
             }
@@ -112,16 +133,40 @@ class BackupManager @Inject constructor(
     }
 
     /**
-     * Export active notes into a ZIP archive containing individual .md files with YAML frontmatter.
+     * Export active notes into a ZIP archive containing individual .md files with YAML frontmatter
+     * and packaged images/ directory.
      */
     suspend fun exportMarkdownArchive(outputStream: OutputStream) = withContext(Dispatchers.IO) {
         val allNotes = noteRepository.getAllNotes().first()
         val activeNotes = allNotes.filter { !it.isDeleted && !it.isArchived }
 
         ZipOutputStream(outputStream.buffered()).use { zipOut ->
+            val writtenImagePaths = mutableSetOf<String>()
+
             activeNotes.forEachIndexed { index, note ->
                 val fileName = "note_${index + 1}_${note.id}.md"
                 val tagListStr = if (note.tags.isEmpty()) "[]" else "[${note.tags.joinToString(", ") { it.name }}]"
+
+                val imageRefs = mutableListOf<String>()
+
+                // Package attached image files into images/ inside the ZIP
+                note.attachments.forEach { att ->
+                    val sourceFile = java.io.File(context.filesDir, att.filePath)
+                    if (sourceFile.exists()) {
+                        val ext = sourceFile.extension.ifEmpty { "jpg" }
+                        val zipImagePath = "images/note_${note.id}_img_${att.displayOrder}.$ext"
+                        if (!writtenImagePaths.contains(zipImagePath)) {
+                            writtenImagePaths.add(zipImagePath)
+                            val imageEntry = ZipEntry(zipImagePath)
+                            zipOut.putNextEntry(imageEntry)
+                            sourceFile.inputStream().use { input ->
+                                input.copyTo(zipOut)
+                            }
+                            zipOut.closeEntry()
+                        }
+                        imageRefs.add("![image]($zipImagePath)")
+                    }
+                }
 
                 val markdownContent = buildString {
                     appendLine("---")
@@ -133,6 +178,10 @@ class BackupManager @Inject constructor(
                     appendLine("---")
                     appendLine()
                     appendLine(note.content)
+                    if (imageRefs.isNotEmpty()) {
+                        appendLine()
+                        imageRefs.forEach { appendLine(it) }
+                    }
                 }
 
                 val zipEntry = ZipEntry(fileName)
@@ -144,7 +193,7 @@ class BackupManager @Inject constructor(
     }
 
     /**
-     * Import notes and tags from a JSON backup file and merge into Room database.
+     * Import notes, tags, and images from a JSON backup file and merge into Room database.
      */
     suspend fun importBackupJson(inputStream: InputStream): ImportResult = withContext(Dispatchers.IO) {
         try {
@@ -195,7 +244,12 @@ class BackupManager @Inject constructor(
                 }
             }
 
-            // 2. Process Notes
+            // 2. Process Notes & Attachments
+            val imagesDir = java.io.File(context.filesDir, "images")
+            if (!imagesDir.exists()) {
+                imagesDir.mkdirs()
+            }
+
             for (i in 0 until notesArray.length()) {
                 val noteObj = notesArray.getJSONObject(i)
                 val content = noteObj.getString("content")
@@ -230,6 +284,37 @@ class BackupManager @Inject constructor(
                                     tagId = tagId
                                 )
                             )
+                        }
+                    }
+                }
+
+                // Restore Image Attachments
+                if (noteObj.has("attachments")) {
+                    val attachmentsArray = noteObj.getJSONArray("attachments")
+                    for (a in 0 until attachmentsArray.length()) {
+                        val attObj = attachmentsArray.getJSONObject(a)
+                        if (attObj.has("base64Data")) {
+                            try {
+                                val base64 = attObj.getString("base64Data")
+                                val bytes = java.util.Base64.getDecoder().decode(base64)
+                                val newFileName = "img_${System.currentTimeMillis()}_${java.util.UUID.randomUUID()}.jpg"
+                                val destFile = java.io.File(imagesDir, newFileName)
+                                destFile.writeBytes(bytes)
+
+                                val relativePath = "images/$newFileName"
+                                database.attachmentDao().insertAttachment(
+                                    com.witte.lozify.data.local.entity.AttachmentEntity(
+                                        noteId = newNoteId,
+                                        filePath = relativePath,
+                                        displayOrder = attObj.optInt("displayOrder", a),
+                                        createdAt = Instant.now(),
+                                        mimeType = attObj.optString("mimeType", "image/jpeg"),
+                                        fileSize = bytes.size.toLong()
+                                    )
+                                )
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
                     }
                 }
