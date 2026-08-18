@@ -34,7 +34,11 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
+import com.witte.lozify.presentation.components.ImageLightboxDialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
@@ -73,6 +77,7 @@ fun NoteDetailBottomSheet(
     viewModel: NoteDetailViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var activeLightbox by remember { mutableStateOf<Pair<Int, List<File>>?>(null) }
 
     LaunchedEffect(noteId) {
         viewModel.loadNoteThread(noteId)
@@ -290,6 +295,9 @@ fun NoteDetailBottomSheet(
                                             onRelationsClick = null,
                                             outgoingRelations = emptyList(),
                                             incomingRelations = emptyList(),
+                                            onImageClick = { index, images ->
+                                                activeLightbox = Pair(index, images)
+                                            },
                                             hideOperations = true
                                         )
                                     }
@@ -299,6 +307,15 @@ fun NoteDetailBottomSheet(
                     }
                 }
             }
+        }
+
+        // Stage 16: Fullscreen Image Lightbox
+        activeLightbox?.let { (initialIndex, images) ->
+            ImageLightboxDialog(
+                images = images,
+                initialIndex = initialIndex,
+                onDismiss = { activeLightbox = null }
+            )
         }
     }
 }

@@ -1,6 +1,7 @@
 package com.witte.lozify.presentation.home
 
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -28,21 +29,26 @@ import java.io.File
  * - 4 Images: Special 2x2 grid, fixed 120dp height per image, 8dp corner radius.
  * - 5-9 Images: 3-column grid (up to 9 images), fixed 80dp height, 4dp corner radius.
  *
+ * Stage 16: Added onImageClick callback for fullscreen lightbox preview.
+ *
  * All images feature a subtle 0.5dp border (0xFFEEEEEE) to separate white images from backgrounds.
  *
  * @param attachments List of attachments for the note
  * @param filesDir Application files directory for resolving local image files
+ * @param onImageClick Callback when an image is clicked with index and all resolved files
  * @param modifier Modifier applied to the root container
  */
 @Composable
 fun AttachmentGrid(
     attachments: List<Attachment>,
     filesDir: File?,
+    onImageClick: ((index: Int, images: List<File>) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     if (attachments.isEmpty() || filesDir == null) return
 
     val borderStrokeColor = Color(0xFFEEEEEE)
+    val allImageFiles = attachments.map { File(filesDir, it.filePath) }
 
     when (attachments.size) {
         // 1 Image mode
@@ -59,6 +65,9 @@ fun AttachmentGrid(
                     .fillMaxWidth()
                     .heightIn(min = 120.dp, max = 240.dp)
                     .clip(shape)
+                    .clickable(enabled = onImageClick != null) {
+                        onImageClick?.invoke(0, allImageFiles)
+                    }
                     .border(0.5.dp, borderStrokeColor, shape)
             )
         }
@@ -71,7 +80,7 @@ fun AttachmentGrid(
                 horizontalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = modifier.fillMaxWidth()
             ) {
-                attachments.forEach { attachment ->
+                attachments.forEachIndexed { index, attachment ->
                     val imageFile = File(filesDir, attachment.filePath)
                     AsyncImage(
                         model = imageFile,
@@ -81,6 +90,9 @@ fun AttachmentGrid(
                             .weight(1f)
                             .height(120.dp)
                             .clip(shape)
+                            .clickable(enabled = onImageClick != null) {
+                                onImageClick?.invoke(index, allImageFiles)
+                            }
                             .border(0.5.dp, borderStrokeColor, shape)
                     )
                 }
@@ -95,12 +107,13 @@ fun AttachmentGrid(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = modifier.fillMaxWidth()
             ) {
-                attachments.chunked(2).forEach { rowItems ->
+                attachments.chunked(2).forEachIndexed { rowIndex, rowItems ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        rowItems.forEach { attachment ->
+                        rowItems.forEachIndexed { colIndex, attachment ->
+                            val globalIndex = rowIndex * 2 + colIndex
                             val imageFile = File(filesDir, attachment.filePath)
                             AsyncImage(
                                 model = imageFile,
@@ -110,6 +123,9 @@ fun AttachmentGrid(
                                     .weight(1f)
                                     .height(120.dp)
                                     .clip(shape)
+                                    .clickable(enabled = onImageClick != null) {
+                                        onImageClick?.invoke(globalIndex, allImageFiles)
+                                    }
                                     .border(0.5.dp, borderStrokeColor, shape)
                             )
                         }
@@ -127,12 +143,13 @@ fun AttachmentGrid(
                 verticalArrangement = Arrangement.spacedBy(4.dp),
                 modifier = modifier.fillMaxWidth()
             ) {
-                displayAttachments.chunked(3).forEach { rowItems ->
+                displayAttachments.chunked(3).forEachIndexed { rowIndex, rowItems ->
                     Row(
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        rowItems.forEach { attachment ->
+                        rowItems.forEachIndexed { colIndex, attachment ->
+                            val globalIndex = rowIndex * 3 + colIndex
                             val imageFile = File(filesDir, attachment.filePath)
                             AsyncImage(
                                 model = imageFile,
@@ -142,6 +159,9 @@ fun AttachmentGrid(
                                     .weight(1f)
                                     .height(80.dp)
                                     .clip(shape)
+                                    .clickable(enabled = onImageClick != null) {
+                                        onImageClick?.invoke(globalIndex, allImageFiles)
+                                    }
                                     .border(0.5.dp, borderStrokeColor, shape)
                             )
                         }

@@ -20,7 +20,9 @@ fun TagEntity.toDomainModel(): Tag {
         name = name,
         createdAt = createdAt,
         usageCount = usageCount,
-        icon = icon
+        icon = icon,
+        isPinned = isPinned,
+        pinOrder = pinOrder
     )
 }
 
@@ -33,7 +35,9 @@ fun Tag.toEntity(): TagEntity {
         name = name,
         createdAt = createdAt,
         usageCount = usageCount,
-        icon = icon
+        icon = icon,
+        isPinned = isPinned,
+        pinOrder = pinOrder
     )
 }
 

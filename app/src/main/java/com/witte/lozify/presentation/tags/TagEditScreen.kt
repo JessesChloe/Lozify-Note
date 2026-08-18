@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -40,11 +41,12 @@ import com.witte.lozify.domain.model.Tag
 fun TagEditScreen(
     tag: Tag,
     onNavigateBack: () -> Unit,
-    onSave: (newName: String, newIcon: String?) -> Unit,
+    onSave: (newName: String, newIcon: String?, isPinned: Boolean) -> Unit,
     modifier: Modifier = Modifier
 ) {
     var tagName by remember { mutableStateOf(tag.name) }
     var selectedIcon by remember { mutableStateOf<String?>(tag.icon) } // null = use # symbol
+    var isPinned by remember { mutableStateOf(tag.isPinned) }
 
     Scaffold(
         topBar = {
@@ -68,7 +70,7 @@ fun TagEditScreen(
                 actions = {
                     IconButton(
                         onClick = {
-                            onSave(tagName, selectedIcon)
+                            onSave(tagName, selectedIcon, isPinned)
                             onNavigateBack()
                         },
                         enabled = tagName.isNotBlank()
@@ -94,7 +96,7 @@ fun TagEditScreen(
                 .padding(horizontal = 20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Spacer(modifier = Modifier.height(40.dp))
+            Spacer(modifier = Modifier.height(32.dp))
 
             // Large icon display (# or emoji)
             Text(
@@ -104,7 +106,7 @@ fun TagEditScreen(
                 color = Color(0xFF222222)
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Tag name input field
             TextField(
@@ -130,7 +132,51 @@ fun TagEditScreen(
                 singleLine = true
             )
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Pin to drawer toggle row
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clip(RoundedCornerShape(8.dp))
+                    .background(Color(0xFFF7F7F7))
+                    .clickable { isPinned = !isPinned }
+                    .padding(horizontal = 16.dp, vertical = 10.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.PushPin,
+                        contentDescription = "置顶标签",
+                        tint = if (isPinned) Color(0xFFFF9800) else Color(0xFF999999),
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Text(
+                        text = "置顶标签到侧边栏",
+                        fontSize = 14.sp,
+                        color = Color(0xFF333333),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
+
+                Switch(
+                    checked = isPinned,
+                    onCheckedChange = { isPinned = it },
+                    colors = SwitchDefaults.colors(
+                        checkedThumbColor = Color.White,
+                        checkedTrackColor = Color(0xFF4CAF50),
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color(0xFFE0E0E0),
+                        uncheckedBorderColor = Color.Transparent
+                    )
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
 
             // Emoji picker sections
             Column(

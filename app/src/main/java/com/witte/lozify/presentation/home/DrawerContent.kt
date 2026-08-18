@@ -7,10 +7,17 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Backup
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -25,6 +32,15 @@ import androidx.compose.ui.unit.sp
 import com.witte.lozify.domain.model.Tag
 import com.witte.lozify.domain.model.UserStats
 import java.time.LocalDate
+
+/**
+ * TagSortOrder - Sorting criteria for sidebar tag list.
+ */
+enum class TagSortOrder(val title: String) {
+    USAGE_DESC("使用频次 (最多优先)"),
+    NAME_ASC("名称字母 (A-Z)"),
+    RECENT("最新创建")
+}
 
 /**
  * DrawerContent - Flomo-inspired side navigation drawer.
@@ -56,17 +72,36 @@ import java.time.LocalDate
 @Composable
 fun DrawerContent(
     tags: List<Tag>,
+    pinnedTags: List<Tag> = emptyList(),
     selectedTag: Tag?,
     stats: UserStats = UserStats(),
     dailyCounts: Map<LocalDate, Int> = emptyMap(),
     onTagSelected: (Long?) -> Unit,
     onCloseDrawer: () -> Unit,
     onNavigateToTrash: () -> Unit = {},
+    onNavigateToHelp: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
+    onTogglePinTag: (Long, Boolean) -> Unit = { _, _ -> },
     onEditTag: (Tag) -> Unit = {},
     onRemoveTag: (String) -> Unit = {},
     onDeleteTagAndNotes: (Long) -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var tagSearchQuery by remember { mutableStateOf("") }
+    var isTagSearchVisible by remember { mutableStateOf(false) }
+    var currentSortOrder by remember { mutableStateOf(TagSortOrder.USAGE_DESC) }
+    var showSortMenu by remember { mutableStateOf(false) }
+
+    val filteredAndSortedTags = remember(tags, tagSearchQuery, currentSortOrder) {
+        val trimmed = tagSearchQuery.trim()
+        val filtered = if (trimmed.isEmpty()) tags else tags.filter { it.name.contains(trimmed, ignoreCase = true) }
+        when (currentSortOrder) {
+            TagSortOrder.USAGE_DESC -> filtered.sortedWith(compareByDescending<Tag> { it.usageCount }.thenBy { it.name })
+            TagSortOrder.NAME_ASC -> filtered.sortedBy { it.name.lowercase() }
+            TagSortOrder.RECENT -> filtered.sortedByDescending { it.id }
+        }
+    }
+
     ModalDrawerSheet(
         modifier = modifier,
         drawerContainerColor = Color.White
@@ -148,52 +183,231 @@ fun DrawerContent(
                     Spacer(modifier = Modifier.height(16.dp))
                 }
 
-                // "置顶标签" Section (placeholder for future pinned tags feature)
+                // "置顶标签" Section
                 item {
                     DrawerSectionTitle(title = "置顶标签")
                 }
-                item {
-                    Text(
-                        text = "暂无置顶标签",
-                        fontSize = 13.sp,
-                        color = Color(0xFFCCCCCC),
-                        modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 16.dp)
-                    )
+                if (pinnedTags.isEmpty()) {
+                    item {
+                        Text(
+                            text = "暂无置顶标签",
+                            fontSize = 13.sp,
+                            color = Color(0xFFCCCCCC),
+                            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 16.dp)
+                        )
+                    }
+                } else {
+                    items(
+                        items = pinnedTags,
+                        key = { "pinned_${it.id}" }
+                    ) { tag ->
+                        DrawerTagItem(
+                            tag = tag,
+                            isSelected = selectedTag?.id == tag.id,
+                            onClick = {
+                                onTagSelected(tag.id)
+                                onCloseDrawer()
+                            },
+                            onTogglePin = { isPinned ->
+                                onTogglePinTag(tag.id, isPinned)
+                            },
+                            onEditClick = {
+                                onEditTag(tag)
+                            },
+                            onRemoveTag = {
+                                onRemoveTag(tag.name)
+                            },
+                            onDeleteTagAndNotes = {
+                                onDeleteTagAndNotes(tag.id)
+                            }
+                        )
+                    }
+                    item {
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
                 }
 
-                // "全部标签" Section
+                // "全部标签" Section with Search and Sort Controls
                 item {
-                    DrawerSectionTitle(
-                        title = "全部标签",
-                        showSortIcon = true,
-                        onSortClick = {
-                            // TODO: Implement sort/filter logic in future
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = 8.dp, bottom = 4.dp),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "全部标签",
+                            fontSize = 12.sp,
+                            fontWeight = FontWeight.Normal,
+                            color = Color(0xFFB0B0B0),
+                            letterSpacing = 0.5.sp
+                        )
+
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            // Search toggle button
+                            IconButton(
+                                onClick = {
+                                    isTagSearchVisible = !isTagSearchVisible
+                                    if (!isTagSearchVisible) {
+                                        tagSearchQuery = ""
+                                    }
+                                },
+                                modifier = Modifier.size(24.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "搜索标签",
+                                    tint = if (isTagSearchVisible || tagSearchQuery.isNotEmpty()) Color(0xFF1A73E8) else Color(0xFFCCCCCC),
+                                    modifier = Modifier.size(17.dp)
+                                )
+                            }
+
+                            // Sort menu button
+                            Box {
+                                IconButton(
+                                    onClick = { showSortMenu = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = "排序筛选",
+                                        tint = if (currentSortOrder != TagSortOrder.USAGE_DESC) Color(0xFF1A73E8) else Color(0xFFCCCCCC),
+                                        modifier = Modifier.size(17.dp)
+                                    )
+                                }
+
+                                DropdownMenu(
+                                    expanded = showSortMenu,
+                                    onDismissRequest = { showSortMenu = false }
+                                ) {
+                                    TagSortOrder.values().forEach { order ->
+                                        DropdownMenuItem(
+                                            text = {
+                                                Text(
+                                                    text = order.title,
+                                                    fontSize = 13.sp,
+                                                    color = if (currentSortOrder == order) Color(0xFF1A73E8) else Color(0xFF333333),
+                                                    fontWeight = if (currentSortOrder == order) FontWeight.Bold else FontWeight.Normal
+                                                )
+                                            },
+                                            trailingIcon = {
+                                                if (currentSortOrder == order) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Check,
+                                                        contentDescription = "已选中",
+                                                        tint = Color(0xFF1A73E8),
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            },
+                                            onClick = {
+                                                currentSortOrder = order
+                                                showSortMenu = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
                         }
-                    )
+                    }
                 }
 
-                // Tag List
-                items(
-                    items = tags,
-                    key = { it.id }
-                ) { tag ->
-                    DrawerTagItem(
-                        tag = tag,
-                        isSelected = selectedTag?.id == tag.id,
-                        onClick = {
-                            onTagSelected(tag.id)
-                            onCloseDrawer()
-                        },
-                        onEditClick = {
-                            onEditTag(tag)
-                        },
-                        onRemoveTag = {
-                            onRemoveTag(tag.name)
-                        },
-                        onDeleteTagAndNotes = {
-                            onDeleteTagAndNotes(tag.id)
+                // Tag Search Input Bar (when visible)
+                if (isTagSearchVisible) {
+                    item {
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 4.dp)
+                                .clip(RoundedCornerShape(8.dp))
+                                .background(Color(0xFFF5F6F8))
+                                .padding(horizontal = 8.dp, vertical = 6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Search,
+                                contentDescription = null,
+                                tint = Color(0xFF999999),
+                                modifier = Modifier.size(14.dp)
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            BasicTextField(
+                                value = tagSearchQuery,
+                                onValueChange = { tagSearchQuery = it },
+                                singleLine = true,
+                                textStyle = androidx.compose.ui.text.TextStyle(
+                                    fontSize = 13.sp,
+                                    color = Color(0xFF222222)
+                                ),
+                                decorationBox = { innerTextField ->
+                                    if (tagSearchQuery.isEmpty()) {
+                                        Text(
+                                            text = "过滤标签...",
+                                            fontSize = 13.sp,
+                                            color = Color(0xFF999999)
+                                        )
+                                    }
+                                    innerTextField()
+                                },
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (tagSearchQuery.isNotEmpty()) {
+                                IconButton(
+                                    onClick = { tagSearchQuery = "" },
+                                    modifier = Modifier.size(18.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Close,
+                                        contentDescription = "清空",
+                                        tint = Color(0xFF999999),
+                                        modifier = Modifier.size(13.dp)
+                                    )
+                                }
+                            }
                         }
-                    )
+                    }
+                }
+
+                // Tag List (Filtered and Sorted)
+                if (filteredAndSortedTags.isEmpty()) {
+                    item {
+                        Text(
+                            text = if (tagSearchQuery.isNotBlank()) "未找到相关标签" else "暂无标签",
+                            fontSize = 13.sp,
+                            color = Color(0xFFCCCCCC),
+                            modifier = Modifier.padding(start = 8.dp, top = 8.dp, bottom = 16.dp)
+                        )
+                    }
+                } else {
+                    items(
+                        items = filteredAndSortedTags,
+                        key = { it.id }
+                    ) { tag ->
+                        DrawerTagItem(
+                            tag = tag,
+                            isSelected = selectedTag?.id == tag.id,
+                            onClick = {
+                                onTagSelected(tag.id)
+                                onCloseDrawer()
+                            },
+                            onTogglePin = { isPinned ->
+                                onTogglePinTag(tag.id, isPinned)
+                            },
+                            onEditClick = {
+                                onEditTag(tag)
+                            },
+                            onRemoveTag = {
+                                onRemoveTag(tag.name)
+                            },
+                            onDeleteTagAndNotes = {
+                                onDeleteTagAndNotes(tag.id)
+                            }
+                        )
+                    }
                 }
             }
 
@@ -206,6 +420,16 @@ fun DrawerContent(
                     .padding(horizontal = 20.dp, vertical = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
+                // Backup Entry
+                DrawerSystemEntry(
+                    icon = Icons.Default.Backup,
+                    label = "数据备份与迁移",
+                    onClick = {
+                        onNavigateToBackup()
+                        onCloseDrawer()
+                    }
+                )
+
                 // Trash Entry
                 DrawerSystemEntry(
                     icon = Icons.Default.Delete,
@@ -221,7 +445,8 @@ fun DrawerContent(
                     icon = Icons.Default.Info,
                     label = "帮助中心",
                     onClick = {
-                        // TODO: Navigate to help center
+                        onNavigateToHelp()
+                        onCloseDrawer()
                     }
                 )
             }
@@ -393,6 +618,7 @@ private fun DrawerTagItem(
     tag: Tag,
     isSelected: Boolean,
     onClick: () -> Unit,
+    onTogglePin: (Boolean) -> Unit = {},
     onEditClick: () -> Unit,
     onRemoveTag: () -> Unit,
     onDeleteTagAndNotes: () -> Unit,
@@ -416,7 +642,7 @@ private fun DrawerTagItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Left: # prefix + tag name
+        // Left: # prefix + tag name + optional pin badge
         Row(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -437,6 +663,16 @@ private fun DrawerTagItem(
                 fontWeight = textWeight,
                 color = textColor
             )
+
+            if (tag.isPinned) {
+                Spacer(modifier = Modifier.width(2.dp))
+                Icon(
+                    imageVector = Icons.Default.PushPin,
+                    contentDescription = "已置顶",
+                    tint = Color(0xFFFF9800),
+                    modifier = Modifier.size(12.dp)
+                )
+            }
         }
 
         // Right: ... menu icon
@@ -458,27 +694,39 @@ private fun DrawerTagItem(
                 expanded = menuExpanded,
                 onDismissRequest = { menuExpanded = false }
             ) {
-                // Pin/Unpin (placeholder for future feature)
+                // Pin/Unpin
                 DropdownMenuItem(
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.PushPin,
+                            contentDescription = if (tag.isPinned) "取消置顶" else "设为置顶",
+                            tint = if (tag.isPinned) Color(0xFFFF9800) else Color(0xFF666666),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
                     text = {
                         Text(
-                            text = "设为置顶",
+                            text = if (tag.isPinned) "取消置顶" else "设为置顶",
                             fontSize = 14.sp,
                             color = Color(0xFF333333)
                         )
                     },
                     onClick = {
                         menuExpanded = false
-                        android.widget.Toast.makeText(
-                            context,
-                            "置顶功能即将上线",
-                            android.widget.Toast.LENGTH_SHORT
-                        ).show()
+                        onTogglePin(!tag.isPinned)
                     }
                 )
 
                 // Edit name and icon
                 DropdownMenuItem(
+                    leadingIcon = {
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = "编辑名称和图标",
+                            tint = Color(0xFF666666),
+                            modifier = Modifier.size(18.dp)
+                        )
+                    },
                     text = {
                         Text(
                             text = "编辑名称和图标",

@@ -114,6 +114,8 @@ fun NoteCard(
     onTagClick: ((String) -> Unit)? = null,
     onMentionClick: ((Long) -> Unit)? = null,
     onRelationsClick: ((List<NoteRelation>, String) -> Unit)? = null,
+    onImageClick: ((index: Int, images: List<File>) -> Unit)? = null,
+    searchQuery: String = "",
     hideOperations: Boolean = false,
     modifier: Modifier = Modifier
 ) {
@@ -149,12 +151,13 @@ fun NoteCard(
         }.joinToString("\n")
     }
 
-    // Stage 13: Parse rich text into annotated string, inline tags, and relation mentions
-    val parsedRichText = remember(nonCheckboxContent) {
+    // Stage 13 & 16: Parse rich text into annotated string, inline tags, relation mentions, and search highlights
+    val parsedRichText = remember(nonCheckboxContent, searchQuery) {
         RichTextUtils.parseRichText(
             content = nonCheckboxContent,
             tagColor = Color(0xFF1A73E8),
-            onTagClick = onTagClick
+            onTagClick = onTagClick,
+            searchQuery = searchQuery
         )
     }
 
@@ -435,6 +438,9 @@ fun NoteCard(
                 }
 
                 // Render non-checkbox content with formatting and inline capsule badges
+                val isSearchMatched = searchQuery.isNotBlank() && content.contains(searchQuery, ignoreCase = true)
+                val effectiveExpanded = isExpanded || isSearchMatched
+
                 if (nonCheckboxContent.isNotBlank()) {
                     Text(
                         text = parsedRichText.annotatedString,
@@ -444,10 +450,10 @@ fun NoteCard(
                             color = Color(0xFF333333),
                             lineHeight = 24.sp
                         ),
-                        maxLines = if (isExpanded) Int.MAX_VALUE else maxCollapsedLines,
-                        overflow = if (isExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
+                        maxLines = if (effectiveExpanded) Int.MAX_VALUE else maxCollapsedLines,
+                        overflow = if (effectiveExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
                         onTextLayout = { textLayoutResult: TextLayoutResult ->
-                            if (!isExpanded && textLayoutResult.hasVisualOverflow) {
+                            if (!effectiveExpanded && textLayoutResult.hasVisualOverflow) {
                                 showExpandButton = true
                             }
                         },
@@ -456,7 +462,7 @@ fun NoteCard(
                 }
 
                 // Show "展开" link only when content has overflow and not expanded
-                if (!isExpanded && showExpandButton) {
+                if (!effectiveExpanded && showExpandButton) {
                     Text(
                         text = "展开",
                         fontSize = 14.sp,
@@ -475,6 +481,7 @@ fun NoteCard(
                 AttachmentGrid(
                     attachments = attachments,
                     filesDir = filesDir,
+                    onImageClick = onImageClick,
                     modifier = Modifier.fillMaxWidth()
                 )
             }

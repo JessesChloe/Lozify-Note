@@ -39,7 +39,7 @@ import com.witte.lozify.data.local.entity.TagEntity
         AttachmentEntity::class,
         NoteRelationEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true
 )
 @TypeConverters(Converters::class)
@@ -60,6 +60,17 @@ abstract class LozifyDatabase : RoomDatabase() {
         val MIGRATION_2_3 = object : Migration(2, 3) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 database.execSQL("ALTER TABLE tags ADD COLUMN icon TEXT")
+            }
+        }
+
+        /**
+         * Migration from version 3 to 4: Add is_pinned and pin_order columns to tags table.
+         * Stage 16: Support pinned tags in drawer.
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("ALTER TABLE tags ADD COLUMN is_pinned INTEGER NOT NULL DEFAULT 0")
+                database.execSQL("ALTER TABLE tags ADD COLUMN pin_order INTEGER NOT NULL DEFAULT 0")
             }
         }
     }

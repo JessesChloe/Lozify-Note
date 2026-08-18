@@ -67,7 +67,8 @@ object RichTextUtils {
     fun parseRichText(
         content: String,
         tagColor: Color = Color(0xFF1A73E8),
-        onTagClick: ((String) -> Unit)? = null
+        onTagClick: ((String) -> Unit)? = null,
+        searchQuery: String = ""
     ): ParsedRichText {
         var processedContent = content
 
@@ -202,9 +203,9 @@ object RichTextUtils {
         }
 
         // Apply style to checkbox symbols
-        val finalText = builder.toAnnotatedString()
+        val textWithCheckboxes = builder.toAnnotatedString()
         val checkboxSymbolPattern = Regex("""[☐☑]""")
-        checkboxSymbolPattern.findAll(finalText.text).forEach { match ->
+        checkboxSymbolPattern.findAll(textWithCheckboxes.text).forEach { match ->
             val isChecked = match.value == "☑"
             builder.addStyle(
                 style = SpanStyle(
@@ -214,6 +215,28 @@ object RichTextUtils {
                 start = match.range.first,
                 end = match.range.last + 1
             )
+        }
+
+        // Stage 16: Highlight search query matches with bright yellow background
+        val trimmedQuery = searchQuery.trim()
+        if (trimmedQuery.isNotEmpty()) {
+            val textStr = textWithCheckboxes.text
+            var startIndex = 0
+            while (startIndex < textStr.length) {
+                val matchIndex = textStr.indexOf(trimmedQuery, startIndex, ignoreCase = true)
+                if (matchIndex == -1) break
+                val matchEnd = matchIndex + trimmedQuery.length
+                builder.addStyle(
+                    style = SpanStyle(
+                        background = Color(0xFFFFEB3B), // Bright Material Yellow
+                        color = Color(0xFF1A1A1A),       // High contrast text
+                        fontWeight = FontWeight.Bold
+                    ),
+                    start = matchIndex,
+                    end = matchEnd
+                )
+                startIndex = matchEnd
+            }
         }
 
         return ParsedRichText(
@@ -363,7 +386,7 @@ object RichTextUtils {
             .replace(Regex("""\*\*(?s)(.+?)\*\*"""), "$1")  // Bold (DOTALL mode)
             .replace(Regex("""__(?s)(.+?)__"""), "$1")      // Underline (DOTALL mode)
             .replace(Regex("""==(?s)(.+?)=="""), "$1")      // Highlight (DOTALL mode)
-            .replace(Regex("""^\s*- \[([ x])\] """, RegexOption.MULTILINE), "")  // Checkbox with optional leading spaces
+            .replace(Regex("""- \[([ x])\] """), "")        // Checkboxes
             .trim()  // Remove leading/trailing whitespace
     }
 

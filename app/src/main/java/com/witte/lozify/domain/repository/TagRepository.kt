@@ -99,4 +99,12 @@ interface TagRepository {
      * @param newIcon Optional new emoji icon (null = default #)
      */
     suspend fun renameTagInAllNotes(tagId: Long, oldName: String, newName: String, newIcon: String? = null)
+
+    /**
+     * Stage 16: Toggle pin status of a tag.
+     *
+     * @param tagId Tag ID
+     * @param isPinned New pin status
+     */
+    suspend fun togglePinTag(tagId: Long, isPinned: Boolean)
 }

@@ -32,14 +32,28 @@ interface TagDao {
             tags.name,
             tags.created_at,
             tags.icon,
+            tags.is_pinned,
+            tags.pin_order,
             COUNT(DISTINCT note_tag_cross_ref.note_id) as usage_count
         FROM tags
         LEFT JOIN note_tag_cross_ref ON tags.id = note_tag_cross_ref.tag_id
         LEFT JOIN notes ON note_tag_cross_ref.note_id = notes.id AND notes.is_deleted = 0
         GROUP BY tags.id
-        ORDER BY usage_count DESC, tags.name ASC
+        ORDER BY tags.is_pinned DESC, tags.pin_order ASC, usage_count DESC, tags.name ASC
     """)
     fun getAllTags(): Flow<List<TagEntity>>
+
+    /**
+     * Update pinned status of a tag.
+     */
+    @Query("UPDATE tags SET is_pinned = :isPinned WHERE id = :tagId")
+    suspend fun updatePinStatus(tagId: Long, isPinned: Boolean)
+
+    /**
+     * Update sort order for pinned tag.
+     */
+    @Query("UPDATE tags SET pin_order = :pinOrder WHERE id = :tagId")
+    suspend fun updatePinOrder(tagId: Long, pinOrder: Int)
 
     /**
      * Get a single tag by ID.

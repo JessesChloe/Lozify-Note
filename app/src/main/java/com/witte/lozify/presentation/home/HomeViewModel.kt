@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.temporal.ChronoUnit
@@ -44,6 +45,7 @@ class HomeViewModel @Inject constructor(
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
         val allTags: List<Tag> = emptyList(),
+        val pinnedTags: List<Tag> = emptyList(),
         val selectedTag: Tag? = null,
         val isLoading: Boolean = false,
         val searchQuery: String = "",
@@ -69,6 +71,7 @@ class HomeViewModel @Inject constructor(
      * are always detected even if database cross-ref is missing.
      * Stage 5: Added real-time search filtering.
      * Stage 14: Computes userStats and heatmapData (daily note counts).
+     * Stage 16: Computes pinnedTags for drawer quick access.
      */
     val uiState: StateFlow<HomeUiState> = combine(
         noteRepository.getAllNotes(),
@@ -94,39 +97,42 @@ class HomeViewModel @Inject constructor(
             }
         }
 
-        // Stage 5: Further filter by search query
+        // Stage 5: Filter by search query (case-insensitive)
         if (searchQuery.isNotBlank()) {
             filteredNotes = filteredNotes.filter { note ->
                 note.content.contains(searchQuery, ignoreCase = true)
             }
         }
 
-        // Stage 14: Calculate user statistics and days of usage
-        val zoneId = ZoneId.systemDefault()
-        val earliestNote = allNotes.minOfOrNull { it.createdAt }
-        val daysCount = if (earliestNote != null) {
-            val startDate = earliestNote.atZone(zoneId).toLocalDate()
+        // Stage 14: Calculate user stats
+        val totalNotesCount = allNotes.size
+        val totalTagsCount = allTags.size
+        val daysCount = if (allNotes.isNotEmpty()) {
+            val oldestNoteTime = allNotes.minOfOrNull { it.createdAt } ?: Instant.now()
+            val oldestDate = oldestNoteTime.atZone(ZoneId.systemDefault()).toLocalDate()
             val today = LocalDate.now()
-            val daysBetween = ChronoUnit.DAYS.between(startDate, today) + 1
-            maxOf(1, daysBetween.toInt())
+            (ChronoUnit.DAYS.between(oldestDate, today) + 1).coerceAtLeast(1).toInt()
         } else {
             1
         }
-
         val userStats = UserStats(
-            notesCount = allNotes.size,
-            tagsCount = allTags.size,
+            notesCount = totalNotesCount,
+            tagsCount = totalTagsCount,
             daysCount = daysCount
         )
 
-        // Stage 14: Calculate daily contribution counts for heatmap
+        // Stage 15: Calculate heatmap data (note count per day for last 8 weeks)
         val heatmapData = allNotes
-            .groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
-            .mapValues { it.value.size }
+            .map { it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .groupingBy { it }
+            .eachCount()
+
+        val pinnedTags = allTags.filter { it.isPinned }
 
         HomeUiState(
             notes = filteredNotes,
             allTags = allTags,
+            pinnedTags = pinnedTags,
             selectedTag = allTags.find { it.id == selectedTagId },
             isLoading = false,
             searchQuery = searchQuery,
@@ -298,6 +304,18 @@ class HomeViewModel @Inject constructor(
     fun deleteTagAndMoveNotesToTrash(tagId: Long) {
         viewModelScope.launch {
             tagRepository.deleteTagAndMoveNotesToTrash(tagId)
+        }
+    }
+
+    /**
+     * Stage 16: Toggle pin status of a tag.
+     *
+     * @param tagId Tag ID to toggle
+     * @param isPinned Target pin status
+     */
+    fun togglePinTag(tagId: Long, isPinned: Boolean) {
+        viewModelScope.launch {
+            tagRepository.togglePinTag(tagId, isPinned)
         }
     }
 

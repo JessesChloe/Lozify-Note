@@ -36,7 +36,7 @@ object DatabaseModule {
             // Enable multi-instance invalidation for cross-process scenarios
             .enableMultiInstanceInvalidation()
             // Register migrations
-            .addMigrations(LozifyDatabase.MIGRATION_2_3)
+            .addMigrations(LozifyDatabase.MIGRATION_2_3, LozifyDatabase.MIGRATION_3_4)
             // Stage 6 Fix: Temporary destructive migration for development
             // This prevents crashes from old database schema without attachments table
             // TODO: Remove before production - use explicit Migration classes

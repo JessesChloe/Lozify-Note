@@ -218,4 +218,11 @@ class TagRepositoryImpl @Inject constructor(
         val updatedTag = oldTag.copy(name = newName, icon = newIcon)
         tagDao.updateTag(updatedTag)
     }
+
+    /**
+     * Stage 16: Toggle pin status of a tag.
+     */
+    override suspend fun togglePinTag(tagId: Long, isPinned: Boolean) {
+        tagDao.updatePinStatus(tagId, isPinned)
+    }
 }

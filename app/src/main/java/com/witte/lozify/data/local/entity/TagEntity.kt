@@ -47,5 +47,19 @@ data class TagEntity(
      * Added in database version 3 (Stage 13).
      */
     @ColumnInfo(name = "icon")
-    val icon: String? = null
+    val icon: String? = null,
+
+    /**
+     * Whether this tag is pinned to the top of drawer.
+     * Added in database version 4 (Stage 16).
+     */
+    @ColumnInfo(name = "is_pinned", defaultValue = "0")
+    val isPinned: Boolean = false,
+
+    /**
+     * Custom sort order for pinned tags.
+     * Added in database version 4 (Stage 16).
+     */
+    @ColumnInfo(name = "pin_order", defaultValue = "0")
+    val pinOrder: Int = 0
 )

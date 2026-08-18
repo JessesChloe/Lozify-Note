@@ -1,6 +1,8 @@
 package com.witte.lozify.presentation.home
 
 import com.witte.lozify.presentation.components.LozifyLogo
+import com.witte.lozify.presentation.components.ImageLightboxDialog
+import java.io.File
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -87,6 +89,8 @@ import java.time.Instant
 fun HomeScreen(
     onNavigateToTrash: () -> Unit = {},
     onNavigateToTagEdit: (Long) -> Unit = {},
+    onNavigateToHelp: () -> Unit = {},
+    onNavigateToBackup: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -107,6 +111,9 @@ fun HomeScreen(
 
     // Stage 8 UX Refactor: Note detail dialog state (replaces relations dialog)
     var showNoteDetail by remember { mutableStateOf<Long?>(null) }
+
+    // Stage 16: Fullscreen Image Lightbox State
+    var activeLightbox by remember { mutableStateOf<Pair<Int, List<File>>?>(null) }
 
     // Editor bottom sheet state
     var showEditor by remember { mutableStateOf(false) }
@@ -155,11 +162,15 @@ fun HomeScreen(
         drawerContent = {
             DrawerContent(
                 tags = uiState.allTags,
+                pinnedTags = uiState.pinnedTags,
                 selectedTag = uiState.selectedTag,
                 stats = uiState.userStats,
                 dailyCounts = uiState.heatmapData,
                 onTagSelected = { tagId ->
                     homeViewModel.selectTag(tagId)
+                },
+                onTogglePinTag = { tagId, isPinned ->
+                    homeViewModel.togglePinTag(tagId, isPinned)
                 },
                 onCloseDrawer = {
                     scope.launch {
@@ -167,6 +178,8 @@ fun HomeScreen(
                     }
                 },
                 onNavigateToTrash = onNavigateToTrash,
+                onNavigateToHelp = onNavigateToHelp,
+                onNavigateToBackup = onNavigateToBackup,
                 onEditTag = { tag ->
                     onNavigateToTagEdit(tag.id)
                 },
@@ -339,7 +352,11 @@ fun HomeScreen(
                                     }
                                 },
                                 outgoingRelations = note.outgoingRelations,
-                                incomingRelations = note.incomingRelations
+                                incomingRelations = note.incomingRelations,
+                                onImageClick = { index, images ->
+                                    activeLightbox = Pair(index, images)
+                                },
+                                searchQuery = uiState.searchQuery
                             )
                         }
                     }
@@ -380,6 +397,15 @@ fun HomeScreen(
             onSelectNote = { selectedId ->
                 showNoteDetail = selectedId
             }
+        )
+    }
+
+    // Stage 16: Fullscreen Image Lightbox
+    activeLightbox?.let { (initialIndex, images) ->
+        ImageLightboxDialog(
+            images = images,
+            initialIndex = initialIndex,
+            onDismiss = { activeLightbox = null }
         )
     }
     }

@@ -10,6 +10,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
 import com.witte.lozify.presentation.archive.ArchiveScreen
+import com.witte.lozify.presentation.backup.BackupRestoreScreen
+import com.witte.lozify.presentation.help.HelpCenterScreen
 import com.witte.lozify.presentation.home.HomeScreen
 import com.witte.lozify.presentation.home.HomeViewModel
 import com.witte.lozify.presentation.tags.TagEditScreen
@@ -19,6 +21,7 @@ import com.witte.lozify.presentation.tags.TagEditScreen
  * Defines all navigation routes and their corresponding screens.
  *
  * Stage 12: Renamed ARCHIVE to TRASH, added TAG_EDIT route.
+ * Stage 16: Added HELP and BACKUP routes.
  */
 @Composable
 fun LozifyNavGraph(
@@ -36,12 +39,34 @@ fun LozifyNavGraph(
                 },
                 onNavigateToTagEdit = { tagId ->
                     navController.navigate(Routes.tagEdit(tagId))
+                },
+                onNavigateToHelp = {
+                    navController.navigate(Routes.HELP)
+                },
+                onNavigateToBackup = {
+                    navController.navigate(Routes.BACKUP)
                 }
             )
         }
 
         composable(Routes.TRASH) {
             ArchiveScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.HELP) {
+            HelpCenterScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+
+        composable(Routes.BACKUP) {
+            BackupRestoreScreen(
                 onNavigateBack = {
                     navController.popBackStack()
                 }
@@ -65,8 +90,11 @@ fun LozifyNavGraph(
                     onNavigateBack = {
                         navController.popBackStack()
                     },
-                    onSave = { newName, newIcon ->
+                    onSave = { newName, newIcon, isPinned ->
                         homeViewModel.renameTag(tag.id, tag.name, newName, newIcon)
+                        if (tag.isPinned != isPinned) {
+                            homeViewModel.togglePinTag(tag.id, isPinned)
+                        }
                     }
                 )
             }

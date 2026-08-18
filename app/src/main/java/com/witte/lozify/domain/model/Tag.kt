@@ -22,7 +22,9 @@ data class Tag(
     val name: String,
     val createdAt: Instant,
     val usageCount: Int = 0,
-    val icon: String? = null
+    val icon: String? = null,
+    val isPinned: Boolean = false,
+    val pinOrder: Int = 0
 ) {
     /**
      * Get display name with # prefix (for UI rendering).

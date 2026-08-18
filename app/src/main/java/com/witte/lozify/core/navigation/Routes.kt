@@ -8,6 +8,8 @@ package com.witte.lozify.core.navigation
 object Routes {
     const val HOME = "home"
     const val TRASH = "trash"
+    const val HELP = "help"
+    const val BACKUP = "backup"
     const val TAG_EDIT = "tag_edit/{tagId}"
 
     fun tagEdit(tagId: Long): String = "tag_edit/$tagId"
