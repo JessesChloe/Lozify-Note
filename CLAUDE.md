@@ -187,7 +187,31 @@ chore(gradle): update Compose BOM to 2024.02.00
 **Comments:**
 - Only comment "why", never "what"
 - No TODO comments (use GitHub issues instead)
-- Javadoc for public APIs only
+### 9. 核心架构避坑指南与铁律 (Pitfalls & Lessons Learned)
+
+#### 1. 分布式同步中的“死灰复燃 (Resurrection)”陷阱
+* **踩坑历史**: 同步引擎若仅查询本地活跃笔记（`WHERE is_deleted = 0`），本地软删除的卡片在本地被过滤掉，但拉取云端历史 Payload 时因在本地活跃集找不到，会被误判为“远端新笔记”再次重新插入，导致已删除卡片死灰复燃！
+* **架构铁律**: 
+  - **全状态加载**: 同步合并比对时，**必须加载包含软删除（Tombstones）在内的全量实体** (`getAllNotesWithRelationsIncludingDeleted()`)；
+  - **LWW 决策原则**: 本地软删除笔记带有最新的 `updatedAt` 时间戳，本地删除状态绝对胜出（`localUpdatedAt >= remoteUpdatedAt`），并回写 `isDeleted: true` 覆盖云端旧数据；
+  - **全端同步**: 远端拉取到 `isDeleted: true` 且时间戳较新的笔记时，本地必须同步执行软删除将其送入本地回收站，绝不作为新笔记复活。
+
+#### 2. 字段语义错位与“回收站失联”陷阱
+* **踩坑历史**: 首页卡片删除标记的是 `is_deleted = 1`，而回收站 DAO 查询若误写为 `is_archived = 1 AND is_deleted = 0`，会导致被删除的卡片从首页消失后在回收站也看不见。
+* **架构铁律**:
+  - **回收站查询准则**: 统一使用 `WHERE is_deleted = 1 OR is_archived = 1` 兼容历史归档与软删除；
+  - **恢复操作准则**: 从回收站恢复卡片时，必须同时将 `is_deleted = 0` 与 `is_archived = 0` 清零，并将 `updatedAt` 更新为当前最新时间，以便下次同步恢复到所有设备。
+
+#### 3. 自然语言文本中的 URL 贪婪截断陷阱
+* **踩坑历史**: 用户在正文中输入“项目地址是 https://github.com/xxx。欢迎体验！”，URL 正则如果把句尾的中文句号 `。` 或括号 `)` 贪婪吞入，会导致点击链接跳转时报 404 错误。
+* **架构铁律**:
+  - **末尾标点净化**: 解析 URL 时必须配合 `cleanUrlMatch` 截断函数，过滤字符集 `.,!?:;，。！？；：()[]{}<>）】\"'“”‘’`；
+  - **标签防误判隔离**: URL 内部携带的 `#anchor` 锚点（如 `https://site.com/docs#intro`）必须优先由 URL 正则识别，严禁误提取为 `#tag` 胶囊。
+
+#### 4. RichText 内联点击与卡片手势穿透陷阱
+* **踩坑历史**: 卡片内如果直接使用全局 ClickableText 可能会拦截内联胶囊标签 (`InlineTextContent`) 的点击或卡片展开/收起手势。
+* **架构铁律**:
+  - **偏移量精确命中**: 使用 `TextLayoutResult.getOffsetForPosition(offset)` 结合 `RichTextUtils.getUrlAtOffset()`，仅在用户精确点击在蓝色链接字符上时才消费事件并唤起浏览器；点击其他文本区域保持原有卡片手势不受干扰。
 
 ---
 
@@ -445,8 +469,17 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
-## Change Log
-
+- **2026-08-19**: Stage 35 回收站闭环与防死灰复燃同步修复
+  - 修复首页软删除卡片未进入回收站问题 (`WHERE is_deleted = 1 OR is_archived = 1`)
+  - 修复下拉同步时已删除笔记死灰复燃 Bug，实现全状态 LWW 同步合并
+- **2026-08-19**: Stage 34 Lozify v1.2.3 正式版本发布
+  - 版本号升级为 `v1.2.3` (`versionCode = 5`)，同步更新 `version.json`
+- **2026-08-19**: Stage 33 智能网络链接识别与超链接蓝标
+  - 自动识别 http/https/www 链接并以 `#2563EB` 标蓝与下划线渲染
+  - 实现中英文末尾标点智能截断与卡片点击一键唤起系统浏览器
+- **2026-08-19**: Stage 32 首页下拉刷新手势阻尼优化与云端预清理
+- **2026-08-19**: Stage 31 双指纹防重引擎与 v1.2.2 自动更新推送
+- **2026-08-19**: Stage 30 分布式全局 UUID (syncId) 实体同步系统
 - **2026-08-12**: Stage 10 归档箱与导航系统开发
   - 创建 ArchiveScreen UI 页面，支持恢复/永久删除操作
   - 建立 Navigation 系统（Routes + NavGraph + NavController）
@@ -468,6 +501,6 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
-**Last Updated:** 2026-08-12  
-**Current Stage:** Stage 9 (Card Operations) - In Progress  
-**Next Milestone:** Complete swipe gesture implementation and polish UI interactions
+**Last Updated:** 2026-08-19  
+**Current Stage:** Stage 35 (Trash Lifecycle & Deletion Sync) - ✅ Completed  
+**Next Milestone:** Next user requirements / feature enhancements
