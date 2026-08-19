@@ -22,6 +22,7 @@ object RichTextUtils {
     private val HighlightYellow = Color(0xFFFFF3C4)
     private val CheckboxGreen = Color(0xFF00C853)
     private val CheckboxGray = Color(0xFF9CA3AF)
+    val LinkBlue = Color(0xFF2563EB) // Stage 33: High-contrast hyperlink blue
 
     // Precompiled static Regex patterns to avoid runtime compilation during list scrolling
     private val LIST_PATTERN = Regex("""(?m)^\s*-\s+(?!\[[ x]\])""")
@@ -31,11 +32,29 @@ object RichTextUtils {
     private val UNDERLINE_REGEX = Regex("""__(?s)(.+?)__""")
     private val HIGHLIGHT_REGEX = Regex("""==(?s)(.+?)==""")
     private val TAG_REGEX = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+    val URL_REGEX = Regex("""(?i)\b(?:https?://|www\.)[^\s<>"'{}|\\^`\[\]\u4e00-\u9fa5]+|(?:[a-zA-Z0-9-]+\.)+(?:com|cn|org|net|io|me|cc|top|app|dev|ai|xyz|site|info)(?:/[^\s<>"'{}|\\^`\[\]\u4e00-\u9fa5]*)?""")
     private val CHECKBOX_SYMBOL_PATTERN = Regex("""[☐☑]""")
     private val STRIP_MENTION_REGEX = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)""")
     private val STRIP_CHECKBOX_REGEX = Regex("""- \[([ x])\] """)
     private val CHECKBOX_UNCHECKED_REGEX = Regex("""^- \[ \]""", RegexOption.MULTILINE)
     private val CHECKBOX_CHECKED_REGEX = Regex("""^- \[x\]""", RegexOption.MULTILINE)
+
+    /**
+     * Clean trailing punctuation from a URL match (e.g. Chinese period, comma, brackets).
+     */
+    fun cleanUrlMatch(match: MatchResult): Pair<String, IntRange>? {
+        val raw = match.value
+        var end = match.range.last + 1
+        var trimmed = 0
+        val trailingPunct = ".,!?:;，。！？；：()[]{}<>）】\"'“”‘’"
+        while (raw.length - trimmed > 0 && raw[raw.length - 1 - trimmed] in trailingPunct) {
+            trimmed++
+            end--
+        }
+        if (raw.length - trimmed <= 0) return null
+        val cleaned = raw.substring(0, raw.length - trimmed)
+        return Pair(cleaned, match.range.first until end)
+    }
 
     // Thread-safe high-performance LRU cache for parsed rich text results (Capacity 300 notes)
     private const val MAX_CACHE_SIZE = 300
@@ -155,16 +174,25 @@ object RichTextUtils {
             markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.HIGHLIGHT))
         }
 
+        // Stage 33: Find all URLs and trim trailing punctuation
+        val urlMatches = mutableListOf<Pair<String, IntRange>>()
+        URL_REGEX.findAll(contentWithoutMentions).forEach { match ->
+            cleanUrlMatch(match)?.let { urlMatches.add(it) }
+        }
+
         // Find tags (#tagName) - Supports Chinese characters directly preceding # without space, while preventing URL anchors (page#sec)
         TAG_REGEX.findAll(contentWithoutMentions).forEach { match ->
-            val tagName = match.value.substring(1) // remove #
-            extractedTags.add(tagName)
-            markerPositions.add(MarkerPosition(
-                start = match.range.first,
-                end = match.range.last + 1,
-                type = MarkerType.TAG,
-                tagName = tagName
-            ))
+            val isInsideUrl = urlMatches.any { (_, range) -> match.range.first in range }
+            if (!isInsideUrl) {
+                val tagName = match.value.substring(1) // remove #
+                extractedTags.add(tagName)
+                markerPositions.add(MarkerPosition(
+                    start = match.range.first,
+                    end = match.range.last + 1,
+                    type = MarkerType.TAG,
+                    tagName = tagName
+                ))
+            }
         }
 
         // Sort structural markers by start position
@@ -233,6 +261,30 @@ object RichTextUtils {
                     else -> null
                 }
                 style?.let { builder.addStyle(it, cleanStart, cleanEnd) }
+            }
+        }
+
+        // Stage 33: Apply LinkBlue styling and clickable URL StringAnnotations
+        urlMatches.forEach { (cleanedUrl, rawRange) ->
+            val cleanStart = positionMap[rawRange.first] ?: 0
+            val mappedEnd = positionMap[rawRange.last + 1] ?: builder.length
+            val cleanEnd = minOf(mappedEnd, builder.length)
+
+            if (cleanStart >= 0 && cleanStart < cleanEnd && cleanEnd <= builder.length) {
+                builder.addStyle(
+                    style = SpanStyle(
+                        color = LinkBlue,
+                        textDecoration = TextDecoration.Underline
+                    ),
+                    start = cleanStart,
+                    end = cleanEnd
+                )
+                builder.addStringAnnotation(
+                    tag = "URL",
+                    annotation = cleanedUrl,
+                    start = cleanStart,
+                    end = cleanEnd
+                )
             }
         }
 
@@ -358,6 +410,22 @@ object RichTextUtils {
     fun getPlainMentionAtOffset(annotatedString: AnnotatedString, offset: Int): String? {
         return annotatedString
             .getStringAnnotations(tag = "PLAIN_MENTION", start = offset, end = offset)
+            .firstOrNull()
+            ?.item
+    }
+
+    /**
+     * Get URL string at specific text offset.
+     *
+     * Stage 33: Used for handling link clicks to launch system browser.
+     *
+     * @param annotatedString AnnotatedString with URL annotations
+     * @param offset Click offset position
+     * @return URL string, or null if no URL at offset
+     */
+    fun getUrlAtOffset(annotatedString: AnnotatedString, offset: Int): String? {
+        return annotatedString
+            .getStringAnnotations(tag = "URL", start = offset, end = offset)
             .firstOrNull()
             ?.item
     }

@@ -4,6 +4,7 @@ import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -57,6 +58,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.font.FontWeight
 import coil.compose.AsyncImage
@@ -457,6 +459,7 @@ fun NoteCard(
                 // Render non-checkbox content with formatting and inline capsule badges
                 val isSearchMatched = searchQuery.isNotBlank() && content.contains(searchQuery, ignoreCase = true)
                 val effectiveExpanded = isExpanded || isSearchMatched
+                var textLayoutResultState by remember { mutableStateOf<TextLayoutResult?>(null) }
 
                 if (nonCheckboxContent.isNotBlank()) {
                     Text(
@@ -470,11 +473,36 @@ fun NoteCard(
                         maxLines = if (effectiveExpanded) Int.MAX_VALUE else maxCollapsedLines,
                         overflow = if (effectiveExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
                         onTextLayout = { textLayoutResult: TextLayoutResult ->
+                            textLayoutResultState = textLayoutResult
                             if (!effectiveExpanded && !hasVisualOverflow && textLayoutResult.hasVisualOverflow) {
                                 hasVisualOverflow = true
                             }
                         },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .pointerInput(parsedRichText.annotatedString) {
+                                detectTapGestures(
+                                    onTap = { offset ->
+                                        textLayoutResultState?.let { layoutResult ->
+                                            val charOffset = layoutResult.getOffsetForPosition(offset)
+                                            val url = RichTextUtils.getUrlAtOffset(parsedRichText.annotatedString, charOffset)
+                                            if (url != null) {
+                                                try {
+                                                    val fullUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
+                                                        url
+                                                    } else {
+                                                        "https://$url"
+                                                    }
+                                                    val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(fullUrl))
+                                                    context.startActivity(intent)
+                                                } catch (e: Exception) {
+                                                    android.widget.Toast.makeText(context, "无法打开链接: $url", android.widget.Toast.LENGTH_SHORT).show()
+                                                }
+                                            }
+                                        }
+                                    }
+                                )
+                            }
                     )
                 }
 

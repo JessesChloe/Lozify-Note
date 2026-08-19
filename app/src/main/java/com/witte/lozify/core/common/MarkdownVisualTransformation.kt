@@ -142,6 +142,21 @@ class MarkdownVisualTransformation(
                     end = match.range.last + 1
                 )
             }
+
+            // 7. Stage 33: Hyperlink URLs - highlight with LinkBlue & underline in real-time
+            RichTextUtils.URL_REGEX.findAll(rawText).forEach { match ->
+                val clean = RichTextUtils.cleanUrlMatch(match)
+                if (clean != null) {
+                    addStyle(
+                        style = SpanStyle(
+                            color = RichTextUtils.LinkBlue,
+                            textDecoration = TextDecoration.Underline
+                        ),
+                        start = clean.second.first,
+                        end = clean.second.last + 1
+                    )
+                }
+            }
         }
 
         // Extremely important: OffsetMapping.Identity ensures 1:1 cursor mapping
