@@ -260,6 +260,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **36** | Pull Damping & Trash Actions | ✅ Completed | 2026-08-19 | 2026-08-19 | 75dp pull resistance against accidental sync, Recycle Bin long-press action sheet & delete confirmation |
 | **37** | Local Image Compression Engine | ✅ Completed | 2026-08-20 | 2026-08-20 | Visually lossless 2K compression engine with UserPreferencesManager toggle in Settings |
 | **38** | Lightbox Save Image to Gallery | ✅ Completed | 2026-08-20 | 2026-08-20 | Scoped Storage (Pictures/Lozify) saving via top download button & long-press sheet |
+| **39** | Release v1.2.4 Distribution | ✅ Completed | 2026-08-20 | 2026-08-20 | Lozify v1.2.4 release package, dual-channel update announcement, end-to-end verified |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -472,6 +473,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-20**: Stage 39 Lozify v1.2.4 正式版本发布
+  - 版本号升级为 `v1.2.4` (`versionCode = 6`)，同步更新 `version.json`
+  - 集成图片智能压缩、大图保存相册、回收站长按确认与防死灰复燃同步
 - **2026-08-20**: Stage 38 全屏大图浏览保存到系统相册功能
   - 基于 Scoped Storage (`MediaStore.Images.Media`) 实现相册导出至 `Pictures/Lozify/`
   - 在大图右上角增加半透明下载按钮，并支持长按大图快捷呼出保存面板与 Toast 反馈

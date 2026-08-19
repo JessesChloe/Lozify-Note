@@ -1,9 +1,9 @@
 {
-  "versionCode": 5,
-  "versionName": "1.2.3",
-  "releaseDate": "2026-08-19",
-  "changelog": "🌐 1. 智能识别网络链接并专属高亮标蓝，点击一键唤起系统浏览器打开网页\n⚡ 2. 首页顶部下拉刷新手势全面升级，更低触发阈值与顺滑弹性阻尼回弹\n🛡️ 3. 全局 UUID 分布式防重同步与云端历史数据自动净化清洗\n✨ 4. App 启动全自动静默检测版本更新并弹窗推送\n🔒 5. AES-256-GCM 硬件级端到端防审查数据加密 (E2EE)",
-  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.3/Lozify-v1.2.3.apk",
-  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.3/Lozify-v1.2.3.apk",
+  "versionCode": 6,
+  "versionName": "1.2.4",
+  "releaseDate": "2026-08-20",
+  "changelog": "🖼️ 1. 本地图片智能压缩引擎：2K 视觉无损压缩（体积骤降 90%），设置中心支持原图直通切换\n📥 2. 全屏大图保存相册：大图预览新增下载按钮与长按菜单，原画质一键导出至 Pictures/Lozify\n🗑️ 3. 回收站交互全面升级：废弃反直觉滑动，重构为长按操作面板与彻底删除二次确认弹框\n🛡️ 4. 彻底解决已删除卡片死灰复燃 Bug，多端回收站状态实时双向同步\n⚡ 5. 首页下拉刷新手势阻尼重构（75dp 舒适阈值），彻底杜绝正常浏览误触",
+  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.4/Lozify-v1.2.4.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.4/Lozify-v1.2.4.apk",
   "isForceUpdate": false
 }
