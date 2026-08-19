@@ -92,7 +92,13 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override fun getTrashNotes(): Flow<List<Note>> {
-        return noteDao.getArchivedNotesWithRelations().map { notesWithRelations ->
+        return noteDao.getDeletedNotesWithRelations().map { notesWithRelations ->
+            notesWithRelations.toDomainModels()
+        }
+    }
+
+    override fun getAllNotesIncludingDeleted(): Flow<List<Note>> {
+        return noteDao.getAllNotesWithRelationsIncludingDeleted().map { notesWithRelations ->
             notesWithRelations.toDomainModels()
         }
     }
@@ -197,7 +203,15 @@ class NoteRepositoryImpl @Inject constructor(
     }
 
     override suspend fun toggleTrashStatus(noteId: Long, isInTrash: Boolean) {
-        noteDao.updateArchiveStatus(noteId, isInTrash, Instant.now())
+        if (isInTrash) {
+            softDeleteNote(noteId)
+        } else {
+            restoreNote(noteId)
+        }
+    }
+
+    override suspend fun restoreNote(noteId: Long) {
+        noteDao.restoreNote(noteId, Instant.now())
     }
 
     override fun getActiveNotesCount(): Flow<Int> {

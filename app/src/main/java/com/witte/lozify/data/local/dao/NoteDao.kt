@@ -95,15 +95,22 @@ interface NoteDao {
     /**
      * Get all deleted notes (for trash view in future).
      */
-    @Query("SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC")
+    @Query("SELECT * FROM notes WHERE is_deleted = 1 OR is_archived = 1 ORDER BY updated_at DESC")
     fun getDeletedNotes(): Flow<List<NoteEntity>>
 
     /**
-     * Stage 6 Fix: Get deleted notes with tags and attachments using Room @Relation.
+     * Stage 6 & 35 Fix: Get deleted notes with tags and attachments using Room @Relation.
      */
     @Transaction
-    @Query("SELECT * FROM notes WHERE is_deleted = 1 ORDER BY updated_at DESC")
+    @Query("SELECT * FROM notes WHERE is_deleted = 1 OR is_archived = 1 ORDER BY updated_at DESC")
     fun getDeletedNotesWithRelations(): Flow<List<NoteWithTagsAndAttachments>>
+
+    /**
+     * Stage 35 Fix: Get all notes including deleted and archived notes (for cloud sync merge).
+     */
+    @Transaction
+    @Query("SELECT * FROM notes ORDER BY updated_at DESC")
+    fun getAllNotesWithRelationsIncludingDeleted(): Flow<List<NoteWithTagsAndAttachments>>
 
     /**
      * Stage 10: Get all archived notes (not deleted, only archived).
@@ -143,6 +150,12 @@ interface NoteDao {
      */
     @Query("UPDATE notes SET is_deleted = 1, updated_at = :deletedAt WHERE id = :noteId")
     suspend fun softDeleteNote(noteId: Long, deletedAt: Long)
+
+    /**
+     * Restore a soft-deleted note (set is_deleted = 0, is_archived = 0).
+     */
+    @Query("UPDATE notes SET is_deleted = 0, is_archived = 0, updated_at = :restoredAt WHERE id = :noteId")
+    suspend fun restoreNote(noteId: Long, restoredAt: Instant)
 
     /**
      * Toggle pin status for a note.

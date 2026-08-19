@@ -93,6 +93,16 @@ interface NoteRepository {
     suspend fun toggleTrashStatus(noteId: Long, isInTrash: Boolean)
 
     /**
+     * Get all notes including deleted and archived notes (for cloud sync merge).
+     */
+    fun getAllNotesIncludingDeleted(): Flow<List<Note>>
+
+    /**
+     * Restore a soft-deleted note from trash (set isDeleted = false).
+     */
+    suspend fun restoreNote(noteId: Long)
+
+    /**
      * Get total count of active notes.
      */
     fun getActiveNotesCount(): Flow<Int>

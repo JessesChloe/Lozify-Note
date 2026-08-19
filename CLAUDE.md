@@ -232,6 +232,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **32** | Pull Gesture & Cloud Purging | ✅ Completed | 2026-08-19 | 2026-08-19 | Ultra-responsive pull physics (40px, onPostScroll), cloud payload pre-filtering & clean-up |
 | **33** | URL Link Recognition & Tap | ✅ Completed | 2026-08-19 | 2026-08-19 | Hyperlink Blue (#2563EB), punctuation trimming, browser launch, tag isolation |
 | **34** | Release v1.2.3 Distribution | ✅ Completed | 2026-08-19 | 2026-08-19 | Lozify v1.2.3 release package, dual-channel update announcement, end-to-end verified |
+| **35** | Trash Lifecycle & Deletion Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Soft-delete to Trash display fix, full-state LWW sync preventing resurrection |
 
 **Status Legend:**
 - ⚪ Not Started

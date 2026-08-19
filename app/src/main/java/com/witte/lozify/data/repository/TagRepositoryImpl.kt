@@ -163,9 +163,10 @@ class TagRepositoryImpl @Inject constructor(
         // Get all notes with this tag
         val notes = noteDao.getNotesByTag(tagId).first()
 
-        // Move all notes to trash
+        // Move all notes to trash (soft delete)
+        val now = System.currentTimeMillis()
         notes.forEach { noteEntity ->
-            noteDao.updateArchiveStatus(noteEntity.id, isArchived = true, updatedAt = Instant.now())
+            noteDao.softDeleteNote(noteEntity.id, now)
         }
 
         // Delete the tag entity (CASCADE will remove cross-ref entries)

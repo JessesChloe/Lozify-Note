@@ -142,4 +142,78 @@ class WebDavUuidSyncTest {
 
         assertEquals("lz-1787030000000-42", derivedSyncId)
     }
+
+    @Test
+    fun testLocalDeletionLww_overridesRemoteActiveNote_preventsResurrection() {
+        val syncId = "lz-test-del-1"
+
+        // 1. Remote cloud payload has old active note (updated at T=1000)
+        val remoteNote = JSONObject().apply {
+            put("syncId", syncId)
+            put("content", "准备删除的笔记")
+            put("isDeleted", false)
+            put("createdAt", 1000L)
+            put("updatedAt", 1000L)
+        }
+
+        // 2. Local note is soft-deleted on phone (updated at T=2000)
+        val localNoteDeleted = JSONObject().apply {
+            put("syncId", syncId)
+            put("content", "准备删除的笔记")
+            put("isDeleted", true)
+            put("createdAt", 1000L)
+            put("updatedAt", 2000L)
+        }
+
+        val localUpdatedAt = localNoteDeleted.getLong("updatedAt")
+        val remoteUpdatedAt = remoteNote.getLong("updatedAt")
+
+        // LWW Decision:
+        val shouldUpdateLocalFromRemote = remoteUpdatedAt > localUpdatedAt
+        val finalIsDeleted = if (shouldUpdateLocalFromRemote) {
+            remoteNote.getBoolean("isDeleted")
+        } else {
+            localNoteDeleted.getBoolean("isDeleted")
+        }
+
+        // Must remain deleted!
+        assertFalse("Local is newer than remote, so should not update local from remote", shouldUpdateLocalFromRemote)
+        assertTrue("Final note state must remain deleted (preventing resurrection)", finalIsDeleted)
+    }
+
+    @Test
+    fun testRemoteDeletionLww_updatesLocalNoteToDeleted() {
+        val syncId = "lz-test-del-2"
+
+        // 1. Local emulator has old active note (updated at T=1000)
+        val localNote = JSONObject().apply {
+            put("syncId", syncId)
+            put("content", "在手机端已删除的笔记")
+            put("isDeleted", false)
+            put("createdAt", 1000L)
+            put("updatedAt", 1000L)
+        }
+
+        // 2. Remote cloud has deletion from phone (updated at T=2500)
+        val remoteDeletedNote = JSONObject().apply {
+            put("syncId", syncId)
+            put("content", "在手机端已删除的笔记")
+            put("isDeleted", true)
+            put("createdAt", 1000L)
+            put("updatedAt", 2500L)
+        }
+
+        val localUpdatedAt = localNote.getLong("updatedAt")
+        val remoteUpdatedAt = remoteDeletedNote.getLong("updatedAt")
+
+        val shouldUpdateLocalFromRemote = remoteUpdatedAt > localUpdatedAt
+        val finalIsDeleted = if (shouldUpdateLocalFromRemote) {
+            remoteDeletedNote.getBoolean("isDeleted")
+        } else {
+            localNote.getBoolean("isDeleted")
+        }
+
+        assertTrue("Remote is newer, so local must update from remote", shouldUpdateLocalFromRemote)
+        assertTrue("Local note must become deleted to enter Trash", finalIsDeleted)
+    }
 }

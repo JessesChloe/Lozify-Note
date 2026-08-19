@@ -39,7 +39,7 @@ class ArchiveViewModel @Inject constructor(
      */
     fun unarchiveNote(noteId: Long) {
         viewModelScope.launch {
-            noteRepository.toggleTrashStatus(noteId, isInTrash = false)
+            noteRepository.restoreNote(noteId)
         }
     }
 
