@@ -261,6 +261,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **37** | Local Image Compression Engine | ✅ Completed | 2026-08-20 | 2026-08-20 | Visually lossless 2K compression engine with UserPreferencesManager toggle in Settings |
 | **38** | Lightbox Save Image to Gallery | ✅ Completed | 2026-08-20 | 2026-08-20 | Scoped Storage (Pictures/Lozify) saving via top download button & long-press sheet |
 | **39** | Release v1.2.4 Distribution | ✅ Completed | 2026-08-20 | 2026-08-20 | Lozify v1.2.4 release package, dual-channel update announcement, end-to-end verified |
+| **40** | Flomo-Style Pull Physics | ✅ Completed | 2026-08-20 | 2026-08-20 | Continuous rubber-band translation, 160dp travel, segmented bounce-back & deliberate sync trigger |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -473,6 +474,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-20**: Stage 40 Flomo 风格连续弹性下拉手势与卡片位移视差系统
+  - 引入 Animatable 驱动 160dp 超大行程橡皮筋弹性下移，瀑布流卡片整体平滑下沉
+  - 分段式手感：轻拉查看笔记数并松手弹性回弹（不触发同步），深拉达 85dp 触发坚果云同步
 - **2026-08-20**: Stage 39 Lozify v1.2.4 正式版本发布
   - 版本号升级为 `v1.2.4` (`versionCode = 6`)，同步更新 `version.json`
   - 集成图片智能压缩、大图保存相册、回收站长按确认与防死灰复燃同步

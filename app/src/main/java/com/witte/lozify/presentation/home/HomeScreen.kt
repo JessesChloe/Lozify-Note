@@ -3,6 +3,9 @@ package com.witte.lozify.presentation.home
 import com.witte.lozify.presentation.components.LozifyLogo
 import com.witte.lozify.presentation.components.ImageLightboxDialog
 import java.io.File
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -80,6 +83,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -157,33 +161,83 @@ fun HomeScreen(
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
 
-    // Stage 29/36/40: Pull-to-sync nested scroll listener (ergonomic sweet spot & full-screen coverage)
+    // Stage 40: Flomo-style continuous elastic pull-to-sync physics
     val density = LocalDensity.current
-    val pullThresholdPx = remember(density) { with(density) { 50.dp.toPx() } }
-    val pullStartThresholdPx = remember(density) { with(density) { 10.dp.toPx() } }
+    val coroutineScope = rememberCoroutineScope()
 
-    val nestedScrollConnection = remember(pullThresholdPx, pullStartThresholdPx) {
+    val pullOffset = remember { Animatable(0f) }
+    val maxPullDistancePx = remember(density) { with(density) { 160.dp.toPx() } }
+    val syncTriggerThresholdPx = remember(density) { with(density) { 85.dp.toPx() } }
+    val headerRestingHeightPx = remember(density) { with(density) { 52.dp.toPx() } }
+
+    // Automatic spring return when sync completes or becomes IDLE
+    LaunchedEffect(uiState.pullSyncState) {
+        when (uiState.pullSyncState) {
+            PullSyncState.IDLE -> {
+                if (pullOffset.value > 0f) {
+                    pullOffset.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioLowBouncy,
+                            stiffness = Spring.StiffnessMediumLow
+                        )
+                    )
+                }
+            }
+            PullSyncState.SYNCING, PullSyncState.COMPLETED, PullSyncState.ERROR -> {
+                // Keep resting open during active sync or result display
+                if (pullOffset.value > 0f) {
+                    pullOffset.animateTo(
+                        targetValue = headerRestingHeightPx,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioNoBouncy,
+                            stiffness = Spring.StiffnessMedium
+                        )
+                    )
+                }
+            }
+            PullSyncState.PULLING -> {
+                // Dragging in progress, handled by gesture
+            }
+        }
+    }
+
+    val nestedScrollConnection = remember(maxPullDistancePx, syncTriggerThresholdPx, headerRestingHeightPx) {
         object : NestedScrollConnection {
-            var accumulatedPullOffset = 0f
-
             override fun onPreScroll(
                 available: Offset,
                 source: NestedScrollSource
             ): Offset {
+                // Downward pull at top of the feed
                 if (source == NestedScrollSource.Drag &&
                     available.y > 0 &&
                     listState.firstVisibleItemIndex == 0 &&
-                    listState.firstVisibleItemScrollOffset == 0
+                    listState.firstVisibleItemScrollOffset == 0 &&
+                    uiState.pullSyncState != PullSyncState.SYNCING
                 ) {
-                    accumulatedPullOffset += available.y * 0.75f // Natural silky resistance
-                    if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
+                    val progress = (pullOffset.value / maxPullDistancePx).coerceIn(0f, 1f)
+                    val resistance = (1f - progress * 0.55f) * 0.55f // Elastic rubber-band resistance
+                    val newOffset = (pullOffset.value + available.y * resistance).coerceIn(0f, maxPullDistancePx)
+
+                    coroutineScope.launch {
+                        pullOffset.snapTo(newOffset)
+                    }
+
+                    if (newOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
-                } else if (available.y < 0 && accumulatedPullOffset > 0) {
-                    accumulatedPullOffset = (accumulatedPullOffset + available.y).coerceAtLeast(0f)
-                    if (accumulatedPullOffset <= pullStartThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
+                    return Offset(0f, available.y)
+                } else if (available.y < 0 && pullOffset.value > 0f && uiState.pullSyncState != PullSyncState.SYNCING) {
+                    // Upward scroll while pulled down
+                    val consumedY = available.y.coerceAtLeast(-pullOffset.value)
+                    val newOffset = (pullOffset.value + consumedY).coerceAtLeast(0f)
+                    coroutineScope.launch {
+                        pullOffset.snapTo(newOffset)
+                    }
+                    if (newOffset <= 10f && uiState.pullSyncState == PullSyncState.PULLING) {
                         homeViewModel.onPullCanceled()
                     }
+                    return Offset(0f, consumedY)
                 }
                 return Offset.Zero
             }
@@ -196,35 +250,74 @@ fun HomeScreen(
                 if (source == NestedScrollSource.Drag &&
                     available.y > 0 &&
                     listState.firstVisibleItemIndex == 0 &&
-                    listState.firstVisibleItemScrollOffset == 0
+                    listState.firstVisibleItemScrollOffset == 0 &&
+                    uiState.pullSyncState != PullSyncState.SYNCING
                 ) {
-                    accumulatedPullOffset += available.y * 0.75f
-                    if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
+                    val progress = (pullOffset.value / maxPullDistancePx).coerceIn(0f, 1f)
+                    val resistance = (1f - progress * 0.55f) * 0.55f
+                    val newOffset = (pullOffset.value + available.y * resistance).coerceIn(0f, maxPullDistancePx)
+
+                    coroutineScope.launch {
+                        pullOffset.snapTo(newOffset)
+                    }
+
+                    if (newOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
+                    return Offset(0f, available.y)
                 }
                 return Offset.Zero
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
-                if (accumulatedPullOffset >= pullThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
-                    accumulatedPullOffset = 0f
-                    homeViewModel.triggerPullToSync()
+                if (uiState.pullSyncState == PullSyncState.PULLING) {
+                    if (pullOffset.value >= syncTriggerThresholdPx) {
+                        // Pulled past large threshold: Trigger cloud sync!
+                        homeViewModel.triggerPullToSync()
+                        pullOffset.animateTo(
+                            targetValue = headerRestingHeightPx,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    } else {
+                        // Light/Medium pull: Spring back to 0 without triggering sync!
+                        homeViewModel.onPullCanceled()
+                        pullOffset.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    }
                     return available
-                } else if (uiState.pullSyncState == PullSyncState.PULLING) {
-                    accumulatedPullOffset = 0f
-                    homeViewModel.onPullCanceled()
                 }
                 return Velocity.Zero
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (accumulatedPullOffset >= pullThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
-                    accumulatedPullOffset = 0f
-                    homeViewModel.triggerPullToSync()
-                } else if (uiState.pullSyncState == PullSyncState.PULLING) {
-                    accumulatedPullOffset = 0f
-                    homeViewModel.onPullCanceled()
+                if (uiState.pullSyncState == PullSyncState.PULLING) {
+                    if (pullOffset.value >= syncTriggerThresholdPx) {
+                        homeViewModel.triggerPullToSync()
+                        pullOffset.animateTo(
+                            targetValue = headerRestingHeightPx,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    } else {
+                        homeViewModel.onPullCanceled()
+                        pullOffset.animateTo(
+                            targetValue = 0f,
+                            animationSpec = spring(
+                                dampingRatio = Spring.DampingRatioLowBouncy,
+                                stiffness = Spring.StiffnessMediumLow
+                            )
+                        )
+                    }
                 }
                 return Velocity.Zero
             }
@@ -558,45 +651,56 @@ fun HomeScreen(
         containerColor = Color(0xFFF7F8FA),
         modifier = modifier
     ) { paddingValues ->
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
                 .nestedScroll(nestedScrollConnection)
         ) {
-            // Stage 29: Pull-to-sync elastic stats and status header
-            PullToSyncHeader(
-                syncState = uiState.pullSyncState,
-                notesCount = uiState.totalActiveNotesCount,
-                statusText = uiState.pullSyncStatusText
-            )
+            // Stage 40: Flomo-style elastic stats and sync card at the top
+            if (pullOffset.value > 1f || uiState.pullSyncState != PullSyncState.IDLE) {
+                PullToSyncHeader(
+                    syncState = uiState.pullSyncState,
+                    notesCount = uiState.totalActiveNotesCount,
+                    statusText = uiState.pullSyncStatusText,
+                    pullOffsetPx = pullOffset.value,
+                    triggerThresholdPx = syncTriggerThresholdPx,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .align(Alignment.TopCenter)
+                )
+            }
 
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // Content area: loading, empty, or note list
-            when {
-                uiState.isLoading -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        CircularProgressIndicator(
-                            color = Color(0xFF00C853)
-                        )
+            // Content area elastically translated down by pullOffset
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = pullOffset.value
                     }
-                }
-                uiState.notes.isEmpty() -> {
-                    EmptyState()
-                }
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .nestedScroll(nestedScrollConnection)
-                    ) {
+            ) {
+                when {
+                    uiState.isLoading -> {
+                        Box(
+                            modifier = Modifier.fillMaxSize(),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            CircularProgressIndicator(
+                                color = Color(0xFF00C853)
+                            )
+                        }
+                    }
+                    uiState.notes.isEmpty() -> {
+                        EmptyState()
+                    }
+                    else -> {
+                        LazyColumn(
+                            state = listState,
+                            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+                            verticalArrangement = Arrangement.spacedBy(12.dp),
+                            modifier = Modifier.fillMaxSize()
+                        ) {
                         itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
                             NoteCard(
                                 noteId = note.id,
@@ -652,6 +756,7 @@ fun HomeScreen(
             }
         }
     }
+}
 
     // Editor bottom sheet
     if (showEditor) {
