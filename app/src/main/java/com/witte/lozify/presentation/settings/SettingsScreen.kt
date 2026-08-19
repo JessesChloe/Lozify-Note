@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
@@ -215,7 +216,62 @@ fun SettingsScreen(
                 }
             }
 
-            // Section 2: Data & Cloud Sync
+            // Section 2: Storage & Media (Stage 37)
+            item {
+                SectionHeader(title = "存储与媒体")
+            }
+
+            item {
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(16.dp)
+                    ) {
+                        // Image Compression Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    text = "图片智能压缩",
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF222222)
+                                )
+                                Text(
+                                    text = "插入图片时自动进行 2K 视觉无损压缩，大幅节省本地存储与坚果云空间",
+                                    fontSize = 12.sp,
+                                    color = Color(0xFF888888),
+                                    lineHeight = 16.sp
+                                )
+                            }
+                            Switch(
+                                checked = uiState.isImageCompressionEnabled,
+                                onCheckedChange = { viewModel.setImageCompressionEnabled(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF00C853)
+                                )
+                            )
+                        }
+                    }
+                }
+            }
+
+            // Section 3: Data & Cloud Sync
             item {
                 SectionHeader(title = "数据与云同步")
             }
@@ -266,7 +322,7 @@ fun SettingsScreen(
                     Column(modifier = Modifier.fillMaxWidth()) {
                         // Help Center Entry
                         SettingsClickableRow(
-                            icon = Icons.Outlined.HelpOutline,
+                            icon = Icons.AutoMirrored.Outlined.HelpOutline,
                             title = "帮助中心与使用指南",
                             subtitle = "排版语法、双向网状链接与手势操作说明",
                             onClick = onNavigateToHelp

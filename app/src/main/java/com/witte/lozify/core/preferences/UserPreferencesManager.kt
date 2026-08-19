@@ -31,6 +31,12 @@ class UserPreferencesManager @Inject constructor(
     )
     val isDraftPersistenceEnabled: StateFlow<Boolean> = _isDraftPersistenceEnabled.asStateFlow()
 
+    // Stage 37: Image Compression Preference (Default: true)
+    private val _imageCompressionEnabled = MutableStateFlow(
+        prefs.getBoolean(KEY_IMAGE_COMPRESSION_ENABLED, true)
+    )
+    val imageCompressionEnabled: StateFlow<Boolean> = _imageCompressionEnabled.asStateFlow()
+
     private val _draftText = MutableStateFlow(
         prefs.getString(KEY_DRAFT_TEXT, "") ?: ""
     )
@@ -94,6 +100,11 @@ class UserPreferencesManager @Inject constructor(
         if (!enabled) {
             clearDraft()
         }
+    }
+
+    fun setImageCompressionEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_IMAGE_COMPRESSION_ENABLED, enabled).apply()
+        _imageCompressionEnabled.value = enabled
     }
 
     fun saveDraft(text: String, imageUris: List<String>) {
@@ -184,6 +195,7 @@ class UserPreferencesManager @Inject constructor(
         private const val PREFS_NAME = "lozify_user_preferences"
         private const val KEY_MAX_COLLAPSE_LINES = "key_max_collapse_lines"
         private const val KEY_DRAFT_PERSISTENCE_ENABLED = "key_draft_persistence_enabled"
+        private const val KEY_IMAGE_COMPRESSION_ENABLED = "key_image_compression_enabled"
         private const val KEY_DRAFT_TEXT = "key_draft_text"
         private const val KEY_DRAFT_IMAGE_URIS = "key_draft_image_uris"
 

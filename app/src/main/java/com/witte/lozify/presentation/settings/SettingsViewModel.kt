@@ -19,6 +19,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val maxCollapseLines: Int = 5,
     val isDraftPersistenceEnabled: Boolean = true,
+    val isImageCompressionEnabled: Boolean = true,
     val isCheckingUpdate: Boolean = false,
     val updateInfo: AppUpdateInfo? = null,
     val updateMessage: String? = null
@@ -40,11 +41,13 @@ class SettingsViewModel @Inject constructor(
     val uiState: StateFlow<SettingsUiState> = combine(
         preferencesManager.maxCollapseLines,
         preferencesManager.isDraftPersistenceEnabled,
+        preferencesManager.imageCompressionEnabled,
         _updateState
-    ) { maxLines, isDraftEnabled, updateState ->
+    ) { maxLines, isDraftEnabled, isImageCompressionEnabled, updateState ->
         SettingsUiState(
             maxCollapseLines = maxLines,
             isDraftPersistenceEnabled = isDraftEnabled,
+            isImageCompressionEnabled = isImageCompressionEnabled,
             isCheckingUpdate = updateState.first,
             updateInfo = updateState.second,
             updateMessage = updateState.third
@@ -61,6 +64,10 @@ class SettingsViewModel @Inject constructor(
 
     fun setDraftPersistenceEnabled(enabled: Boolean) {
         preferencesManager.setDraftPersistenceEnabled(enabled)
+    }
+
+    fun setImageCompressionEnabled(enabled: Boolean) {
+        preferencesManager.setImageCompressionEnabled(enabled)
     }
 
     fun checkForUpdate(isManual: Boolean = true) {

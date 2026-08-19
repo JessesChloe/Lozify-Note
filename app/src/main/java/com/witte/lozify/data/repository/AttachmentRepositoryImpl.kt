@@ -3,6 +3,7 @@ package com.witte.lozify.data.repository
 import android.content.Context
 import android.net.Uri
 import com.witte.lozify.core.common.ImageUtils
+import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.data.local.dao.AttachmentDao
 import com.witte.lozify.data.mapper.toDomainModel
 import com.witte.lozify.data.mapper.toDomainModels
@@ -20,18 +21,21 @@ import javax.inject.Singleton
  * Implementation of AttachmentRepository interface.
  *
  * Stage 6: Handles image attachment operations with privatization.
+ * Stage 37: Dynamic image compression based on UserPreferencesManager.
  *
  * Key Responsibilities:
- * - Copy images from external storage to app private directory
+ * - Copy images from external storage to app private directory (with optional 2K compression)
  * - Manage attachment metadata in Room database
  * - Clean up orphaned image files
  *
  * @property attachmentDao DAO for attachment operations
+ * @property preferencesManager User preferences manager
  * @property context Application context for file operations
  */
 @Singleton
 class AttachmentRepositoryImpl @Inject constructor(
     private val attachmentDao: AttachmentDao,
+    private val preferencesManager: UserPreferencesManager,
     @ApplicationContext private val context: Context
 ) : AttachmentRepository {
 
@@ -58,9 +62,13 @@ class AttachmentRepositoryImpl @Inject constructor(
 
     override suspend fun addImageAttachment(noteId: Long, sourceUri: Uri): Attachment? {
         return try {
-            // Copy image to private storage
-            val privateUri = ImageUtils.copyImageToPrivateStorage(context, sourceUri)
-                ?: return null
+            // Copy image to private storage with compression toggle
+            val isCompressionEnabled = preferencesManager.imageCompressionEnabled.value
+            val privateUri = ImageUtils.copyImageToPrivateStorage(
+                context = context,
+                sourceUri = sourceUri,
+                enableCompression = isCompressionEnabled
+            ) ?: return null
 
             // Extract relative file path from private URI
             val filePath = privateUri.path?.removePrefix(context.filesDir.absolutePath + "/") ?: return null

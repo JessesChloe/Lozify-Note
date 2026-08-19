@@ -46,9 +46,35 @@ object ImageUtils {
      *
      * @param context Android context
      * @param sourceUri External image URI (from gallery, camera, etc.)
+     * @param enableCompression Whether to apply 2K visually lossless compression (Stage 37)
      * @return Internal file URI, or null if operation failed
      */
-    fun copyImageToPrivateStorage(context: Context, sourceUri: Uri): Uri? {
+    fun copyImageToPrivateStorage(
+        context: Context,
+        sourceUri: Uri,
+        enableCompression: Boolean = true
+    ): Uri? {
+        if (!enableCompression) {
+            // Direct lossless raw copy mode (Original untouched stream)
+            return try {
+                val filename = "${UUID.randomUUID()}.jpg"
+                val imagesDir = File(context.filesDir, IMAGES_DIR)
+                if (!imagesDir.exists()) {
+                    imagesDir.mkdirs()
+                }
+                val destFile = File(imagesDir, filename)
+                context.contentResolver.openInputStream(sourceUri)?.use { input ->
+                    FileOutputStream(destFile).use { output ->
+                        input.copyTo(output)
+                    }
+                }
+                Uri.fromFile(destFile)
+            } catch (e: Exception) {
+                e.printStackTrace()
+                null
+            }
+        }
+
         var originalBitmap: Bitmap? = null
         var rotatedBitmap: Bitmap? = null
         var compressedBitmap: Bitmap? = null

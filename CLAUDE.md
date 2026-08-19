@@ -258,6 +258,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **34** | Release v1.2.3 Distribution | ✅ Completed | 2026-08-19 | 2026-08-19 | Lozify v1.2.3 release package, dual-channel update announcement, end-to-end verified |
 | **35** | Trash Lifecycle & Deletion Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Soft-delete to Trash display fix, full-state LWW sync preventing resurrection |
 | **36** | Pull Damping & Trash Actions | ✅ Completed | 2026-08-19 | 2026-08-19 | 75dp pull resistance against accidental sync, Recycle Bin long-press action sheet & delete confirmation |
+| **37** | Local Image Compression Engine | ✅ Completed | 2026-08-20 | 2026-08-20 | Visually lossless 2K compression engine with UserPreferencesManager toggle in Settings |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -470,6 +471,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-20**: Stage 37 本地图片智能压缩引擎与设置中心开关支持
+  - 引入 2K 视觉无损压缩引擎（2048px 约束 + 85% 质量因数，体积缩减 85%~95%）
+  - 在设置中心新增【存储与媒体】专区与“图片智能压缩”开关，支持自由切换原图直通模式
 - **2026-08-19**: Stage 36 下拉同步阻尼阈值优化与回收站长按确认交互重构
   - 下拉触发阈值升级至 75dp 并加入 0.55f 弹性阻尼，杜绝正常滑动浏览时的误触发
   - 回收站废弃左右滑动，重构为卡片长按/轻触操作面板（还原笔记/彻底删除）及二次确认弹窗
