@@ -667,7 +667,7 @@ fun HomeScreen(
                     triggerThresholdPx = syncTriggerThresholdPx,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 6.dp)
+                        .padding(vertical = 4.dp)
                         .align(Alignment.TopCenter)
                 )
             }
