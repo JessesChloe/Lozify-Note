@@ -17,6 +17,8 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import com.witte.lozify.core.update.AppUpdateInfo
+import com.witte.lozify.core.update.UpdateManager
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
@@ -33,13 +35,15 @@ import javax.inject.Inject
  * Stage 14: Added user achievement and statistics tracking.
  * Stage 17: Connected UserPreferencesManager for dynamic card collapse lines.
  * Stage 29: Added Pull-to-Sync gesture and Fast-Path sync trigger.
+ * Stage 31: Added On-Launch silent version update detection & push dialog.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val tagRepository: TagRepository,
     private val preferencesManager: UserPreferencesManager,
-    private val syncManager: WebDavSyncManager
+    private val syncManager: WebDavSyncManager,
+    private val updateManager: UpdateManager
 ) : ViewModel() {
 
     /**
@@ -96,6 +100,12 @@ class HomeViewModel @Inject constructor(
      */
     private val _pullSyncState = MutableStateFlow(PullSyncState.IDLE)
     private val _pullSyncStatusText = MutableStateFlow<String?>(null)
+
+    /**
+     * Stage 31: On-Launch in-app update prompt.
+     */
+    private val _appUpdateInfo = MutableStateFlow<AppUpdateInfo?>(null)
+    val appUpdateInfo: StateFlow<AppUpdateInfo?> = _appUpdateInfo
 
     private data class BaseHomeData(
         val allNotes: List<Note>,
@@ -277,6 +287,27 @@ class HomeViewModel @Inject constructor(
             _pullSyncState.value = PullSyncState.IDLE
             _pullSyncStatusText.value = null
         }
+    }
+
+    /**
+     * Stage 31: Silent on-launch update check (triggers update dialog if new version exists).
+     */
+    fun checkForUpdateOnLaunch() {
+        viewModelScope.launch {
+            try {
+                val result = updateManager.checkForUpdate()
+                val info = result.getOrNull()
+                if (info != null) {
+                    _appUpdateInfo.value = info
+                }
+            } catch (e: Exception) {
+                // Silent fail on launch if network is offline
+            }
+        }
+    }
+
+    fun dismissUpdateDialog() {
+        _appUpdateInfo.value = null
     }
 
     /**

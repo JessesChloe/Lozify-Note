@@ -115,9 +115,15 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     val uiState by homeViewModel.uiState.collectAsState()
+    val appUpdateInfo by homeViewModel.appUpdateInfo.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+
+    // Stage 31: Silent on-launch update check
+    LaunchedEffect(Unit) {
+        homeViewModel.checkForUpdateOnLaunch()
+    }
 
     // Stage 5 Refactor: Drawer state
     val drawerState = rememberDrawerState(initialValue = DrawerValue.Closed)
@@ -725,6 +731,24 @@ fun HomeScreen(
         ActivityCalendarBottomSheet(
             allNotes = uiState.notes,
             onDismiss = { showActivityCalendar = false }
+        )
+    }
+
+    // Stage 31: On-Launch App Update Dialog
+    appUpdateInfo?.let { updateInfo ->
+        val context = androidx.compose.ui.platform.LocalContext.current
+        com.witte.lozify.presentation.update.AppUpdateDialog(
+            updateInfo = updateInfo,
+            onDismiss = { homeViewModel.dismissUpdateDialog() },
+            onDownloadGitee = {
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(updateInfo.downloadUrl))
+                context.startActivity(intent)
+            },
+            onDownloadGithub = {
+                val url = updateInfo.githubDownloadUrl ?: updateInfo.downloadUrl
+                val intent = android.content.Intent(android.content.Intent.ACTION_VIEW, android.net.Uri.parse(url))
+                context.startActivity(intent)
+            }
         )
     }
     }
