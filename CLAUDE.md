@@ -257,6 +257,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **33** | URL Link Recognition & Tap | ✅ Completed | 2026-08-19 | 2026-08-19 | Hyperlink Blue (#2563EB), punctuation trimming, browser launch, tag isolation |
 | **34** | Release v1.2.3 Distribution | ✅ Completed | 2026-08-19 | 2026-08-19 | Lozify v1.2.3 release package, dual-channel update announcement, end-to-end verified |
 | **35** | Trash Lifecycle & Deletion Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Soft-delete to Trash display fix, full-state LWW sync preventing resurrection |
+| **36** | Pull Damping & Trash Actions | ✅ Completed | 2026-08-19 | 2026-08-19 | 75dp pull resistance against accidental sync, Recycle Bin long-press action sheet & delete confirmation |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -469,6 +470,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-19**: Stage 36 下拉同步阻尼阈值优化与回收站长按确认交互重构
+  - 下拉触发阈值升级至 75dp 并加入 0.55f 弹性阻尼，杜绝正常滑动浏览时的误触发
+  - 回收站废弃左右滑动，重构为卡片长按/轻触操作面板（还原笔记/彻底删除）及二次确认弹窗
 - **2026-08-19**: Stage 35 回收站闭环与防死灰复燃同步修复
   - 修复首页软删除卡片未进入回收站问题 (`WHERE is_deleted = 1 OR is_archived = 1`)
   - 修复下拉同步时已删除笔记死灰复燃 Bug，实现全状态 LWW 同步合并

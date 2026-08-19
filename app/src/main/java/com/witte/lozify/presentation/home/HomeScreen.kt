@@ -56,6 +56,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -156,11 +157,14 @@ fun HomeScreen(
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
 
-    // Stage 29/32: Pull-to-sync nested scroll listener (ultra-responsive physics)
-    val nestedScrollConnection = remember {
+    // Stage 29/36: Pull-to-sync nested scroll listener (ergonomic threshold & resistance)
+    val density = LocalDensity.current
+    val pullThresholdPx = remember(density) { with(density) { 75.dp.toPx() } }
+    val pullStartThresholdPx = remember(density) { with(density) { 25.dp.toPx() } }
+
+    val nestedScrollConnection = remember(pullThresholdPx, pullStartThresholdPx) {
         object : NestedScrollConnection {
             var accumulatedPullOffset = 0f
-            val pullThreshold = 40f // pixels to trigger sync
 
             override fun onPreScroll(
                 available: Offset,
@@ -171,13 +175,13 @@ fun HomeScreen(
                     listState.firstVisibleItemIndex == 0 &&
                     listState.firstVisibleItemScrollOffset == 0
                 ) {
-                    accumulatedPullOffset += available.y
-                    if (accumulatedPullOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
+                    accumulatedPullOffset += available.y * 0.55f // Elastic resistance factor
+                    if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
                 } else if (available.y < 0 && accumulatedPullOffset > 0) {
                     accumulatedPullOffset = (accumulatedPullOffset + available.y).coerceAtLeast(0f)
-                    if (accumulatedPullOffset <= 5f && uiState.pullSyncState == PullSyncState.PULLING) {
+                    if (accumulatedPullOffset <= pullStartThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
                         homeViewModel.onPullCanceled()
                     }
                 }
@@ -194,8 +198,8 @@ fun HomeScreen(
                     listState.firstVisibleItemIndex == 0 &&
                     listState.firstVisibleItemScrollOffset == 0
                 ) {
-                    accumulatedPullOffset += available.y
-                    if (accumulatedPullOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
+                    accumulatedPullOffset += available.y * 0.55f
+                    if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
                 }
@@ -203,7 +207,7 @@ fun HomeScreen(
             }
 
             override suspend fun onPreFling(available: Velocity): Velocity {
-                if (accumulatedPullOffset >= pullThreshold && uiState.pullSyncState == PullSyncState.PULLING) {
+                if (accumulatedPullOffset >= pullThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
                     accumulatedPullOffset = 0f
                     homeViewModel.triggerPullToSync()
                     return available
@@ -215,7 +219,7 @@ fun HomeScreen(
             }
 
             override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
-                if (accumulatedPullOffset >= pullThreshold && uiState.pullSyncState == PullSyncState.PULLING) {
+                if (accumulatedPullOffset >= pullThresholdPx && uiState.pullSyncState == PullSyncState.PULLING) {
                     accumulatedPullOffset = 0f
                     homeViewModel.triggerPullToSync()
                 } else if (uiState.pullSyncState == PullSyncState.PULLING) {
