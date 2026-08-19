@@ -35,8 +35,8 @@ import java.util.UUID
 object ImageUtils {
 
     private const val IMAGES_DIR = "images"
-    private const val MAX_IMAGE_DIMENSION = 2048 // Max width/height in pixels
-    private const val JPEG_QUALITY = 85 // Compression quality (0-100)
+    private const val MAX_IMAGE_DIMENSION = 1920 // Max width/height in pixels (1080p/2K retina)
+    private const val JPEG_QUALITY = 80 // High-efficiency visually lossless quality (0-100)
 
     /**
      * Copy image from external URI to app's private storage.
@@ -171,7 +171,7 @@ object ImageUtils {
             val halfHeight = height / 2
             val halfWidth = width / 2
 
-            while ((halfHeight / inSampleSize) >= reqHeight &&
+            while ((halfHeight / inSampleSize) >= reqHeight ||
                    (halfWidth / inSampleSize) >= reqWidth) {
                 inSampleSize *= 2
             }
@@ -358,6 +358,49 @@ object ImageUtils {
                 }
                 true
             } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
+    }
+
+    /**
+     * Compress an existing image file on disk in place if it exceeds target size.
+     * Used for cloud upload optimization and retroactive compression.
+     *
+     * @param file Local image file
+     * @return true if file was compressed and size reduced, false otherwise
+     */
+    fun compressExistingImageFile(file: File): Boolean {
+        if (!file.exists() || file.length() < 300 * 1024) { // Don't touch files already under 300KB
+            return false
+        }
+        return try {
+            val options = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            BitmapFactory.decodeFile(file.absolutePath, options)
+            options.inSampleSize = calculateInSampleSize(options, MAX_IMAGE_DIMENSION, MAX_IMAGE_DIMENSION)
+            options.inJustDecodeBounds = false
+
+            val bitmap = BitmapFactory.decodeFile(file.absolutePath, options) ?: return false
+            val compressedBitmap = compressBitmap(bitmap)
+
+            val tempFile = File(file.parentFile, "${file.name}.tmp")
+            FileOutputStream(tempFile).use { out ->
+                compressedBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, out)
+            }
+            if (bitmap != compressedBitmap) {
+                bitmap.recycle()
+            }
+            compressedBitmap.recycle()
+
+            if (tempFile.exists() && tempFile.length() < file.length()) {
+                tempFile.copyTo(file, overwrite = true)
+                tempFile.delete()
+                true
+            } else {
+                tempFile.delete()
                 false
             }
         } catch (e: Exception) {

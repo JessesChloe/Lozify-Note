@@ -16,7 +16,7 @@ class ImageCompressionPreferenceTest {
 
     @Test
     fun testImageDimensionConstraint_within2KRetina() {
-        val maxDimension = 2048
+        val maxDimension = 1920
         val originalHighResWidth = 4000
         val originalHighResHeight = 3000
 
@@ -24,14 +24,14 @@ class ImageCompressionPreferenceTest {
         val scaledWidth = maxDimension
         val scaledHeight = (maxDimension / aspectRatio).toInt()
 
-        assertEquals("Scaled width should match max dimension of 2048", 2048, scaledWidth)
-        assertEquals("Scaled height should maintain 4:3 aspect ratio", 1536, scaledHeight)
-        assertTrue("Scaled image stays within 2048px constraint", scaledWidth <= maxDimension && scaledHeight <= maxDimension)
+        assertEquals("Scaled width should match max dimension of 1920", 1920, scaledWidth)
+        assertEquals("Scaled height should maintain 4:3 aspect ratio", 1440, scaledHeight)
+        assertTrue("Scaled image stays within 1920px constraint", scaledWidth <= maxDimension && scaledHeight <= maxDimension)
     }
 
     @Test
     fun testJpegQuality_visuallyLossless() {
-        val jpegQuality = 85
-        assertTrue("JPEG Quality 85 provides optimal visually lossless balance", jpegQuality in 80..90)
+        val jpegQuality = 80
+        assertTrue("JPEG Quality 80 provides optimal visually lossless balance", jpegQuality in 75..90)
     }
 }

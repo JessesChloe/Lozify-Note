@@ -1,6 +1,7 @@
 package com.witte.lozify.core.network.webdav
 
 import android.content.Context
+import com.witte.lozify.core.common.ImageUtils
 import com.witte.lozify.core.database.LozifyDatabase
 import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.data.local.entity.AttachmentEntity
@@ -406,8 +407,12 @@ class WebDavSyncManager @Inject constructor(
             val localImagesDir = File(context.filesDir, "images")
             if (localImagesDir.exists()) {
                 val localImageFiles = localImagesDir.listFiles() ?: emptyArray()
+                val isCompressionEnabled = preferencesManager.imageCompressionEnabled.value
                 for (localImg in localImageFiles) {
                     if (localImg.isFile) {
+                        if (isCompressionEnabled) {
+                            ImageUtils.compressExistingImageFile(localImg)
+                        }
                         if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
                             val encFileName = "${localImg.name}.enc"
                             if (encFileName !in remoteImageNames) {

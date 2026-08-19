@@ -157,10 +157,10 @@ fun HomeScreen(
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
 
-    // Stage 29/36: Pull-to-sync nested scroll listener (ergonomic threshold & resistance)
+    // Stage 29/36/40: Pull-to-sync nested scroll listener (ergonomic sweet spot & full-screen coverage)
     val density = LocalDensity.current
-    val pullThresholdPx = remember(density) { with(density) { 75.dp.toPx() } }
-    val pullStartThresholdPx = remember(density) { with(density) { 25.dp.toPx() } }
+    val pullThresholdPx = remember(density) { with(density) { 50.dp.toPx() } }
+    val pullStartThresholdPx = remember(density) { with(density) { 10.dp.toPx() } }
 
     val nestedScrollConnection = remember(pullThresholdPx, pullStartThresholdPx) {
         object : NestedScrollConnection {
@@ -175,7 +175,7 @@ fun HomeScreen(
                     listState.firstVisibleItemIndex == 0 &&
                     listState.firstVisibleItemScrollOffset == 0
                 ) {
-                    accumulatedPullOffset += available.y * 0.55f // Elastic resistance factor
+                    accumulatedPullOffset += available.y * 0.75f // Natural silky resistance
                     if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
@@ -198,7 +198,7 @@ fun HomeScreen(
                     listState.firstVisibleItemIndex == 0 &&
                     listState.firstVisibleItemScrollOffset == 0
                 ) {
-                    accumulatedPullOffset += available.y * 0.55f
+                    accumulatedPullOffset += available.y * 0.75f
                     if (accumulatedPullOffset > pullStartThresholdPx && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
@@ -562,6 +562,7 @@ fun HomeScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .nestedScroll(nestedScrollConnection)
         ) {
             // Stage 29: Pull-to-sync elastic stats and status header
             PullToSyncHeader(
