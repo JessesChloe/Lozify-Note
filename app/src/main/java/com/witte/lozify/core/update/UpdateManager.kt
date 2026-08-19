@@ -40,10 +40,10 @@ class UpdateManager @Inject constructor() {
         .build()
 
     // Gitee Primary Source (Fast domestic connection in China)
-    private val giteeVersionUrl = "https://gitee.com/witte/Lozify/raw/master/version.json"
+    private val giteeVersionUrl = "https://gitee.com/JessesChloe/Lozify/raw/master/version.json"
 
     // GitHub Fallback Source (International secondary mirror)
-    private val githubVersionUrl = "https://raw.githubusercontent.com/witte/Lozify/master/version.json"
+    private val githubVersionUrl = "https://raw.githubusercontent.com/JessesChloe/Lozify/master/version.json"
 
     /**
      * Check for newer app version with Gitee -> GitHub automatic failover.

@@ -1,0 +1,9 @@
+{
+  "versionCode": 2,
+  "versionName": "1.2.0",
+  "releaseDate": "2026-08-19",
+  "changelog": "✨ 1. 新增坚果云 / WebDAV 两路双向云同步与增量图片同步\n🛡️ 2. 全新 AES-256-GCM 硬件级端到端防审查数据加密 (E2EE)\n⚡ 3. 瀑布流列表滑动性能全面重构至 120Hz 丝滑\n🎨 4. 全新 1:1 对标 flomo 极简几何矢量艺术字标与双线菜单\n📦 5. 支持 Gitee / GitHub 双通道国内极速在线版本检测与更新推送",
+  "downloadUrl": "https://gitee.com/JessesChloe/Lozify/releases/download/v1.2.0/Lozify-v1.2.0.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify/releases/download/v1.2.0/Lozify-v1.2.0.apk",
+  "isForceUpdate": false
+}
