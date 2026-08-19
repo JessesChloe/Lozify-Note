@@ -88,6 +88,17 @@ fun LozifyNavGraph(
                 },
                 onNavigateToHelp = {
                     navController.navigate(Routes.HELP)
+                },
+                onNavigateToWebDavSync = {
+                    navController.navigate(Routes.WEBDAV_SYNC)
+                }
+            )
+        }
+
+        composable(Routes.WEBDAV_SYNC) {
+            com.witte.lozify.presentation.sync.WebDavSyncScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

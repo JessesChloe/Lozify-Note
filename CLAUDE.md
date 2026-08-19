@@ -223,6 +223,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **23** | Clean Brand Logo | ✅ Completed | 2026-08-18 | 2026-08-18 | Clean green L-pen logo without outer ring, full Android mipmaps |
 | **24** | Scrolling Performance | ✅ Completed | 2026-08-19 | 2026-08-19 | Precompiled static regexes, LRU cache, onTextLayout fix, lazy menu mounting |
 | **25** | Vector Logotype & TopBar | ✅ Completed | 2026-08-19 | 2026-08-19 | Geometric lozify vector brand logotype, two-line minimalist hamburger menu |
+| **26** | WebDAV / Jianguoyun Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Two-way LWW merge, delta image sync, Jianguoyun preset & sync screen |
 
 **Status Legend:**
 - ⚪ Not Started

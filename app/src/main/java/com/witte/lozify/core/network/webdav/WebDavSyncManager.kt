@@ -1,0 +1,480 @@
+package com.witte.lozify.core.network.webdav
+
+import android.content.Context
+import com.witte.lozify.core.database.LozifyDatabase
+import com.witte.lozify.core.preferences.UserPreferencesManager
+import com.witte.lozify.data.local.entity.AttachmentEntity
+import com.witte.lozify.data.local.entity.NoteEntity
+import com.witte.lozify.data.local.entity.NoteRelationEntity
+import com.witte.lozify.data.local.entity.NoteTagCrossRef
+import com.witte.lozify.data.local.entity.TagEntity
+import com.witte.lozify.domain.model.Note
+import com.witte.lozify.domain.model.Tag
+import com.witte.lozify.domain.repository.NoteRepository
+import com.witte.lozify.domain.repository.TagRepository
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import org.json.JSONArray
+import org.json.JSONObject
+import java.io.File
+import java.nio.charset.StandardCharsets
+import java.time.Instant
+import javax.inject.Inject
+import javax.inject.Singleton
+
+/**
+ * Stages of WebDAV Synchronization.
+ */
+enum class SyncStage {
+    IDLE,
+    CONNECTING,
+    FETCHING_REMOTE,
+    MERGING_DATA,
+    SYNCING_IMAGES,
+    UPLOADING_REMOTE,
+    COMPLETED,
+    FAILED
+}
+
+/**
+ * Progress updates for UI display.
+ */
+data class SyncProgress(
+    val stage: SyncStage,
+    val progress: Float = 0f,
+    val detail: String = ""
+)
+
+/**
+ * Result of a completed synchronization cycle.
+ */
+data class SyncResult(
+    val isSuccess: Boolean,
+    val uploadedNotes: Int = 0,
+    val downloadedNotes: Int = 0,
+    val uploadedImages: Int = 0,
+    val downloadedImages: Int = 0,
+    val errorMessage: String? = null
+)
+
+/**
+ * WebDavSyncManager - Orchestrates two-way delta sync with Jianguoyun and WebDAV servers.
+ *
+ * Algorithm:
+ * 1. Reads WebDAV connection credentials from UserPreferencesManager.
+ * 2. Ensures remote root directory (/Lozify/) and image directory (/Lozify/images/) exist.
+ * 3. Downloads remote notes_payload.json (if present) and performs Last-Write-Wins (LWW) merge with local Room DB.
+ * 4. Syncs images bi-directionally (uploads missing local images, downloads missing remote images).
+ * 5. Re-uploads merged notes_payload.json and updates manifest.json.
+ * 6. Records lastSyncTime in UserPreferencesManager.
+ *
+ * Stage 26: WebDAV Cloud Sync.
+ */
+@Singleton
+class WebDavSyncManager @Inject constructor(
+    @ApplicationContext private val context: Context,
+    private val webDavClient: WebDavClient,
+    private val preferencesManager: UserPreferencesManager,
+    private val database: LozifyDatabase,
+    private val noteRepository: NoteRepository,
+    private val tagRepository: TagRepository
+) {
+
+    /**
+     * Test connection to configured WebDAV server.
+     */
+    suspend fun testConnection(): Result<Boolean> {
+        val serverUrl = preferencesManager.webdavServerUrl.value
+        val username = preferencesManager.webdavUsername.value
+        val password = preferencesManager.webdavPassword.value
+
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            return Result.failure(IllegalArgumentException("请先填写完整的服务器地址、账号及授权密码"))
+        }
+
+        return webDavClient.testConnection(serverUrl, username, password)
+    }
+
+    /**
+     * Perform complete two-way synchronization.
+     */
+    suspend fun performSync(
+        onProgress: (SyncProgress) -> Unit = {}
+    ): SyncResult = withContext(Dispatchers.IO) {
+        val serverUrl = preferencesManager.webdavServerUrl.value
+        val username = preferencesManager.webdavUsername.value
+        val password = preferencesManager.webdavPassword.value
+        val remoteDir = preferencesManager.webdavRemoteDir.value.let {
+            if (it.startsWith("/")) it else "/$it"
+        }.let {
+            if (it.endsWith("/")) it else "$it/"
+        }
+
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            return@withContext SyncResult(
+                isSuccess = false,
+                errorMessage = "请先配置 WebDAV 服务器地址与应用授权密码"
+            )
+        }
+
+        try {
+            // Stage 1: Connecting
+            onProgress(SyncProgress(SyncStage.CONNECTING, 0.1f, "正在连接 WebDAV 服务器..."))
+            val connTest = webDavClient.testConnection(serverUrl, username, password)
+            if (connTest.isFailure) {
+                val errorMsg = connTest.exceptionOrNull()?.message ?: "连接 WebDAV 服务器失败"
+                onProgress(SyncProgress(SyncStage.FAILED, 0f, errorMsg))
+                return@withContext SyncResult(isSuccess = false, errorMessage = errorMsg)
+            }
+
+            // Ensure directories
+            val dataDir = "${remoteDir}data/"
+            val imagesDir = "${remoteDir}images/"
+            webDavClient.ensureDirectory(serverUrl, username, password, remoteDir)
+            webDavClient.ensureDirectory(serverUrl, username, password, dataDir)
+            webDavClient.ensureDirectory(serverUrl, username, password, imagesDir)
+
+            // Stage 2: Fetching Remote Payload
+            onProgress(SyncProgress(SyncStage.FETCHING_REMOTE, 0.25f, "正在拉取云端数据..."))
+            val payloadPath = "${dataDir}notes_payload.json"
+            val downloadRes = webDavClient.downloadBytes(serverUrl, username, password, payloadPath)
+
+            val remoteJson: JSONObject? = if (downloadRes.isSuccess) {
+                try {
+                    JSONObject(String(downloadRes.getOrThrow(), StandardCharsets.UTF_8))
+                } catch (e: Exception) {
+                    null
+                }
+            } else {
+                null
+            }
+
+            // Stage 3: Merging Data (Last-Write-Wins)
+            onProgress(SyncProgress(SyncStage.MERGING_DATA, 0.45f, "正在进行双向数据比对与合并..."))
+            var downloadedNotesCount = 0
+            var uploadedNotesCount = 0
+
+            val localNotes = noteRepository.getAllNotes().first()
+            val localTags = tagRepository.getAllTags().first()
+
+            val remoteNotesMap = mutableMapOf<Long, JSONObject>()
+            val remoteTagsMap = mutableMapOf<String, JSONObject>()
+
+            if (remoteJson != null) {
+                // Parse remote tags
+                val tagsArr = remoteJson.optJSONArray("tags") ?: JSONArray()
+                for (i in 0 until tagsArr.length()) {
+                    val tagObj = tagsArr.getJSONObject(i)
+                    val tagName = tagObj.optString("name")
+                    if (tagName.isNotBlank()) {
+                        remoteTagsMap[tagName] = tagObj
+                    }
+                }
+
+                // Parse remote notes
+                val notesArr = remoteJson.optJSONArray("notes") ?: JSONArray()
+                for (i in 0 until notesArr.length()) {
+                    val noteObj = notesArr.getJSONObject(i)
+                    val noteId = noteObj.optLong("id")
+                    if (noteId > 0) {
+                        remoteNotesMap[noteId] = noteObj
+                    }
+                }
+            }
+
+            val localNotesMap = localNotes.associateBy { it.id }
+            val allNoteIds = (localNotesMap.keys + remoteNotesMap.keys).toSet()
+
+            // Merge tags into local DB
+            for ((tagName, tagObj) in remoteTagsMap) {
+                val existingLocal = tagRepository.getTagByName(tagName)
+                if (existingLocal == null) {
+                    val newTag = TagEntity(
+                        name = tagName,
+                        createdAt = Instant.now(),
+                        icon = tagObj.optString("icon").ifEmpty { null },
+                        isPinned = tagObj.optBoolean("isPinned", false),
+                        pinOrder = tagObj.optInt("pinOrder", 0)
+                    )
+                    database.tagDao().insertTag(newTag)
+                }
+            }
+
+            // Merge notes
+            for (id in allNoteIds) {
+                val local = localNotesMap[id]
+                val remote = remoteNotesMap[id]
+
+                if (local == null && remote != null) {
+                    // New remote note -> insert locally
+                    insertRemoteNoteToLocal(remote)
+                    downloadedNotesCount++
+                } else if (local != null && remote == null) {
+                    // New local note -> will be uploaded in merged payload
+                    uploadedNotesCount++
+                } else if (local != null && remote != null) {
+                    val remoteUpdatedAt = remote.optLong("updatedAt", 0L)
+                    val localUpdatedAt = local.updatedAt.toEpochMilli()
+
+                    if (remoteUpdatedAt > localUpdatedAt) {
+                        // Remote is newer -> update local DB
+                        updateLocalNoteFromRemote(local.id, remote)
+                        downloadedNotesCount++
+                    } else if (localUpdatedAt > remoteUpdatedAt) {
+                        // Local is newer -> will be uploaded
+                        uploadedNotesCount++
+                    }
+                }
+            }
+
+            // Stage 4: Syncing Images
+            onProgress(SyncProgress(SyncStage.SYNCING_IMAGES, 0.65f, "正在同步多媒体图片附件..."))
+            var uploadedImagesCount = 0
+            var downloadedImagesCount = 0
+
+            val remoteFilesRes = webDavClient.listFiles(serverUrl, username, password, imagesDir)
+            val remoteImageNames = if (remoteFilesRes.isSuccess) {
+                remoteFilesRes.getOrThrow().map { it.href.substringAfterLast('/') }.toSet()
+            } else {
+                emptySet()
+            }
+
+            // Upload missing local images
+            val localImagesDir = File(context.filesDir, "images")
+            if (localImagesDir.exists()) {
+                val localImageFiles = localImagesDir.listFiles() ?: emptyArray()
+                for (localImg in localImageFiles) {
+                    if (localImg.isFile && localImg.name !in remoteImageNames) {
+                        val uploadImgRes = webDavClient.uploadFile(
+                            serverUrl, username, password,
+                            "$imagesDir${localImg.name}",
+                            localImg
+                        )
+                        if (uploadImgRes.isSuccess) {
+                            uploadedImagesCount++
+                        }
+                    }
+                }
+            }
+
+            // Download missing remote images
+            val allMergedNotes = noteRepository.getAllNotes().first()
+            for (note in allMergedNotes) {
+                for (att in note.attachments) {
+                    val localTarget = File(context.filesDir, att.filePath)
+                    if (!localTarget.exists()) {
+                        val imgFileName = att.filePath.substringAfterLast('/')
+                        if (imgFileName in remoteImageNames) {
+                            val dlRes = webDavClient.downloadFile(
+                                serverUrl, username, password,
+                                "$imagesDir$imgFileName",
+                                localTarget
+                            )
+                            if (dlRes.isSuccess) {
+                                downloadedImagesCount++
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Stage 5: Uploading Final Merged Payload
+            onProgress(SyncProgress(SyncStage.UPLOADING_REMOTE, 0.85f, "正在回写云端全量数据..."))
+            val finalNotes = noteRepository.getAllNotes().first()
+            val finalTags = tagRepository.getAllTags().first()
+
+            val mergedPayloadJson = serializePayloadJson(finalNotes, finalTags)
+            webDavClient.uploadBytes(
+                serverUrl, username, password,
+                payloadPath,
+                mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)
+            )
+
+            // Update manifest.json
+            val nowEpoch = System.currentTimeMillis()
+            val manifestJson = JSONObject().apply {
+                put("version", 1)
+                put("lastSyncTime", nowEpoch)
+                put("noteCount", finalNotes.size)
+                put("tagCount", finalTags.size)
+                put("device", android.os.Build.MODEL ?: "Android")
+            }
+            webDavClient.uploadBytes(
+                serverUrl, username, password,
+                "${remoteDir}manifest.json",
+                manifestJson.toString(2).toByteArray(StandardCharsets.UTF_8)
+            )
+
+            // Save sync timestamp
+            preferencesManager.setWebDavLastSyncTime(nowEpoch)
+
+            onProgress(SyncProgress(SyncStage.COMPLETED, 1.0f, "同步成功！"))
+
+            return@withContext SyncResult(
+                isSuccess = true,
+                uploadedNotes = uploadedNotesCount,
+                downloadedNotes = downloadedNotesCount,
+                uploadedImages = uploadedImagesCount,
+                downloadedImages = downloadedImagesCount
+            )
+        } catch (e: Exception) {
+            val err = e.localizedMessage ?: "同步失败"
+            onProgress(SyncProgress(SyncStage.FAILED, 0f, err))
+            return@withContext SyncResult(isSuccess = false, errorMessage = err)
+        }
+    }
+
+    private suspend fun insertRemoteNoteToLocal(remote: JSONObject) {
+        val noteId = remote.optLong("id")
+        val content = remote.optString("content", "")
+        val isPinned = remote.optBoolean("isPinned", false)
+        val isArchived = remote.optBoolean("isArchived", false)
+        val isDeleted = remote.optBoolean("isDeleted", false)
+        val createdAt = Instant.ofEpochMilli(remote.optLong("createdAt", System.currentTimeMillis()))
+        val updatedAt = Instant.ofEpochMilli(remote.optLong("updatedAt", System.currentTimeMillis()))
+
+        val entity = NoteEntity(
+            id = noteId,
+            content = content,
+            isPinned = isPinned,
+            isArchived = isArchived,
+            isDeleted = isDeleted,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+        database.noteDao().insertNote(entity)
+
+        // Tags
+        val tagNames = remote.optJSONArray("tags")
+        if (tagNames != null) {
+            for (i in 0 until tagNames.length()) {
+                val name = tagNames.optString(i)
+                if (name.isNotBlank()) {
+                    val existingTag = database.tagDao().getTagByName(name)
+                    val tagId = existingTag?.id ?: database.tagDao().insertTag(TagEntity(name = name, createdAt = Instant.now()))
+                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tagId = tagId))
+                }
+            }
+        }
+
+        // Attachments
+        val atts = remote.optJSONArray("attachments")
+        if (atts != null) {
+            for (i in 0 until atts.length()) {
+                val attObj = atts.getJSONObject(i)
+                val filePath = attObj.optString("filePath")
+                val displayOrder = attObj.optInt("displayOrder", i)
+                val mimeType = attObj.optString("mimeType", "image/jpeg")
+                if (filePath.isNotBlank()) {
+                    database.attachmentDao().insertAttachment(
+                        AttachmentEntity(
+                            noteId = noteId,
+                            filePath = filePath,
+                            displayOrder = displayOrder,
+                            createdAt = Instant.now(),
+                            mimeType = mimeType
+                        )
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun updateLocalNoteFromRemote(noteId: Long, remote: JSONObject) {
+        val content = remote.optString("content", "")
+        val isPinned = remote.optBoolean("isPinned", false)
+        val isArchived = remote.optBoolean("isArchived", false)
+        val isDeleted = remote.optBoolean("isDeleted", false)
+        val createdAt = Instant.ofEpochMilli(remote.optLong("createdAt", System.currentTimeMillis()))
+        val updatedAt = Instant.ofEpochMilli(remote.optLong("updatedAt", System.currentTimeMillis()))
+
+        val entity = NoteEntity(
+            id = noteId,
+            content = content,
+            isPinned = isPinned,
+            isArchived = isArchived,
+            isDeleted = isDeleted,
+            createdAt = createdAt,
+            updatedAt = updatedAt
+        )
+        database.noteDao().updateNote(entity)
+
+        // Clear and re-insert cross refs
+        database.tagDao().deleteAllTagsForNote(noteId)
+        val tagNames = remote.optJSONArray("tags")
+        if (tagNames != null) {
+            for (i in 0 until tagNames.length()) {
+                val name = tagNames.optString(i)
+                if (name.isNotBlank()) {
+                    val existingTag = database.tagDao().getTagByName(name)
+                    val tagId = existingTag?.id ?: database.tagDao().insertTag(TagEntity(name = name, createdAt = Instant.now()))
+                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tagId = tagId))
+                }
+            }
+        }
+    }
+
+    private fun serializePayloadJson(notes: List<Note>, tags: List<Tag>): JSONObject {
+        val root = JSONObject()
+        root.put("version", 1)
+        root.put("exportedAt", Instant.now().toString())
+
+        val tagsArr = JSONArray()
+        tags.forEach { tag ->
+            val obj = JSONObject().apply {
+                put("id", tag.id)
+                put("name", tag.name)
+                put("icon", tag.icon ?: "")
+                put("isPinned", tag.isPinned)
+                put("pinOrder", tag.pinOrder)
+                put("usageCount", tag.usageCount)
+            }
+            tagsArr.put(obj)
+        }
+        root.put("tags", tagsArr)
+
+        val notesArr = JSONArray()
+        notes.forEach { note ->
+            val obj = JSONObject().apply {
+                put("id", note.id)
+                put("content", note.content)
+                put("isPinned", note.isPinned)
+                put("isArchived", note.isArchived)
+                put("isDeleted", note.isDeleted)
+                put("createdAt", note.createdAt.toEpochMilli())
+                put("updatedAt", note.updatedAt.toEpochMilli())
+
+                val tagNames = JSONArray()
+                note.tags.forEach { tagNames.put(it.name) }
+                put("tags", tagNames)
+
+                val relations = JSONArray()
+                note.outgoingRelations.forEach { rel ->
+                    val relObj = JSONObject().apply {
+                        put("toNoteId", rel.toNoteId)
+                        put("mentionText", rel.mentionText)
+                    }
+                    relations.put(relObj)
+                }
+                put("outgoingRelations", relations)
+
+                val atts = JSONArray()
+                note.attachments.forEach { att ->
+                    val attObj = JSONObject().apply {
+                        put("filePath", att.filePath)
+                        put("displayOrder", att.displayOrder)
+                        put("mimeType", att.mimeType ?: "image/jpeg")
+                    }
+                    atts.put(attObj)
+                }
+                put("attachments", atts)
+            }
+            notesArr.put(obj)
+        }
+        root.put("notes", notesArr)
+
+        return root
+    }
+}

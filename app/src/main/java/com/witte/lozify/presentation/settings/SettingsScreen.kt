@@ -35,10 +35,10 @@ fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToBackup: () -> Unit,
     onNavigateToHelp: () -> Unit,
+    onNavigateToWebDavSync: () -> Unit,
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
-    var showWebDavNotice by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -219,25 +219,8 @@ fun SettingsScreen(
                             icon = Icons.Outlined.CloudSync,
                             title = "坚果云 / WebDAV 云同步",
                             subtitle = "支持跨设备多端自动备份与双向同步",
-                            badgeText = "开发中",
-                            onClick = { showWebDavNotice = !showWebDavNotice }
+                            onClick = onNavigateToWebDavSync
                         )
-
-                        AnimatedVisibility(visible = showWebDavNotice) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFF9FAFB))
-                                    .padding(horizontal = 16.dp, vertical = 12.dp)
-                            ) {
-                                Text(
-                                    text = "☁️ 坚果云等标准 WebDAV 云盘多端双向同步正在紧密研发中，届时将支持输入坚果云服务器地址与应用授权密码，实现多端无缝自动同步！",
-                                    fontSize = 12.sp,
-                                    color = Color(0xFF666666),
-                                    lineHeight = 17.sp
-                                )
-                            }
-                        }
                     }
                 }
             }

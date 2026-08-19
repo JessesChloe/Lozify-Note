@@ -96,6 +96,9 @@ dependencies {
     // ExifInterface for image orientation correction
     implementation(libs.androidx.exifinterface)
 
+    // OkHttp for WebDAV Cloud Sync
+    implementation(libs.okhttp)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation("org.json:json:20240303")

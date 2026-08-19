@@ -11,6 +11,7 @@ object Routes {
     const val HELP = "help"
     const val BACKUP = "backup"
     const val SETTINGS = "settings"
+    const val WEBDAV_SYNC = "webdav_sync"
     const val TAG_EDIT = "tag_edit/{tagId}"
 
     fun tagEdit(tagId: Long): String = "tag_edit/$tagId"

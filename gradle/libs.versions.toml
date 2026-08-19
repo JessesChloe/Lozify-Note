@@ -31,12 +31,18 @@ coil = "2.6.0"
 # ExifInterface for image orientation correction
 exifinterface = "1.3.7"
 
+# OkHttp for WebDAV Cloud Sync
+okhttp = "4.12.0"
+
 # Testing
 junit = "4.13.2"
 androidx-test-ext-junit = "1.1.5"
 espresso-core = "3.5.1"
 
 [libraries]
+# OkHttp
+okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
+
 # AndroidX Core
 androidx-core-ktx = { group = "androidx.core", name = "core-ktx", version.ref = "core-ktx" }
 androidx-lifecycle-runtime-ktx = { group = "androidx.lifecycle", name = "lifecycle-runtime-ktx", version.ref = "lifecycle-runtime-ktx" }
