@@ -207,8 +207,22 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **7** | Rich Formatting | ✅ Completed | 2026-08-10 | 2026-08-10 | Bold, underline, highlight, interactive checkboxes, AnnotatedString rendering, multiline regex fix |
 | **8** | @Relations | ✅ Completed | 2026-08-10 | 2026-08-11 | @mention parsing, NoteRelationEntity, bidirectional links, relation tracing UI, scroll+highlight interaction |
 | **9** | Card Operations | ✅ Completed | 2026-08-11 | 2026-08-12 | SwipeToDismiss gestures, pin/archive status management, data layer refactor |
-| **10** | Archive Screen | 🟡 In Progress | 2026-08-12 | - | Archive screen UI, navigation system, restore/delete operations |
-| **11** | Polish | ⚪ Not Started | - | - | Empty states, error handling, accessibility, final testing |
+| **10** | Archive Screen | ✅ Completed | 2026-08-12 | 2026-08-12 | Archive screen UI, navigation system, restore/delete operations |
+| **11** | Polish & Navigation | ✅ Completed | 2026-08-12 | 2026-08-12 | Empty states, error handling, drawer navigation integration |
+| **12** | Trash Rename & Tag Ops | ✅ Completed | 2026-08-12 | 2026-08-12 | Tag operations UI integration and trash rename |
+| **13** | Schema Migration & Media | ✅ Completed | 2026-08-17 | 2026-08-17 | Inline tag capsules, responsive AttachmentGrid, thread timeline view |
+| **14** | Rich Card Menu & Stats | ✅ Completed | 2026-08-17 | 2026-08-17 | Flomo card dropdown menu, drawer achievement stats panel |
+| **15** | Heatmap & Input Filter | ✅ Completed | 2026-08-17 | 2026-08-18 | Contribution heatmap, smart input filter with atomic deletion, marker fading |
+| **16** | Media Lightbox & Backup | ✅ Completed | 2026-08-18 | 2026-08-18 | Pinned tags, fullscreen image lightbox, search highlight, ZIP backup/restore |
+| **17** | Editor Toolbar & Settings | ✅ Completed | 2026-08-18 | 2026-08-18 | Flomo-style editor toolbar, settings center, note collapse preferences |
+| **18** | Visual Alignment | ✅ Completed | 2026-08-18 | 2026-08-18 | 1:1 Flomo typography, borderless cards, 85% drawer width, relation lines |
+| **19** | Zero-Delay & Keyboard | ✅ Completed | 2026-08-18 | 2026-08-18 | TopBar seamless gray, smooth keyboard sync, instant scroll-to-top on save |
+| **20** | Build Modernization | ✅ Completed | 2026-08-18 | 2026-08-18 | Daemon JVM criteria migration, compileSdk 35 compatibility |
+| **21** | Stream Sorting & ZIP Detect | ✅ Completed | 2026-08-18 | 2026-08-18 | TopBar sorting menu, dynamic tag title, auto-detecting Markdown ZIP restore |
+| **22** | Flomo Heatmap & Calendar | ✅ Completed | 2026-08-18 | 2026-08-18 | 13-column chunky heatmap, bold stats panel, ActivityCalendarBottomSheet |
+| **23** | Clean Brand Logo | ✅ Completed | 2026-08-18 | 2026-08-18 | Clean green L-pen logo without outer ring, full Android mipmaps |
+| **24** | Scrolling Performance | ✅ Completed | 2026-08-19 | 2026-08-19 | Precompiled static regexes, LRU cache, onTextLayout fix, lazy menu mounting |
+| **25** | Vector Logotype & TopBar | ✅ Completed | 2026-08-19 | 2026-08-19 | Geometric lozify vector brand logotype, two-line minimalist hamburger menu |
 
 **Status Legend:**
 - ⚪ Not Started
