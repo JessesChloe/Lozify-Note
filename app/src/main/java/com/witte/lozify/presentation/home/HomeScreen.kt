@@ -56,6 +56,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.unit.Velocity
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.rememberDrawerState
@@ -144,6 +149,49 @@ fun HomeScreen(
 
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
+
+    // Stage 29: Pull-to-sync nested scroll listener
+    val nestedScrollConnection = remember {
+        object : NestedScrollConnection {
+            var accumulatedPullOffset = 0f
+            val pullThreshold = 70f // pixels to trigger sync
+
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (source == NestedScrollSource.Drag &&
+                    available.y > 0 &&
+                    listState.firstVisibleItemIndex == 0 &&
+                    listState.firstVisibleItemScrollOffset == 0
+                ) {
+                    accumulatedPullOffset += available.y
+                    if (accumulatedPullOffset > 20f && uiState.pullSyncState == PullSyncState.IDLE) {
+                        homeViewModel.onPullDragging()
+                    }
+                } else if (available.y < 0 && accumulatedPullOffset > 0) {
+                    accumulatedPullOffset = 0f
+                    if (uiState.pullSyncState == PullSyncState.PULLING) {
+                        homeViewModel.onPullCanceled()
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override suspend fun onPreFling(available: Velocity): Velocity {
+                if (accumulatedPullOffset >= pullThreshold && uiState.pullSyncState == PullSyncState.PULLING) {
+                    accumulatedPullOffset = 0f
+                    homeViewModel.triggerPullToSync()
+                } else {
+                    accumulatedPullOffset = 0f
+                    if (uiState.pullSyncState == PullSyncState.PULLING) {
+                        homeViewModel.onPullCanceled()
+                    }
+                }
+                return Velocity.Zero
+            }
+        }
+    }
 
     val topNoteId = uiState.notes.firstOrNull()?.id
     val notesCount = uiState.notes.size
@@ -477,9 +525,14 @@ fun HomeScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // Stage 5 Refactor: Removed TagFilterBar (replaced by drawer)
+            // Stage 29: Pull-to-sync elastic stats and status header
+            PullToSyncHeader(
+                syncState = uiState.pullSyncState,
+                notesCount = uiState.totalActiveNotesCount,
+                statusText = uiState.pullSyncStatusText
+            )
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(4.dp))
 
             // Content area: loading, empty, or note list
             when {
@@ -501,7 +554,9 @@ fun HomeScreen(
                         state = listState,
                         contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp),
-                        modifier = Modifier.fillMaxSize()
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .nestedScroll(nestedScrollConnection)
                     ) {
                         itemsIndexed(uiState.notes, key = { _, note -> note.id }) { index, note ->
                             NoteCard(

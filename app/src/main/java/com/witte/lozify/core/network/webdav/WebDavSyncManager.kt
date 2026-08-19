@@ -52,6 +52,7 @@ data class SyncProgress(
  */
 data class SyncResult(
     val isSuccess: Boolean,
+    val isAlreadyUpToDate: Boolean = false,
     val uploadedNotes: Int = 0,
     val downloadedNotes: Int = 0,
     val uploadedImages: Int = 0,
@@ -65,12 +66,13 @@ data class SyncResult(
  * Algorithm:
  * 1. Reads WebDAV connection credentials from UserPreferencesManager.
  * 2. Ensures remote root directory (/Lozify/) and image directory (/Lozify/images/) exist.
- * 3. Downloads remote notes_payload.json (if present) and performs Last-Write-Wins (LWW) merge with local Room DB.
- * 4. Syncs images bi-directionally (uploads missing local images, downloads missing remote images).
- * 5. Re-uploads merged notes_payload.json and updates manifest.json.
- * 6. Records lastSyncTime in UserPreferencesManager.
+ * 3. Fast-Path: Probes manifest.json to skip sync in <150ms with 0 payload traffic if no changes on either side.
+ * 4. Downloads remote notes_payload.json (if present) and performs Last-Write-Wins (LWW) merge with local Room DB.
+ * 5. Syncs images bi-directionally (uploads missing local images, downloads missing remote images).
+ * 6. Re-uploads merged notes_payload.json and updates manifest.json.
+ * 7. Records lastSyncTime in UserPreferencesManager.
  *
- * Stage 26: WebDAV Cloud Sync.
+ * Stage 29: WebDAV Cloud Sync Fast-Path Optimization.
  */
 @Singleton
 class WebDavSyncManager @Inject constructor(
@@ -98,9 +100,12 @@ class WebDavSyncManager @Inject constructor(
     }
 
     /**
-     * Perform complete two-way synchronization.
+     * Perform complete two-way synchronization with Fast-Path support.
+     *
+     * @param forceFullSync If true, skips manifest timestamp shortcut and performs full merge.
      */
     suspend fun performSync(
+        forceFullSync: Boolean = false,
         onProgress: (SyncProgress) -> Unit = {}
     ): SyncResult = withContext(Dispatchers.IO) {
         val serverUrl = preferencesManager.webdavServerUrl.value
@@ -144,6 +149,39 @@ class WebDavSyncManager @Inject constructor(
                     isSuccess = false,
                     errorMessage = "已开启端到端加密，但未设置加密主密码，请先输入密码"
                 )
+            }
+
+            // Fast-Path: Probe manifest.json to skip sync if no updates occurred
+            if (!forceFullSync) {
+                val manifestRes = webDavClient.downloadBytes(serverUrl, username, password, "${remoteDir}manifest.json")
+                if (manifestRes.isSuccess) {
+                    val manifestObj = try {
+                        JSONObject(String(manifestRes.getOrThrow(), StandardCharsets.UTF_8))
+                    } catch (e: Exception) {
+                        null
+                    }
+
+                    if (manifestObj != null) {
+                        val remoteLastSyncTime = manifestObj.optLong("lastSyncTime", 0L)
+                        val remoteNoteCount = manifestObj.optInt("noteCount", -1)
+                        val localLastSyncTime = preferencesManager.webdavLastSyncTime.value
+
+                        val localNotes = noteRepository.getAllNotes().first()
+                        val maxLocalUpdatedAt = localNotes.maxOfOrNull { it.updatedAt.toEpochMilli() } ?: 0L
+
+                        if (remoteLastSyncTime > 0 && localLastSyncTime > 0 &&
+                            remoteLastSyncTime <= localLastSyncTime &&
+                            maxLocalUpdatedAt <= localLastSyncTime &&
+                            remoteNoteCount == localNotes.size
+                        ) {
+                            onProgress(SyncProgress(SyncStage.COMPLETED, 1.0f, "已是最新数据"))
+                            return@withContext SyncResult(
+                                isSuccess = true,
+                                isAlreadyUpToDate = true
+                            )
+                        }
+                    }
+                }
             }
 
             // Stage 2: Fetching Remote Payload

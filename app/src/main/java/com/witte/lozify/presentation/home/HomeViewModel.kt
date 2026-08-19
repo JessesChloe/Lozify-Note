@@ -2,6 +2,7 @@ package com.witte.lozify.presentation.home
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.witte.lozify.core.network.webdav.WebDavSyncManager
 import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.domain.model.Note
 import com.witte.lozify.domain.model.Tag
@@ -31,12 +32,14 @@ import javax.inject.Inject
  * Stage 4: Added tag filtering functionality.
  * Stage 14: Added user achievement and statistics tracking.
  * Stage 17: Connected UserPreferencesManager for dynamic card collapse lines.
+ * Stage 29: Added Pull-to-Sync gesture and Fast-Path sync trigger.
  */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
     private val noteRepository: NoteRepository,
     private val tagRepository: TagRepository,
-    private val preferencesManager: UserPreferencesManager
+    private val preferencesManager: UserPreferencesManager,
+    private val syncManager: WebDavSyncManager
 ) : ViewModel() {
 
     /**
@@ -55,6 +58,7 @@ class HomeViewModel @Inject constructor(
      * Stage 14: Added userStats and heatmapData for drawer dashboard.
      * Stage 17: Added maxCollapseLines.
      * Stage 21: Added sortOrder.
+     * Stage 29: Added pullSyncState and pullSyncStatusText.
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
@@ -66,7 +70,10 @@ class HomeViewModel @Inject constructor(
         val userStats: UserStats = UserStats(),
         val heatmapData: Map<LocalDate, Int> = emptyMap(),
         val maxCollapseLines: Int = 5,
-        val sortOrder: NoteSortOrder = NoteSortOrder.CREATED_DESC
+        val sortOrder: NoteSortOrder = NoteSortOrder.CREATED_DESC,
+        val pullSyncState: PullSyncState = PullSyncState.IDLE,
+        val pullSyncStatusText: String? = null,
+        val totalActiveNotesCount: Int = 0
     )
 
     /**
@@ -84,6 +91,12 @@ class HomeViewModel @Inject constructor(
      */
     private val _sortOrder = MutableStateFlow(NoteSortOrder.CREATED_DESC)
 
+    /**
+     * Stage 29: Pull to sync states.
+     */
+    private val _pullSyncState = MutableStateFlow(PullSyncState.IDLE)
+    private val _pullSyncStatusText = MutableStateFlow<String?>(null)
+
     private data class BaseHomeData(
         val allNotes: List<Note>,
         val allTags: List<Tag>,
@@ -91,8 +104,13 @@ class HomeViewModel @Inject constructor(
         val searchQuery: String
     )
 
+    private data class PullSyncData(
+        val state: PullSyncState,
+        val statusText: String?
+    )
+
     /**
-     * Reactive state flow combining notes, tags, filter state, search query, and sort order.
+     * Reactive state flow combining notes, tags, filter state, search query, sort order, and pull-sync status.
      */
     val uiState: StateFlow<HomeUiState> = combine(
         combine(
@@ -104,8 +122,11 @@ class HomeViewModel @Inject constructor(
             BaseHomeData(allNotes, allTags, selectedTagId, searchQuery)
         },
         preferencesManager.maxCollapseLines,
-        _sortOrder
-    ) { base, maxCollapseLines, sortOrder ->
+        _sortOrder,
+        combine(_pullSyncState, _pullSyncStatusText) { state, text ->
+            PullSyncData(state, text)
+        }
+    ) { base, maxCollapseLines, sortOrder, pullSync ->
         val allNotes = base.allNotes
         val allTags = base.allTags
         val selectedTagId = base.selectedTagId
@@ -184,13 +205,79 @@ class HomeViewModel @Inject constructor(
             userStats = userStats,
             heatmapData = heatmapData,
             maxCollapseLines = maxCollapseLines,
-            sortOrder = sortOrder
+            sortOrder = sortOrder,
+            pullSyncState = pullSync.state,
+            pullSyncStatusText = pullSync.statusText,
+            totalActiveNotesCount = totalNotesCount
         )
     }.stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = HomeUiState(isLoading = true)
     )
+
+    fun onPullDragging() {
+        if (_pullSyncState.value == PullSyncState.IDLE) {
+            _pullSyncState.value = PullSyncState.PULLING
+        }
+    }
+
+    fun onPullCanceled() {
+        if (_pullSyncState.value == PullSyncState.PULLING) {
+            _pullSyncState.value = PullSyncState.IDLE
+        }
+    }
+
+    fun triggerPullToSync() {
+        if (_pullSyncState.value == PullSyncState.SYNCING) return
+
+        viewModelScope.launch {
+            _pullSyncState.value = PullSyncState.SYNCING
+            _pullSyncStatusText.value = "正在同步中 ···"
+
+            val hasConfig = preferencesManager.webdavServerUrl.value.isNotBlank() &&
+                    preferencesManager.webdavUsername.value.isNotBlank() &&
+                    preferencesManager.webdavPassword.value.isNotBlank()
+
+            if (!hasConfig) {
+                _pullSyncState.value = PullSyncState.ERROR
+                _pullSyncStatusText.value = "未配置云同步 (前往设置)"
+                kotlinx.coroutines.delay(1000)
+                _pullSyncState.value = PullSyncState.IDLE
+                _pullSyncStatusText.value = null
+                return@launch
+            }
+
+            val result = syncManager.performSync(forceFullSync = false) { progress ->
+                when (progress.stage) {
+                    com.witte.lozify.core.network.webdav.SyncStage.CONNECTING -> {
+                        _pullSyncStatusText.value = "正在连接云端 ···"
+                    }
+                    com.witte.lozify.core.network.webdav.SyncStage.FETCHING_REMOTE,
+                    com.witte.lozify.core.network.webdav.SyncStage.MERGING_DATA -> {
+                        _pullSyncStatusText.value = "正在比对增量 ···"
+                    }
+                    com.witte.lozify.core.network.webdav.SyncStage.SYNCING_IMAGES -> {
+                        _pullSyncStatusText.value = "正在同步图片 ···"
+                    }
+                    else -> {}
+                }
+            }
+
+            if (result.isSuccess) {
+                _pullSyncState.value = PullSyncState.COMPLETED
+                _pullSyncStatusText.value = if (result.isAlreadyUpToDate) "已是最新数据 ✓" else "同步完成 ✓"
+            } else {
+                _pullSyncState.value = PullSyncState.ERROR
+                _pullSyncStatusText.value = result.errorMessage ?: "同步未完成"
+            }
+
+            // Smoothly collapse after 450ms
+            kotlinx.coroutines.delay(450)
+            _pullSyncState.value = PullSyncState.IDLE
+            _pullSyncStatusText.value = null
+        }
+    }
 
     /**
      * Stage 14: Dedicated StateFlow for user achievement statistics.
