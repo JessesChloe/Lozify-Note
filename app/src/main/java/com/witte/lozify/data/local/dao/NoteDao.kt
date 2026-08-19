@@ -186,4 +186,16 @@ interface NoteDao {
      */
     @Query("SELECT COUNT(*) FROM notes WHERE is_deleted = 0")
     fun getActiveNotesCount(): Flow<Int>
+
+    /**
+     * Stage 30: Get a single note by its globally unique syncId.
+     */
+    @Query("SELECT * FROM notes WHERE sync_id = :syncId LIMIT 1")
+    suspend fun getNoteBySyncId(syncId: String): NoteEntity?
+
+    /**
+     * Stage 30: Assign a persistent syncId to a note.
+     */
+    @Query("UPDATE notes SET sync_id = :syncId WHERE id = :noteId")
+    suspend fun updateSyncId(noteId: Long, syncId: String)
 }

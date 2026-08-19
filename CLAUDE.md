@@ -227,6 +227,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **27** | WebDAV E2EE & Anti-Censorship | ✅ Completed | 2026-08-19 | 2026-08-19 | AES-256-GCM hardware encryption, PBKDF2 KDF, anti-censorship .enc sync |
 | **28** | Gitee / GitHub Update Push | ✅ Completed | 2026-08-19 | 2026-08-19 | Gitee primary + GitHub fallback dual-channel update check, AppUpdateDialog |
 | **29** | Pull-to-Sync & Fast-Path | ✅ Completed | 2026-08-19 | 2026-08-19 | Elastic notes count header, in-place sync state transition, manifest-first zero-traffic fast-path |
+| **30** | Distributed Global UUID Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Universal syncId entity matching, auto-increment collision elimination, self-healing legacy notes |
 
 **Status Legend:**
 - ⚪ Not Started

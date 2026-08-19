@@ -224,15 +224,24 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            // Stage 3: Merging Data (Last-Write-Wins)
+            // Stage 3: Merging Data (Distributed UUID Last-Write-Wins)
             onProgress(SyncProgress(SyncStage.MERGING_DATA, 0.45f, "正在进行双向数据比对与合并..."))
             var downloadedNotesCount = 0
             var uploadedNotesCount = 0
 
+            // Stage 30 Self-Healing: Ensure all local notes have a persistent global syncId (UUID)
+            val rawLocalNotes = noteRepository.getAllNotes().first()
+            for (rawNote in rawLocalNotes) {
+                if (rawNote.syncId.isBlank()) {
+                    val assignedSyncId = "lz-${rawNote.createdAt.toEpochMilli()}-${java.util.UUID.randomUUID().toString().take(8)}"
+                    database.noteDao().updateSyncId(rawNote.id, assignedSyncId)
+                }
+            }
+
             val localNotes = noteRepository.getAllNotes().first()
             val localTags = tagRepository.getAllTags().first()
 
-            val remoteNotesMap = mutableMapOf<Long, JSONObject>()
+            val remoteNotesBySyncId = mutableMapOf<String, JSONObject>()
             val remoteTagsMap = mutableMapOf<String, JSONObject>()
 
             if (remoteJson != null) {
@@ -246,19 +255,23 @@ class WebDavSyncManager @Inject constructor(
                     }
                 }
 
-                // Parse remote notes
+                // Parse remote notes by global syncId (UUID)
                 val notesArr = remoteJson.optJSONArray("notes") ?: JSONArray()
                 for (i in 0 until notesArr.length()) {
                     val noteObj = notesArr.getJSONObject(i)
-                    val noteId = noteObj.optLong("id")
-                    if (noteId > 0) {
-                        remoteNotesMap[noteId] = noteObj
+                    val syncId = noteObj.optString("syncId").ifEmpty {
+                        val legacyCreatedAt = noteObj.optLong("createdAt", 0L)
+                        val legacyId = noteObj.optLong("id", 0L)
+                        "lz-$legacyCreatedAt-$legacyId"
+                    }
+                    if (syncId.isNotBlank()) {
+                        remoteNotesBySyncId[syncId] = noteObj
                     }
                 }
             }
 
-            val localNotesMap = localNotes.associateBy { it.id }
-            val allNoteIds = (localNotesMap.keys + remoteNotesMap.keys).toSet()
+            val localNotesBySyncId = localNotes.associateBy { it.syncId }
+            val allSyncIds = (localNotesBySyncId.keys + remoteNotesBySyncId.keys).toSet()
 
             // Merge tags into local DB
             for ((tagName, tagObj) in remoteTagsMap) {
@@ -275,14 +288,14 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            // Merge notes
-            for (id in allNoteIds) {
-                val local = localNotesMap[id]
-                val remote = remoteNotesMap[id]
+            // Merge notes strictly by global syncId (UUID) to prevent ID collision
+            for (syncId in allSyncIds) {
+                val local = localNotesBySyncId[syncId]
+                val remote = remoteNotesBySyncId[syncId]
 
                 if (local == null && remote != null) {
-                    // New remote note -> insert locally
-                    insertRemoteNoteToLocal(remote)
+                    // New remote note -> insert into local DB (assigns device-specific integer ID)
+                    insertRemoteNoteToLocal(syncId, remote)
                     downloadedNotesCount++
                 } else if (local != null && remote == null) {
                     // New local note -> will be uploaded in merged payload
@@ -293,7 +306,7 @@ class WebDavSyncManager @Inject constructor(
 
                     if (remoteUpdatedAt > localUpdatedAt) {
                         // Remote is newer -> update local DB
-                        updateLocalNoteFromRemote(local.id, remote)
+                        updateLocalNoteFromRemote(local.id, syncId, remote)
                         downloadedNotesCount++
                     } else if (localUpdatedAt > remoteUpdatedAt) {
                         // Local is newer -> will be uploaded
@@ -454,8 +467,7 @@ class WebDavSyncManager @Inject constructor(
         }
     }
 
-    private suspend fun insertRemoteNoteToLocal(remote: JSONObject) {
-        val noteId = remote.optLong("id")
+    private suspend fun insertRemoteNoteToLocal(syncId: String, remote: JSONObject) {
         val content = remote.optString("content", "")
         val isPinned = remote.optBoolean("isPinned", false)
         val isArchived = remote.optBoolean("isArchived", false)
@@ -464,15 +476,16 @@ class WebDavSyncManager @Inject constructor(
         val updatedAt = Instant.ofEpochMilli(remote.optLong("updatedAt", System.currentTimeMillis()))
 
         val entity = NoteEntity(
-            id = noteId,
+            id = 0L, // Let Room auto-generate device-specific local ID (avoids ID collision)
             content = content,
             isPinned = isPinned,
             isArchived = isArchived,
             isDeleted = isDeleted,
+            syncId = syncId,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
-        database.noteDao().insertNote(entity)
+        val newLocalNoteId = database.noteDao().insertNote(entity)
 
         // Tags
         val tagNames = remote.optJSONArray("tags")
@@ -482,7 +495,7 @@ class WebDavSyncManager @Inject constructor(
                 if (name.isNotBlank()) {
                     val existingTag = database.tagDao().getTagByName(name)
                     val tagId = existingTag?.id ?: database.tagDao().insertTag(TagEntity(name = name, createdAt = Instant.now()))
-                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tagId = tagId))
+                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = newLocalNoteId, tagId = tagId))
                 }
             }
         }
@@ -498,7 +511,7 @@ class WebDavSyncManager @Inject constructor(
                 if (filePath.isNotBlank()) {
                     database.attachmentDao().insertAttachment(
                         AttachmentEntity(
-                            noteId = noteId,
+                            noteId = newLocalNoteId,
                             filePath = filePath,
                             displayOrder = displayOrder,
                             createdAt = Instant.now(),
@@ -510,7 +523,7 @@ class WebDavSyncManager @Inject constructor(
         }
     }
 
-    private suspend fun updateLocalNoteFromRemote(noteId: Long, remote: JSONObject) {
+    private suspend fun updateLocalNoteFromRemote(localNoteId: Long, syncId: String, remote: JSONObject) {
         val content = remote.optString("content", "")
         val isPinned = remote.optBoolean("isPinned", false)
         val isArchived = remote.optBoolean("isArchived", false)
@@ -519,18 +532,19 @@ class WebDavSyncManager @Inject constructor(
         val updatedAt = Instant.ofEpochMilli(remote.optLong("updatedAt", System.currentTimeMillis()))
 
         val entity = NoteEntity(
-            id = noteId,
+            id = localNoteId,
             content = content,
             isPinned = isPinned,
             isArchived = isArchived,
             isDeleted = isDeleted,
+            syncId = syncId,
             createdAt = createdAt,
             updatedAt = updatedAt
         )
         database.noteDao().updateNote(entity)
 
         // Clear and re-insert cross refs
-        database.tagDao().deleteAllTagsForNote(noteId)
+        database.tagDao().deleteAllTagsForNote(localNoteId)
         val tagNames = remote.optJSONArray("tags")
         if (tagNames != null) {
             for (i in 0 until tagNames.length()) {
@@ -538,7 +552,7 @@ class WebDavSyncManager @Inject constructor(
                 if (name.isNotBlank()) {
                     val existingTag = database.tagDao().getTagByName(name)
                     val tagId = existingTag?.id ?: database.tagDao().insertTag(TagEntity(name = name, createdAt = Instant.now()))
-                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = noteId, tagId = tagId))
+                    database.tagDao().insertNoteTagCrossRef(NoteTagCrossRef(noteId = localNoteId, tagId = tagId))
                 }
             }
         }
@@ -566,6 +580,8 @@ class WebDavSyncManager @Inject constructor(
         val notesArr = JSONArray()
         notes.forEach { note ->
             val obj = JSONObject().apply {
+                val persistentSyncId = note.syncId.ifEmpty { "lz-${note.createdAt.toEpochMilli()}-${note.id}" }
+                put("syncId", persistentSyncId)
                 put("id", note.id)
                 put("content", note.content)
                 put("isPinned", note.isPinned)

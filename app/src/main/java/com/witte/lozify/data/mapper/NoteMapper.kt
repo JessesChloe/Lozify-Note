@@ -25,7 +25,9 @@ fun NoteEntity.toDomainModel(): Note {
         createdAt = createdAt,
         updatedAt = updatedAt,
         isPinned = isPinned,
+        isArchived = isArchived,
         isDeleted = isDeleted,
+        syncId = syncId ?: "",
         tags = emptyList(), // Populated in repository layer
         attachments = emptyList(), // Populated in repository layer
         outgoingRelations = emptyList(), // Populated in repository layer
@@ -44,8 +46,9 @@ fun Note.toEntity(): NoteEntity {
         createdAt = createdAt,
         updatedAt = updatedAt,
         isPinned = isPinned,
+        isArchived = isArchived,
         isDeleted = isDeleted,
-        syncId = null, // Cloud sync not implemented in MVP
+        syncId = if (syncId.isNotBlank()) syncId else java.util.UUID.randomUUID().toString(),
         lastSyncedAt = null
     )
 }

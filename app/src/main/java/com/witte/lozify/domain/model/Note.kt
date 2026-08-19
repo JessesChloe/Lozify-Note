@@ -28,6 +28,7 @@ data class Note(
     val isPinned: Boolean = false,
     val isArchived: Boolean = false,
     val isDeleted: Boolean = false,
+    val syncId: String = "",
     val tags: List<Tag> = emptyList(),
     val attachments: List<Attachment> = emptyList(),
     val outgoingRelations: List<NoteRelation> = emptyList(),
