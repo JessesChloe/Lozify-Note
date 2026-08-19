@@ -39,8 +39,33 @@ fun SettingsScreen(
     viewModel: SettingsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    LaunchedEffect(uiState.updateMessage) {
+        val msg = uiState.updateMessage
+        if (msg != null) {
+            snackbarHostState.showSnackbar(msg)
+            viewModel.clearUpdateMessage()
+        }
+    }
+
+    if (uiState.updateInfo != null) {
+        com.witte.lozify.presentation.update.AppUpdateDialog(
+            updateInfo = uiState.updateInfo!!,
+            onDismiss = { viewModel.dismissUpdateDialog() },
+            onDownloadGitee = {
+                viewModel.openDownloadUrl(context, uiState.updateInfo!!.downloadUrl)
+            },
+            onDownloadGithub = {
+                val ghUrl = uiState.updateInfo?.githubDownloadUrl ?: uiState.updateInfo!!.downloadUrl
+                viewModel.openDownloadUrl(context, ghUrl)
+            }
+        )
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
                 title = {
@@ -249,10 +274,15 @@ fun SettingsScreen(
 
                         HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
 
-                        // Version info
+                        // Version info & Update Checker Entry
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .clickable {
+                                    if (!uiState.isCheckingUpdate) {
+                                        viewModel.checkForUpdate(isManual = true)
+                                    }
+                                }
                                 .padding(16.dp),
                             horizontalArrangement = Arrangement.SpaceBetween,
                             verticalAlignment = Alignment.CenterVertically
@@ -264,22 +294,38 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Outlined.Info,
                                     contentDescription = null,
-                                    tint = Color(0xFF888888),
+                                    tint = Color(0xFF00C853),
                                     modifier = Modifier.size(20.dp)
                                 )
-                                Text(
-                                    text = "软件版本",
-                                    fontSize = 15.sp,
-                                    fontWeight = FontWeight.Medium,
-                                    color = Color(0xFF222222)
-                                )
+                                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                    Text(
+                                        text = "检查新版本",
+                                        fontSize = 15.sp,
+                                        fontWeight = FontWeight.Medium,
+                                        color = Color(0xFF222222)
+                                    )
+                                    Text(
+                                        text = "当前版本: Lozify v${com.witte.lozify.BuildConfig.VERSION_NAME}",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF888888)
+                                    )
+                                }
                             }
 
-                            Text(
-                                text = "Lozify v${com.witte.lozify.BuildConfig.VERSION_NAME}",
-                                fontSize = 13.sp,
-                                color = Color(0xFF999999)
-                            )
+                            if (uiState.isCheckingUpdate) {
+                                CircularProgressIndicator(
+                                    modifier = Modifier.size(18.dp),
+                                    strokeWidth = 2.dp,
+                                    color = Color(0xFF00C853)
+                                )
+                            } else {
+                                Text(
+                                    text = "点击检测 ➔",
+                                    fontSize = 12.sp,
+                                    fontWeight = FontWeight.Medium,
+                                    color = Color(0xFF00C853)
+                                )
+                            }
                         }
                     }
                 }
