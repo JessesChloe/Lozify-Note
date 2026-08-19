@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -48,13 +49,14 @@ fun AttachmentGrid(
     if (attachments.isEmpty() || filesDir == null) return
 
     val borderStrokeColor = Color(0xFFEEEEEE)
-    val allImageFiles = attachments.map { File(filesDir, it.filePath) }
+    val allImageFiles = remember(attachments, filesDir) {
+        attachments.map { File(filesDir, it.filePath) }
+    }
 
     when (attachments.size) {
         // 1 Image mode
         1 -> {
-            val attachment = attachments.first()
-            val imageFile = File(filesDir, attachment.filePath)
+            val imageFile = allImageFiles.first()
             val shape = RoundedCornerShape(8.dp)
 
             AsyncImage(

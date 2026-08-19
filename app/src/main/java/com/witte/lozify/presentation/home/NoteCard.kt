@@ -99,6 +99,10 @@ import java.io.File
  * @param onMentionClick Optional callback when a mention is clicked (note ID)
  * @param hideOperations Whether to hide the dropdown menu (used in detail view)
  */
+// Precompiled static Regex for NoteCard checkbox processing to avoid runtime compilation
+private val CHECKBOX_LINE_REGEX = Regex("""^- \[([ x])\] (.+)$""")
+private val CHECKBOX_MATCH_REGEX = Regex("""^- \[([ x])\] .+$""")
+
 @Composable
 fun NoteCard(
     noteId: Long,
@@ -126,7 +130,6 @@ fun NoteCard(
     modifier: Modifier = Modifier
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    var showExpandButton by remember { mutableStateOf(false) }
     var showMenu by remember { mutableStateOf(false) }
 
     val context = LocalContext.current
@@ -139,7 +142,7 @@ fun NoteCard(
 
     val checkboxItems = remember(content) {
         contentLines.mapIndexedNotNull { index, line ->
-            val checkboxMatch = Regex("""^- \[([ x])\] (.+)$""").find(line)
+            val checkboxMatch = CHECKBOX_LINE_REGEX.find(line)
             checkboxMatch?.let {
                 CheckboxItem(
                     lineIndex = index,
@@ -152,9 +155,16 @@ fun NoteCard(
 
     val nonCheckboxContent = remember(content) {
         contentLines.filterIndexed { index, line ->
-            !line.matches(Regex("""^- \[([ x])\] .+$"""))
+            !line.matches(CHECKBOX_MATCH_REGEX)
         }.joinToString("\n")
     }
+
+    // Performance Optimization: Pre-estimate overflow on frame 0 to avoid onTextLayout secondary recomposition
+    val initialHasOverflow = remember(nonCheckboxContent, maxCollapsedLines) {
+        nonCheckboxContent.count { it == '\n' } >= maxCollapsedLines || nonCheckboxContent.length > 200
+    }
+    var hasVisualOverflow by remember { mutableStateOf(initialHasOverflow) }
+    val showExpandButton = hasVisualOverflow
 
     // Stage 13 & 16: Parse rich text into annotated string, inline tags, relation mentions, and search highlights
     val parsedRichText = remember(nonCheckboxContent, searchQuery) {
@@ -248,150 +258,152 @@ fun NoteCard(
                             )
                         }
 
-                        // Stage 14: Flomo-styled High-Density Rich Dropdown Menu
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false },
-                            modifier = Modifier
-                                .width(220.dp)
-                                .background(Color.White)
-                        ) {
-                            // 1. 顶部快捷操作栏 (Row: 复制 / 编辑 / 删除)
-                            Row(
+                        // Performance Optimization: Mount DropdownMenu ONLY when showMenu is true
+                        if (showMenu) {
+                            DropdownMenu(
+                                expanded = true,
+                                onDismissRequest = { showMenu = false },
                                 modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(horizontal = 8.dp, vertical = 8.dp),
-                                horizontalArrangement = Arrangement.SpaceEvenly,
-                                verticalAlignment = Alignment.CenterVertically
+                                    .width(220.dp)
+                                    .background(Color.White)
                             ) {
-                                // 复制
-                                Column(
+                                // 1. 顶部快捷操作栏 (Row: 复制 / 编辑 / 删除)
+                                Row(
                                     modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            showMenu = false
-                                            clipboardManager.setText(AnnotatedString(content))
-                                            Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
+                                        .fillMaxWidth()
+                                        .padding(horizontal = 8.dp, vertical = 8.dp),
+                                    horizontalArrangement = Arrangement.SpaceEvenly,
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
-                                    Icon(
-                                        imageVector = Icons.Default.ContentCopy,
-                                        contentDescription = "复制",
-                                        tint = Color(0xFF666666),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "复制",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF666666),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-
-                                // 编辑
-                                Column(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            showMenu = false
-                                            onEditClick()
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "编辑",
-                                        tint = Color(0xFF666666),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "编辑",
-                                        fontSize = 12.sp,
-                                        color = Color(0xFF666666),
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-
-                                // 删除 (红色预警色)
-                                Column(
-                                    modifier = Modifier
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .clickable {
-                                            showMenu = false
-                                            onDeleteClick()
-                                        }
-                                        .padding(horizontal = 12.dp, vertical = 6.dp),
-                                    horizontalAlignment = Alignment.CenterHorizontally
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Delete,
-                                        contentDescription = "删除",
-                                        tint = MaterialTheme.colorScheme.error,
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                    Spacer(modifier = Modifier.height(4.dp))
-                                    Text(
-                                        text = "删除",
-                                        fontSize = 12.sp,
-                                        color = MaterialTheme.colorScheme.error,
-                                        fontWeight = FontWeight.Medium
-                                    )
-                                }
-                            }
-
-                            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
-
-                            // 2. 中间功能列表 (设为置顶 / 取消置顶)
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                        verticalAlignment = Alignment.CenterVertically
+                                    // 复制
+                                    Column(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                showMenu = false
+                                                clipboardManager.setText(AnnotatedString(content))
+                                                Toast.makeText(context, "已复制到剪贴板", Toast.LENGTH_SHORT).show()
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
                                     ) {
                                         Icon(
-                                            imageVector = Icons.Default.PushPin,
-                                            contentDescription = if (isPinned) "取消置顶" else "设为置顶",
-                                            tint = if (isPinned) Color(0xFFFF9800) else Color(0xFF666666),
-                                            modifier = Modifier.size(18.dp)
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "复制",
+                                            tint = Color(0xFF666666),
+                                            modifier = Modifier.size(20.dp)
                                         )
+                                        Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = if (isPinned) "取消置顶" else "设为置顶",
-                                            fontSize = 14.sp,
-                                            color = Color(0xFF333333)
+                                            text = "复制",
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF666666),
+                                            fontWeight = FontWeight.Medium
                                         )
                                     }
-                                },
-                                onClick = {
-                                    showMenu = false
-                                    onTogglePinClick()
+
+                                    // 编辑
+                                    Column(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                showMenu = false
+                                                onEditClick()
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Edit,
+                                            contentDescription = "编辑",
+                                            tint = Color(0xFF666666),
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "编辑",
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF666666),
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
+
+                                    // 删除 (红色预警色)
+                                    Column(
+                                        modifier = Modifier
+                                            .clip(RoundedCornerShape(8.dp))
+                                            .clickable {
+                                                showMenu = false
+                                                onDeleteClick()
+                                            }
+                                            .padding(horizontal = 12.dp, vertical = 6.dp),
+                                        horizontalAlignment = Alignment.CenterHorizontally
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Delete,
+                                            contentDescription = "删除",
+                                            tint = MaterialTheme.colorScheme.error,
+                                            modifier = Modifier.size(20.dp)
+                                        )
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Text(
+                                            text = "删除",
+                                            fontSize = 12.sp,
+                                            color = MaterialTheme.colorScheme.error,
+                                            fontWeight = FontWeight.Medium
+                                        )
+                                    }
                                 }
-                            )
 
-                            HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+                                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
-                            // 3. 底部元数据统计面板 (字数统计 / 创建时间)
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(Color(0xFFF9F9F9))
-                                    .padding(horizontal = 16.dp, vertical = 10.dp),
-                                verticalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = "字数统计: ${content.length}",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF999999)
+                                // 2. 中间功能列表 (设为置顶 / 取消置顶)
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.PushPin,
+                                                contentDescription = if (isPinned) "取消置顶" else "设为置顶",
+                                                tint = if (isPinned) Color(0xFFFF9800) else Color(0xFF666666),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = if (isPinned) "取消置顶" else "设为置顶",
+                                                fontSize = 14.sp,
+                                                color = Color(0xFF333333)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onTogglePinClick()
+                                    }
                                 )
-                                Text(
-                                    text = "创建时间: $timestamp",
-                                    fontSize = 11.sp,
-                                    color = Color(0xFF999999)
-                                )
+
+                                HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
+
+                                // 3. 底部元数据统计面板 (字数统计 / 创建时间)
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .background(Color(0xFFF9F9F9))
+                                        .padding(horizontal = 16.dp, vertical = 10.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "字数统计: ${content.length}",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF999999)
+                                    )
+                                    Text(
+                                        text = "创建时间: $timestamp",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF999999)
+                                    )
+                                }
                             }
                         }
                     }
@@ -458,8 +470,8 @@ fun NoteCard(
                         maxLines = if (effectiveExpanded) Int.MAX_VALUE else maxCollapsedLines,
                         overflow = if (effectiveExpanded) TextOverflow.Visible else TextOverflow.Ellipsis,
                         onTextLayout = { textLayoutResult: TextLayoutResult ->
-                            if (!effectiveExpanded && textLayoutResult.hasVisualOverflow) {
-                                showExpandButton = true
+                            if (!effectiveExpanded && !hasVisualOverflow && textLayoutResult.hasVisualOverflow) {
+                                hasVisualOverflow = true
                             }
                         },
                         modifier = Modifier.fillMaxWidth()

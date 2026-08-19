@@ -89,4 +89,21 @@ class RichTextUtilsTest {
         assertTrue(parsed.annotatedString.text.contains("• 第一项任务"))
         assertTrue(parsed.annotatedString.text.contains("• 第二项任务"))
     }
+
+    @Test
+    fun testParseRichText_lruCacheReturnsSameInstance() {
+        RichTextUtils.clearCache()
+        val input = "缓存测试笔记 #测试内容 **加粗** @[关联](note:88)"
+        val firstResult = RichTextUtils.parseRichText(input)
+        val secondResult = RichTextUtils.parseRichText(input)
+
+        // Verifying cache hit returns identical cached object instance
+        assertSame(firstResult, secondResult)
+
+        RichTextUtils.clearCache()
+        val thirdResult = RichTextUtils.parseRichText(input)
+        assertEquals(firstResult.tags, thirdResult.tags)
+        assertEquals(firstResult.mentions, thirdResult.mentions)
+        assertEquals(firstResult.annotatedString.text, thirdResult.annotatedString.text)
+    }
 }

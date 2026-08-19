@@ -23,6 +23,37 @@ object RichTextUtils {
     private val CheckboxGreen = Color(0xFF00C853)
     private val CheckboxGray = Color(0xFF9CA3AF)
 
+    // Precompiled static Regex patterns to avoid runtime compilation during list scrolling
+    private val LIST_PATTERN = Regex("""(?m)^\s*-\s+(?!\[[ x]\])""")
+    private val CHECKBOX_PATTERN = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
+    private val MENTION_REGEX = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""")
+    private val BOLD_REGEX = Regex("""\*\*(?s)(.+?)\*\*""")
+    private val UNDERLINE_REGEX = Regex("""__(?s)(.+?)__""")
+    private val HIGHLIGHT_REGEX = Regex("""==(?s)(.+?)==""")
+    private val TAG_REGEX = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+    private val CHECKBOX_SYMBOL_PATTERN = Regex("""[☐☑]""")
+    private val STRIP_MENTION_REGEX = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)""")
+    private val STRIP_CHECKBOX_REGEX = Regex("""- \[([ x])\] """)
+    private val CHECKBOX_UNCHECKED_REGEX = Regex("""^- \[ \]""", RegexOption.MULTILINE)
+    private val CHECKBOX_CHECKED_REGEX = Regex("""^- \[x\]""", RegexOption.MULTILINE)
+
+    // Thread-safe high-performance LRU cache for parsed rich text results (Capacity 300 notes)
+    private const val MAX_CACHE_SIZE = 300
+    private val richTextCache = java.util.Collections.synchronizedMap(
+        object : java.util.LinkedHashMap<String, ParsedRichText>(128, 0.75f, true) {
+            override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, ParsedRichText>?): Boolean {
+                return size > MAX_CACHE_SIZE
+            }
+        }
+    )
+
+    /**
+     * Clear the rich text parse cache (useful when memory is tight or in tests).
+     */
+    fun clearCache() {
+        richTextCache.clear()
+    }
+
     /**
      * Data class holding parsed rich text result.
      *
@@ -70,14 +101,16 @@ object RichTextUtils {
         onTagClick: ((String) -> Unit)? = null,
         searchQuery: String = ""
     ): ParsedRichText {
+        // Fast path: check memory cache
+        val cacheKey = "$content##${tagColor.value}##$searchQuery"
+        richTextCache[cacheKey]?.let { return it }
+
         var processedContent = content
 
         // Step 1: Replace list markers (excluding checkboxes) and checkbox markers with symbols
-        val listPattern = Regex("""(?m)^\s*-\s+(?!\[[ x]\])""")
-        processedContent = processedContent.replace(listPattern, "• ")
+        processedContent = processedContent.replace(LIST_PATTERN, "• ")
 
-        val checkboxPattern = Regex("""^- \[([ x])\]""", RegexOption.MULTILINE)
-        processedContent = processedContent.replace(checkboxPattern) { matchResult ->
+        processedContent = processedContent.replace(CHECKBOX_PATTERN) { matchResult ->
             when (matchResult.groupValues[1]) {
                 "x" -> "☑"  // Checked
                 else -> "☐" // Unchecked
@@ -86,8 +119,7 @@ object RichTextUtils {
 
         // Step 2: Extract and strip all @[text](note:id) mentions from body text
         val extractedMentions = mutableListOf<ExtractedMention>()
-        val mentionRegex = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""")
-        mentionRegex.findAll(processedContent).forEach { match ->
+        MENTION_REGEX.findAll(processedContent).forEach { match ->
             val text = match.groupValues[1]
             val noteId = match.groupValues[2].toLongOrNull()
             if (noteId != null) {
@@ -96,36 +128,35 @@ object RichTextUtils {
         }
 
         // Replace mentions first so body text is clean
-        val contentWithoutMentions = processedContent.replace(mentionRegex, "").trimEnd()
+        val contentWithoutMentions = processedContent.replace(MENTION_REGEX, "").trimEnd()
 
         val extractedTags = mutableListOf<String>()
         val builder = AnnotatedString.Builder()
         val markerPositions = mutableListOf<MarkerPosition>()
 
         // Find bold markers ((?s) enables DOTALL mode)
-        Regex("""\*\*(?s)(.+?)\*\*""").findAll(contentWithoutMentions).forEach { match ->
+        BOLD_REGEX.findAll(contentWithoutMentions).forEach { match ->
             markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
             markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
             markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.BOLD))
         }
 
         // Find underline markers ((?s) enables DOTALL mode)
-        Regex("""__(?s)(.+?)__""").findAll(contentWithoutMentions).forEach { match ->
+        UNDERLINE_REGEX.findAll(contentWithoutMentions).forEach { match ->
             markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
             markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
             markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.UNDERLINE))
         }
 
         // Find highlight markers ((?s) enables DOTALL mode)
-        Regex("""==(?s)(.+?)==""").findAll(contentWithoutMentions).forEach { match ->
+        HIGHLIGHT_REGEX.findAll(contentWithoutMentions).forEach { match ->
             markerPositions.add(MarkerPosition(match.range.first, match.range.first + 2, MarkerType.OPEN))
             markerPositions.add(MarkerPosition(match.range.last - 1, match.range.last + 1, MarkerType.CLOSE))
             markerPositions.add(MarkerPosition(match.range.first + 2, match.range.last - 1, MarkerType.STYLE, formatType = FormatType.HIGHLIGHT))
         }
 
         // Find tags (#tagName) - Supports Chinese characters directly preceding # without space, while preventing URL anchors (page#sec)
-        val tagRegex = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
-        tagRegex.findAll(contentWithoutMentions).forEach { match ->
+        TAG_REGEX.findAll(contentWithoutMentions).forEach { match ->
             val tagName = match.value.substring(1) // remove #
             extractedTags.add(tagName)
             markerPositions.add(MarkerPosition(
@@ -207,8 +238,7 @@ object RichTextUtils {
 
         // Apply style to checkbox symbols
         val textWithCheckboxes = builder.toAnnotatedString()
-        val checkboxSymbolPattern = Regex("""[☐☑]""")
-        checkboxSymbolPattern.findAll(textWithCheckboxes.text).forEach { match ->
+        CHECKBOX_SYMBOL_PATTERN.findAll(textWithCheckboxes.text).forEach { match ->
             val isChecked = match.value == "☑"
             builder.addStyle(
                 style = SpanStyle(
@@ -242,11 +272,16 @@ object RichTextUtils {
             }
         }
 
-        return ParsedRichText(
+        val result = ParsedRichText(
             annotatedString = builder.toAnnotatedString(),
             tags = extractedTags.distinct(),
             mentions = extractedMentions
         )
+
+        // Store into LRU cache
+        richTextCache[cacheKey] = result
+
+        return result
     }
 
     /**
@@ -395,11 +430,11 @@ object RichTextUtils {
      */
     fun stripFormatting(content: String): String {
         return content
-            .replace(Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)"""), "$1")  // @mention → text only
-            .replace(Regex("""\*\*(?s)(.+?)\*\*"""), "$1")  // Bold (DOTALL mode)
-            .replace(Regex("""__(?s)(.+?)__"""), "$1")      // Underline (DOTALL mode)
-            .replace(Regex("""==(?s)(.+?)=="""), "$1")      // Highlight (DOTALL mode)
-            .replace(Regex("""- \[([ x])\] """), "")        // Checkboxes
+            .replace(STRIP_MENTION_REGEX, "$1")  // @mention → text only
+            .replace(BOLD_REGEX, "$1")           // Bold (DOTALL mode)
+            .replace(UNDERLINE_REGEX, "$1")      // Underline (DOTALL mode)
+            .replace(HIGHLIGHT_REGEX, "$1")      // Highlight (DOTALL mode)
+            .replace(STRIP_CHECKBOX_REGEX, "")   // Checkboxes
             .trim()  // Remove leading/trailing whitespace
     }
 
@@ -413,12 +448,12 @@ object RichTextUtils {
      */
     fun countFormatting(content: String): Map<FormatType, Int> {
         return mapOf(
-            FormatType.BOLD to Regex("""\*\*(?s)(.+?)\*\*""").findAll(content).count(),
-            FormatType.UNDERLINE to Regex("""__(?s)(.+?)__""").findAll(content).count(),
-            FormatType.HIGHLIGHT to Regex("""==(?s)(.+?)==""").findAll(content).count(),
-            FormatType.MENTION to Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)""").findAll(content).count(),
-            FormatType.CHECKBOX_UNCHECKED to Regex("""^- \[ \]""", RegexOption.MULTILINE).findAll(content).count(),
-            FormatType.CHECKBOX_CHECKED to Regex("""^- \[x\]""", RegexOption.MULTILINE).findAll(content).count()
+            FormatType.BOLD to BOLD_REGEX.findAll(content).count(),
+            FormatType.UNDERLINE to UNDERLINE_REGEX.findAll(content).count(),
+            FormatType.HIGHLIGHT to HIGHLIGHT_REGEX.findAll(content).count(),
+            FormatType.MENTION to MENTION_REGEX.findAll(content).count(),
+            FormatType.CHECKBOX_UNCHECKED to CHECKBOX_UNCHECKED_REGEX.findAll(content).count(),
+            FormatType.CHECKBOX_CHECKED to CHECKBOX_CHECKED_REGEX.findAll(content).count()
         )
     }
 
@@ -432,8 +467,7 @@ object RichTextUtils {
      * @return List of pairs (noteId, mentionText) for all mentions found
      */
     fun extractMentionsFromContent(content: String): List<Pair<Long, String>> {
-        val mentionPattern = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:(\d+)\)""")
-        return mentionPattern.findAll(content).mapNotNull { match ->
+        return MENTION_REGEX.findAll(content).mapNotNull { match ->
             val mentionText = match.groupValues[1]
             val noteId = match.groupValues[2].toLongOrNull()
             if (noteId != null) {
