@@ -259,6 +259,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **35** | Trash Lifecycle & Deletion Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Soft-delete to Trash display fix, full-state LWW sync preventing resurrection |
 | **36** | Pull Damping & Trash Actions | ✅ Completed | 2026-08-19 | 2026-08-19 | 75dp pull resistance against accidental sync, Recycle Bin long-press action sheet & delete confirmation |
 | **37** | Local Image Compression Engine | ✅ Completed | 2026-08-20 | 2026-08-20 | Visually lossless 2K compression engine with UserPreferencesManager toggle in Settings |
+| **38** | Lightbox Save Image to Gallery | ✅ Completed | 2026-08-20 | 2026-08-20 | Scoped Storage (Pictures/Lozify) saving via top download button & long-press sheet |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -471,6 +472,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-20**: Stage 38 全屏大图浏览保存到系统相册功能
+  - 基于 Scoped Storage (`MediaStore.Images.Media`) 实现相册导出至 `Pictures/Lozify/`
+  - 在大图右上角增加半透明下载按钮，并支持长按大图快捷呼出保存面板与 Toast 反馈
 - **2026-08-20**: Stage 37 本地图片智能压缩引擎与设置中心开关支持
   - 引入 2K 视觉无损压缩引擎（2048px 约束 + 85% 质量因数，体积缩减 85%~95%）
   - 在设置中心新增【存储与媒体】专区与“图片智能压缩”开关，支持自由切换原图直通模式

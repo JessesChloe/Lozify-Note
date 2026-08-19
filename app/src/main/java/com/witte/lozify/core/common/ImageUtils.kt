@@ -1,10 +1,14 @@
 package com.witte.lozify.core.common
 
+import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Matrix
 import android.net.Uri
+import android.os.Build
+import android.os.Environment
+import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import java.io.File
 import java.io.FileOutputStream
@@ -313,5 +317,52 @@ object ImageUtils {
         }
 
         return totalSize
+    }
+
+    /**
+     * Save an image file from app private storage to the system gallery (Pictures/Lozify/).
+     * Uses Scoped Storage (MediaStore) compatible with Android 10+ without needing dangerous permissions.
+     *
+     * @param context Android context
+     * @param imageFile The local image file to save
+     * @return true if successfully saved, false otherwise
+     */
+    fun saveImageToGallery(context: Context, imageFile: File): Boolean {
+        if (!imageFile.exists() || imageFile.length() == 0L) {
+            return false
+        }
+
+        return try {
+            val filename = "Lozify_${System.currentTimeMillis()}.jpg"
+            val contentValues = ContentValues().apply {
+                put(MediaStore.MediaColumns.DISPLAY_NAME, filename)
+                put(MediaStore.MediaColumns.MIME_TYPE, "image/jpeg")
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    put(MediaStore.MediaColumns.RELATIVE_PATH, Environment.DIRECTORY_PICTURES + "/Lozify")
+                    put(MediaStore.MediaColumns.IS_PENDING, 1)
+                }
+            }
+
+            val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+            if (uri != null) {
+                context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    imageFile.inputStream().use { inputStream ->
+                        inputStream.copyTo(outputStream)
+                    }
+                }
+
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    contentValues.clear()
+                    contentValues.put(MediaStore.MediaColumns.IS_PENDING, 0)
+                    context.contentResolver.update(uri, contentValues, null, null)
+                }
+                true
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            false
+        }
     }
 }
