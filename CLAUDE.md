@@ -231,6 +231,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **31** | Anti-Duplication Fingerprint | ✅ Completed | 2026-08-19 | 2026-08-19 | Dual-fingerprint (createdAt+content) cross-version deduplication & historical clean-up (v1.2.2) |
 | **32** | Pull Gesture & Cloud Purging | ✅ Completed | 2026-08-19 | 2026-08-19 | Ultra-responsive pull physics (40px, onPostScroll), cloud payload pre-filtering & clean-up |
 | **33** | URL Link Recognition & Tap | ✅ Completed | 2026-08-19 | 2026-08-19 | Hyperlink Blue (#2563EB), punctuation trimming, browser launch, tag isolation |
+| **34** | Release v1.2.3 Distribution | ✅ Completed | 2026-08-19 | 2026-08-19 | Lozify v1.2.3 release package, dual-channel update announcement, end-to-end verified |
 
 **Status Legend:**
 - ⚪ Not Started
