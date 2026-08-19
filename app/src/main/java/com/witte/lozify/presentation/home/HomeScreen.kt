@@ -265,17 +265,25 @@ fun HomeScreen(
                                     .clickable { showHeaderMenu = true }
                                     .padding(horizontal = 4.dp, vertical = 4.dp)
                             ) {
-                                Text(
-                                    text = uiState.selectedTag?.name ?: "Lozify",
-                                    fontSize = 18.sp,
-                                    fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF1C1C1E)
-                                )
+                                if (uiState.selectedTag == null) {
+                                    com.witte.lozify.presentation.components.LozifyBrandLogotype(
+                                        height = 19.dp,
+                                        color = Color(0xFF1C1C1E),
+                                        modifier = Modifier.padding(end = 1.dp)
+                                    )
+                                } else {
+                                    Text(
+                                        text = "#${uiState.selectedTag?.name}",
+                                        fontSize = 17.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF1C1C1E)
+                                    )
+                                }
                                 Icon(
                                     imageVector = Icons.Default.KeyboardArrowDown,
                                     contentDescription = "切换视图与排序",
                                     tint = Color(0xFF888888),
-                                    modifier = Modifier.size(16.dp)
+                                    modifier = Modifier.size(15.dp)
                                 )
                             }
 
@@ -422,11 +430,8 @@ fun HomeScreen(
                         },
                         modifier = Modifier.size(40.dp)
                     ) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "菜单",
-                            tint = Color(0xFF333333),
-                            modifier = Modifier.size(22.dp)
+                        com.witte.lozify.presentation.components.TwoLineMenuIcon(
+                            color = Color(0xFF333333)
                         )
                     }
                 },
