@@ -40,7 +40,7 @@ class UpdateManager @Inject constructor() {
         .build()
 
     // Gitee Primary Source (Fast domestic connection in China)
-    private val giteeVersionUrl = "https://gitee.com/JessesChloe/Lozify-Note/raw/master/version.json"
+    private val giteeVersionUrl = "https://gitee.com/muxsans/lozify-note/raw/master/version.json"
 
     // GitHub Fallback Source (International secondary mirror)
     private val githubVersionUrl = "https://raw.githubusercontent.com/JessesChloe/Lozify-Note/master/version.json"
