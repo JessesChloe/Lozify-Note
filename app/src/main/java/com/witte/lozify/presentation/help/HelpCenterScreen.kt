@@ -223,7 +223,7 @@ private fun BrandHeroCard() {
             )
 
             Text(
-                text = "版本 1.2.0 (Build 2026.08)",
+                text = "版本 ${com.witte.lozify.BuildConfig.VERSION_NAME} (Build 2026.08)",
                 fontSize = 12.sp,
                 color = Color(0xFF999999)
             )

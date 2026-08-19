@@ -276,7 +276,7 @@ fun SettingsScreen(
                             }
 
                             Text(
-                                text = "Lozify v1.0.0",
+                                text = "Lozify v${com.witte.lozify.BuildConfig.VERSION_NAME}",
                                 fontSize = 13.sp,
                                 color = Color(0xFF999999)
                             )
