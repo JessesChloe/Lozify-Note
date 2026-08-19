@@ -136,19 +136,54 @@ class WebDavSyncManager @Inject constructor(
             webDavClient.ensureDirectory(serverUrl, username, password, dataDir)
             webDavClient.ensureDirectory(serverUrl, username, password, imagesDir)
 
+            val isEncryptionEnabled = preferencesManager.webdavEncryptionEnabled.value
+            val encryptionPassword = preferencesManager.webdavEncryptionPassword.value
+
+            if (isEncryptionEnabled && encryptionPassword.isBlank()) {
+                return@withContext SyncResult(
+                    isSuccess = false,
+                    errorMessage = "已开启端到端加密，但未设置加密主密码，请先输入密码"
+                )
+            }
+
             // Stage 2: Fetching Remote Payload
             onProgress(SyncProgress(SyncStage.FETCHING_REMOTE, 0.25f, "正在拉取云端数据..."))
-            val payloadPath = "${dataDir}notes_payload.json"
-            val downloadRes = webDavClient.downloadBytes(serverUrl, username, password, payloadPath)
+            val encPayloadPath = "${dataDir}notes_payload.json.enc"
+            val plainPayloadPath = "${dataDir}notes_payload.json"
 
-            val remoteJson: JSONObject? = if (downloadRes.isSuccess) {
+            var remoteJson: JSONObject? = null
+
+            // 1. Try downloading encrypted payload
+            val downloadEncRes = webDavClient.downloadBytes(serverUrl, username, password, encPayloadPath)
+            if (downloadEncRes.isSuccess) {
+                if (encryptionPassword.isBlank()) {
+                    return@withContext SyncResult(
+                        isSuccess = false,
+                        errorMessage = "云端数据已开启端到端加密，请在设置中输入加密主密码后重试"
+                    )
+                }
                 try {
-                    JSONObject(String(downloadRes.getOrThrow(), StandardCharsets.UTF_8))
+                    val decryptedBytes = com.witte.lozify.core.security.CryptoUtils.decryptBytes(
+                        downloadEncRes.getOrThrow(),
+                        encryptionPassword
+                    )
+                    remoteJson = JSONObject(String(decryptedBytes, StandardCharsets.UTF_8))
                 } catch (e: Exception) {
-                    null
+                    return@withContext SyncResult(
+                        isSuccess = false,
+                        errorMessage = "端到端加密主密码错误，无法解密云端数据，请检查密码设置"
+                    )
                 }
             } else {
-                null
+                // 2. Try downloading plain payload
+                val downloadPlainRes = webDavClient.downloadBytes(serverUrl, username, password, plainPayloadPath)
+                if (downloadPlainRes.isSuccess) {
+                    try {
+                        remoteJson = JSONObject(String(downloadPlainRes.getOrThrow(), StandardCharsets.UTF_8))
+                    } catch (e: Exception) {
+                        remoteJson = null
+                    }
+                }
             }
 
             // Stage 3: Merging Data (Last-Write-Wins)
@@ -246,14 +281,37 @@ class WebDavSyncManager @Inject constructor(
             if (localImagesDir.exists()) {
                 val localImageFiles = localImagesDir.listFiles() ?: emptyArray()
                 for (localImg in localImageFiles) {
-                    if (localImg.isFile && localImg.name !in remoteImageNames) {
-                        val uploadImgRes = webDavClient.uploadFile(
-                            serverUrl, username, password,
-                            "$imagesDir${localImg.name}",
-                            localImg
-                        )
-                        if (uploadImgRes.isSuccess) {
-                            uploadedImagesCount++
+                    if (localImg.isFile) {
+                        if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
+                            val encFileName = "${localImg.name}.enc"
+                            if (encFileName !in remoteImageNames) {
+                                val tempEncFile = File(context.cacheDir, encFileName)
+                                try {
+                                    com.witte.lozify.core.security.CryptoUtils.encryptFile(localImg, tempEncFile, encryptionPassword)
+                                    val uploadImgRes = webDavClient.uploadFile(
+                                        serverUrl, username, password,
+                                        "$imagesDir$encFileName",
+                                        tempEncFile,
+                                        contentType = "application/octet-stream"
+                                    )
+                                    if (uploadImgRes.isSuccess) {
+                                        uploadedImagesCount++
+                                    }
+                                } finally {
+                                    tempEncFile.delete()
+                                }
+                            }
+                        } else {
+                            if (localImg.name !in remoteImageNames) {
+                                val uploadImgRes = webDavClient.uploadFile(
+                                    serverUrl, username, password,
+                                    "$imagesDir${localImg.name}",
+                                    localImg
+                                )
+                                if (uploadImgRes.isSuccess) {
+                                    uploadedImagesCount++
+                                }
+                            }
                         }
                     }
                 }
@@ -266,7 +324,26 @@ class WebDavSyncManager @Inject constructor(
                     val localTarget = File(context.filesDir, att.filePath)
                     if (!localTarget.exists()) {
                         val imgFileName = att.filePath.substringAfterLast('/')
-                        if (imgFileName in remoteImageNames) {
+                        val encFileName = "$imgFileName.enc"
+
+                        if (encFileName in remoteImageNames && encryptionPassword.isNotBlank()) {
+                            val tempEncFile = File(context.cacheDir, encFileName)
+                            try {
+                                val dlRes = webDavClient.downloadFile(
+                                    serverUrl, username, password,
+                                    "$imagesDir$encFileName",
+                                    tempEncFile
+                                )
+                                if (dlRes.isSuccess) {
+                                    com.witte.lozify.core.security.CryptoUtils.decryptFile(tempEncFile, localTarget, encryptionPassword)
+                                    downloadedImagesCount++
+                                }
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            } finally {
+                                tempEncFile.delete()
+                            }
+                        } else if (imgFileName in remoteImageNames) {
                             val dlRes = webDavClient.downloadFile(
                                 serverUrl, username, password,
                                 "$imagesDir$imgFileName",
@@ -286,16 +363,29 @@ class WebDavSyncManager @Inject constructor(
             val finalTags = tagRepository.getAllTags().first()
 
             val mergedPayloadJson = serializePayloadJson(finalNotes, finalTags)
-            webDavClient.uploadBytes(
-                serverUrl, username, password,
-                payloadPath,
-                mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)
-            )
+            val jsonBytes = mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)
+
+            if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
+                val encryptedPayloadBytes = com.witte.lozify.core.security.CryptoUtils.encryptBytes(jsonBytes, encryptionPassword)
+                webDavClient.uploadBytes(
+                    serverUrl, username, password,
+                    encPayloadPath,
+                    encryptedPayloadBytes,
+                    contentType = "application/octet-stream"
+                )
+            } else {
+                webDavClient.uploadBytes(
+                    serverUrl, username, password,
+                    plainPayloadPath,
+                    jsonBytes
+                )
+            }
 
             // Update manifest.json
             val nowEpoch = System.currentTimeMillis()
             val manifestJson = JSONObject().apply {
                 put("version", 1)
+                put("isEncrypted", isEncryptionEnabled)
                 put("lastSyncTime", nowEpoch)
                 put("noteCount", finalNotes.size)
                 put("tagCount", finalTags.size)

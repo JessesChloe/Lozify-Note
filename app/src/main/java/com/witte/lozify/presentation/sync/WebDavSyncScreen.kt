@@ -443,7 +443,142 @@ fun WebDavSyncScreen(
                 }
             }
 
-            // Section 3: Jianguoyun Setup Guide Card
+            // Section 3: End-to-End Encryption (E2EE) Card
+            item {
+                Text(
+                    text = "端到端隐私加密与防和谐 (E2EE)",
+                    fontSize = 14.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF555555),
+                    modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
+                )
+
+                Card(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color.White),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFEEEEEE))
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp)
+                    ) {
+                        // Encryption Toggle Switch
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(2.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Outlined.Shield,
+                                        contentDescription = null,
+                                        tint = if (uiState.isEncryptionEnabled) Color(0xFF00C853) else Color(0xFF888888),
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Text(
+                                        text = "开启端到端防审查加密",
+                                        fontSize = 14.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF222222)
+                                    )
+                                }
+                                Text(
+                                    text = "数据与图片离开手机前使用 AES-256-GCM 硬件级强加密",
+                                    fontSize = 11.sp,
+                                    color = Color(0xFF888888)
+                                )
+                            }
+                            Switch(
+                                checked = uiState.isEncryptionEnabled,
+                                onCheckedChange = { viewModel.onEncryptionToggled(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = Color.White,
+                                    checkedTrackColor = Color(0xFF00C853)
+                                )
+                            )
+                        }
+
+                        AnimatedVisibility(visible = uiState.isEncryptionEnabled) {
+                            Column(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+
+                                // Encryption Password Field
+                                OutlinedTextField(
+                                    value = uiState.encryptionPassword,
+                                    onValueChange = { viewModel.onEncryptionPasswordChanged(it) },
+                                    label = { Text("同步加密主密码 (Sync Passphrase)") },
+                                    placeholder = { Text("自定义专属密码，如 MySecret888") },
+                                    singleLine = true,
+                                    visualTransformation = if (uiState.isEncryptionPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                                    trailingIcon = {
+                                        IconButton(onClick = { viewModel.toggleEncryptionPasswordVisibility() }) {
+                                            Icon(
+                                                imageVector = if (uiState.isEncryptionPasswordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
+                                                contentDescription = if (uiState.isEncryptionPasswordVisible) "隐藏密码" else "显示密码",
+                                                tint = Color(0xFF888888)
+                                            )
+                                        }
+                                    },
+                                    supportingText = {
+                                        Text(
+                                            text = "⚠️ 重要：密码绝不上传云端，请牢记此密码，跨设备同步时必须输入相同密码",
+                                            fontSize = 11.sp,
+                                            color = Color(0xFFE65100),
+                                            lineHeight = 15.sp
+                                        )
+                                    },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedBorderColor = Color(0xFF00C853),
+                                        focusedLabelColor = Color(0xFF00C853)
+                                    )
+                                )
+
+                                // Anti-censorship explanation banner
+                                Column(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(8.dp))
+                                        .background(Color(0xFFF1F8E9))
+                                        .padding(12.dp),
+                                    verticalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    Text(
+                                        text = "🛡️ 为什么能彻底防和谐？",
+                                        fontSize = 12.sp,
+                                        fontWeight = FontWeight.Bold,
+                                        color = Color(0xFF2E7D32)
+                                    )
+                                    Text(
+                                        text = "开启后，所有图文附件将抹除原始 JPG/PNG 特征，转换为高熵随机二进制密文 (.enc)。坚果云等网盘服务端无法探测图片特征，无法识别敏感文本，从数学底层 100% 免疫内容扫描与和谐封锁！",
+                                        fontSize = 11.sp,
+                                        color = Color(0xFF33691E),
+                                        lineHeight = 16.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Section 4: Jianguoyun Setup Guide Card
             item {
                 Card(
                     modifier = Modifier.fillMaxWidth(),

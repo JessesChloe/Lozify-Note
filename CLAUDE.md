@@ -224,6 +224,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **24** | Scrolling Performance | ✅ Completed | 2026-08-19 | 2026-08-19 | Precompiled static regexes, LRU cache, onTextLayout fix, lazy menu mounting |
 | **25** | Vector Logotype & TopBar | ✅ Completed | 2026-08-19 | 2026-08-19 | Geometric lozify vector brand logotype, two-line minimalist hamburger menu |
 | **26** | WebDAV / Jianguoyun Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Two-way LWW merge, delta image sync, Jianguoyun preset & sync screen |
+| **27** | WebDAV E2EE & Anti-Censorship | ✅ Completed | 2026-08-19 | 2026-08-19 | AES-256-GCM hardware encryption, PBKDF2 KDF, anti-censorship .enc sync |
 
 **Status Legend:**
 - ⚪ Not Started

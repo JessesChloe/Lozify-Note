@@ -72,6 +72,16 @@ class UserPreferencesManager @Inject constructor(
     )
     val webdavLastSyncTime: StateFlow<Long> = _webdavLastSyncTime.asStateFlow()
 
+    private val _webdavEncryptionEnabled = MutableStateFlow(
+        prefs.getBoolean(KEY_WEBDAV_ENCRYPTION_ENABLED, false)
+    )
+    val webdavEncryptionEnabled: StateFlow<Boolean> = _webdavEncryptionEnabled.asStateFlow()
+
+    private val _webdavEncryptionPassword = MutableStateFlow(
+        prefs.getString(KEY_WEBDAV_ENCRYPTION_PASSWORD, "") ?: ""
+    )
+    val webdavEncryptionPassword: StateFlow<String> = _webdavEncryptionPassword.asStateFlow()
+
     fun setMaxCollapseLines(lines: Int) {
         val safeLines = lines.coerceIn(3, 8)
         prefs.edit().putInt(KEY_MAX_COLLAPSE_LINES, safeLines).apply()
@@ -133,6 +143,16 @@ class UserPreferencesManager @Inject constructor(
         _webdavAutoSync.value = enabled
     }
 
+    fun setWebDavEncryption(enabled: Boolean, password: String) {
+        prefs.edit()
+            .putBoolean(KEY_WEBDAV_ENCRYPTION_ENABLED, enabled)
+            .putString(KEY_WEBDAV_ENCRYPTION_PASSWORD, password.trim())
+            .apply()
+
+        _webdavEncryptionEnabled.value = enabled
+        _webdavEncryptionPassword.value = password.trim()
+    }
+
     fun setWebDavLastSyncTime(timestamp: Long) {
         prefs.edit().putLong(KEY_WEBDAV_LAST_SYNC_TIME, timestamp).apply()
         _webdavLastSyncTime.value = timestamp
@@ -146,6 +166,8 @@ class UserPreferencesManager @Inject constructor(
             .remove(KEY_WEBDAV_REMOTE_DIR)
             .remove(KEY_WEBDAV_AUTO_SYNC)
             .remove(KEY_WEBDAV_LAST_SYNC_TIME)
+            .remove(KEY_WEBDAV_ENCRYPTION_ENABLED)
+            .remove(KEY_WEBDAV_ENCRYPTION_PASSWORD)
             .apply()
 
         _webdavServerUrl.value = DEFAULT_WEBDAV_SERVER_URL
@@ -154,6 +176,8 @@ class UserPreferencesManager @Inject constructor(
         _webdavRemoteDir.value = DEFAULT_WEBDAV_REMOTE_DIR
         _webdavAutoSync.value = false
         _webdavLastSyncTime.value = 0L
+        _webdavEncryptionEnabled.value = false
+        _webdavEncryptionPassword.value = ""
     }
 
     companion object {
@@ -170,6 +194,8 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_WEBDAV_REMOTE_DIR = "key_webdav_remote_dir"
         private const val KEY_WEBDAV_AUTO_SYNC = "key_webdav_auto_sync"
         private const val KEY_WEBDAV_LAST_SYNC_TIME = "key_webdav_last_sync_time"
+        private const val KEY_WEBDAV_ENCRYPTION_ENABLED = "key_webdav_encryption_enabled"
+        private const val KEY_WEBDAV_ENCRYPTION_PASSWORD = "key_webdav_encryption_password"
 
         const val DEFAULT_MAX_COLLAPSE_LINES = 5
         const val DEFAULT_WEBDAV_SERVER_URL = "https://dav.jianguoyun.com/dav/"

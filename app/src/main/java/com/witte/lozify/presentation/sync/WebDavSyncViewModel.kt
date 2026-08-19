@@ -39,7 +39,11 @@ data class WebDavSyncUiState(
     val syncProgress: SyncProgress? = null,
     val syncResult: SyncResult? = null,
     val localNotesCount: Int = 0,
-    val localTagsCount: Int = 0
+    val localTagsCount: Int = 0,
+    // E2EE Encryption State
+    val isEncryptionEnabled: Boolean = false,
+    val encryptionPassword: String = "",
+    val isEncryptionPasswordVisible: Boolean = false
 )
 
 @HiltViewModel
@@ -61,6 +65,8 @@ class WebDavSyncViewModel @Inject constructor(
         val storedDir = preferencesManager.webdavRemoteDir.value
         val storedAuto = preferencesManager.webdavAutoSync.value
         val storedLast = preferencesManager.webdavLastSyncTime.value
+        val storedEncEnabled = preferencesManager.webdavEncryptionEnabled.value
+        val storedEncPass = preferencesManager.webdavEncryptionPassword.value
 
         val preset = if (storedUrl.contains("jianguoyun.com")) {
             WebDavPreset.JIANGUOYUN
@@ -76,7 +82,9 @@ class WebDavSyncViewModel @Inject constructor(
                 remoteDir = storedDir,
                 autoSync = storedAuto,
                 lastSyncTime = storedLast,
-                selectedPreset = preset
+                selectedPreset = preset,
+                isEncryptionEnabled = storedEncEnabled,
+                encryptionPassword = storedEncPass
             )
         }
 
@@ -133,6 +141,19 @@ class WebDavSyncViewModel @Inject constructor(
         _uiState.update { it.copy(autoSync = enabled) }
     }
 
+    fun onEncryptionToggled(enabled: Boolean) {
+        _uiState.update { it.copy(isEncryptionEnabled = enabled) }
+        preferencesManager.setWebDavEncryption(enabled, _uiState.value.encryptionPassword)
+    }
+
+    fun onEncryptionPasswordChanged(password: String) {
+        _uiState.update { it.copy(encryptionPassword = password) }
+    }
+
+    fun toggleEncryptionPasswordVisibility() {
+        _uiState.update { it.copy(isEncryptionPasswordVisible = !it.isEncryptionPasswordVisible) }
+    }
+
     fun saveConfig() {
         val s = _uiState.value
         preferencesManager.saveWebDavConfig(
@@ -140,6 +161,10 @@ class WebDavSyncViewModel @Inject constructor(
             username = s.username,
             password = s.password,
             remoteDir = s.remoteDir
+        )
+        preferencesManager.setWebDavEncryption(
+            enabled = s.isEncryptionEnabled,
+            password = s.encryptionPassword
         )
     }
 
@@ -208,7 +233,9 @@ class WebDavSyncViewModel @Inject constructor(
                 autoSync = false,
                 lastSyncTime = 0L,
                 testConnectionMessage = null,
-                syncResult = null
+                syncResult = null,
+                isEncryptionEnabled = false,
+                encryptionPassword = ""
             )
         }
     }
