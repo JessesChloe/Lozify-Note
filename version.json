@@ -1,9 +1,9 @@
 {
-  "versionCode": 3,
-  "versionName": "1.2.1",
+  "versionCode": 4,
+  "versionName": "1.2.2",
   "releaseDate": "2026-08-19",
-  "changelog": "✨ 1. 新增坚果云 / WebDAV 两路双向云同步与增量图片同步\n🛡️ 2. 全新 AES-256-GCM 硬件级端到端防审查数据加密 (E2EE)\n⚡ 3. 瀑布流列表滑动性能全面重构至 120Hz 丝滑\n🎨 4. 全新 1:1 对标 flomo 极简几何矢量艺术字标与双线菜单\n📦 5. 支持 Gitee / GitHub 双通道国内极速在线版本检测与更新推送",
-  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.1/Lozify-v1.2.1.apk",
-  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.1/Lozify-v1.2.1.apk",
+  "changelog": "🛡️ 1. 全新分布式全局 UUID 实体同步架构，彻底消除多端自增 ID 碰撞与数据丢失覆盖\n⚡ 2. 毫秒级时间戳 + 内容哈希双重智能指纹去重引擎，跨版本无缝合并防重复\n☁️ 3. 瀑布流顶部弹性下拉同步手势与卡片总数实时动态统计\n✨ 4. Manifest 毫秒级轻量探活 Fast-Path，频繁下拉零流量消耗\n🔒 5. AES-256-GCM 硬件级端到端防审查数据加密 (E2EE)",
+  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.2/Lozify-v1.2.2.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.2/Lozify-v1.2.2.apk",
   "isForceUpdate": false
 }

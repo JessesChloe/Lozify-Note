@@ -224,14 +224,30 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            // Stage 3: Merging Data (Distributed UUID Last-Write-Wins)
-            onProgress(SyncProgress(SyncStage.MERGING_DATA, 0.45f, "正在进行双向数据比对与合并..."))
+            // Stage 3: Merging Data (Distributed UUID & Dual-Fingerprint Anti-Duplication)
+            onProgress(SyncProgress(SyncStage.MERGING_DATA, 0.45f, "正在进行双向数据比对与防重复合并..."))
             var downloadedNotesCount = 0
             var uploadedNotesCount = 0
 
-            // Stage 30 Self-Healing: Ensure all local notes have a persistent global syncId (UUID)
+            fun noteFingerprint(createdAtMillis: Long, content: String): String = "$createdAtMillis:${content.trim()}"
+
+            // Stage 30/31 Self-Healing:
+            // 1. Clean up any historical duplicate notes locally
             val rawLocalNotes = noteRepository.getAllNotes().first()
-            for (rawNote in rawLocalNotes) {
+            val groupedDuplicates = rawLocalNotes.filter { !it.isDeleted }.groupBy { noteFingerprint(it.createdAt.toEpochMilli(), it.content) }
+            for ((_, duplicateList) in groupedDuplicates) {
+                if (duplicateList.size > 1) {
+                    val toKeep = duplicateList.maxByOrNull { it.id } ?: duplicateList.first()
+                    val toRemove = duplicateList.filter { it.id != toKeep.id }
+                    for (extra in toRemove) {
+                        database.noteDao().softDeleteNote(extra.id, System.currentTimeMillis())
+                    }
+                }
+            }
+
+            // 2. Ensure all active local notes have a persistent global syncId (UUID)
+            val refreshedLocalNotes = noteRepository.getAllNotes().first()
+            for (rawNote in refreshedLocalNotes) {
                 if (rawNote.syncId.isBlank()) {
                     val assignedSyncId = "lz-${rawNote.createdAt.toEpochMilli()}-${java.util.UUID.randomUUID().toString().take(8)}"
                     database.noteDao().updateSyncId(rawNote.id, assignedSyncId)
@@ -270,8 +286,9 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            val localNotesBySyncId = localNotes.associateBy { it.syncId }
-            val allSyncIds = (localNotesBySyncId.keys + remoteNotesBySyncId.keys).toSet()
+            val localNotesBySyncId = localNotes.associateBy { it.syncId }.toMutableMap()
+            val localNotesByFingerprint = localNotes.associateBy { noteFingerprint(it.createdAt.toEpochMilli(), it.content) }.toMutableMap()
+            val processedLocalSyncIds = mutableSetOf<String>()
 
             // Merge tags into local DB
             for ((tagName, tagObj) in remoteTagsMap) {
@@ -288,30 +305,49 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            // Merge notes strictly by global syncId (UUID) to prevent ID collision
-            for (syncId in allSyncIds) {
-                val local = localNotesBySyncId[syncId]
-                val remote = remoteNotesBySyncId[syncId]
+            // Merge remote notes with dual-fingerprint anti-duplication
+            for ((remoteSyncId, remoteObj) in remoteNotesBySyncId) {
+                val remoteCreatedAt = remoteObj.optLong("createdAt", 0L)
+                val remoteContent = remoteObj.optString("content", "")
+                val remoteFingerprint = noteFingerprint(remoteCreatedAt, remoteContent)
 
-                if (local == null && remote != null) {
-                    // New remote note -> insert into local DB (assigns device-specific integer ID)
-                    insertRemoteNoteToLocal(syncId, remote)
+                // 1. First attempt: match by syncId
+                var matchedLocal = localNotesBySyncId[remoteSyncId]
+
+                // 2. Second attempt: match by timestamp + content fingerprint (cross-version anti-duplication)
+                if (matchedLocal == null) {
+                    matchedLocal = localNotesByFingerprint[remoteFingerprint]
+                    if (matchedLocal != null) {
+                        // Adopt remote syncId for local note
+                        database.noteDao().updateSyncId(matchedLocal.id, remoteSyncId)
+                        localNotesBySyncId[remoteSyncId] = matchedLocal.copy(syncId = remoteSyncId)
+                    }
+                }
+
+                if (matchedLocal == null) {
+                    // Truly brand-new note -> insert locally
+                    insertRemoteNoteToLocal(remoteSyncId, remoteObj)
                     downloadedNotesCount++
-                } else if (local != null && remote == null) {
-                    // New local note -> will be uploaded in merged payload
-                    uploadedNotesCount++
-                } else if (local != null && remote != null) {
-                    val remoteUpdatedAt = remote.optLong("updatedAt", 0L)
-                    val localUpdatedAt = local.updatedAt.toEpochMilli()
+                } else {
+                    processedLocalSyncIds.add(matchedLocal.syncId)
+                    val remoteUpdatedAt = remoteObj.optLong("updatedAt", 0L)
+                    val localUpdatedAt = matchedLocal.updatedAt.toEpochMilli()
 
                     if (remoteUpdatedAt > localUpdatedAt) {
                         // Remote is newer -> update local DB
-                        updateLocalNoteFromRemote(local.id, syncId, remote)
+                        updateLocalNoteFromRemote(matchedLocal.id, remoteSyncId, remoteObj)
                         downloadedNotesCount++
                     } else if (localUpdatedAt > remoteUpdatedAt) {
-                        // Local is newer -> will be uploaded
+                        // Local is newer -> will be written to merged payload
                         uploadedNotesCount++
                     }
+                }
+            }
+
+            // Count local notes not in remote payload
+            for ((localSyncId, _) in localNotesBySyncId) {
+                if (localSyncId !in processedLocalSyncIds && localSyncId !in remoteNotesBySyncId) {
+                    uploadedNotesCount++
                 }
             }
 

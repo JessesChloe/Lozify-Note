@@ -228,6 +228,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **28** | Gitee / GitHub Update Push | ✅ Completed | 2026-08-19 | 2026-08-19 | Gitee primary + GitHub fallback dual-channel update check, AppUpdateDialog |
 | **29** | Pull-to-Sync & Fast-Path | ✅ Completed | 2026-08-19 | 2026-08-19 | Elastic notes count header, in-place sync state transition, manifest-first zero-traffic fast-path |
 | **30** | Distributed Global UUID Sync | ✅ Completed | 2026-08-19 | 2026-08-19 | Universal syncId entity matching, auto-increment collision elimination, self-healing legacy notes |
+| **31** | Anti-Duplication Fingerprint | ✅ Completed | 2026-08-19 | 2026-08-19 | Dual-fingerprint (createdAt+content) cross-version deduplication & historical clean-up (v1.2.2) |
 
 **Status Legend:**
 - ⚪ Not Started
