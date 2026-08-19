@@ -258,6 +258,7 @@ class WebDavSyncManager @Inject constructor(
             val localTags = tagRepository.getAllTags().first()
 
             val remoteNotesBySyncId = mutableMapOf<String, JSONObject>()
+            val remoteNotesByFingerprint = mutableMapOf<String, JSONObject>()
             val remoteTagsMap = mutableMapOf<String, JSONObject>()
 
             if (remoteJson != null) {
@@ -271,17 +272,33 @@ class WebDavSyncManager @Inject constructor(
                     }
                 }
 
-                // Parse remote notes by global syncId (UUID)
+                // Parse remote notes with strict fingerprint deduplication
                 val notesArr = remoteJson.optJSONArray("notes") ?: JSONArray()
                 for (i in 0 until notesArr.length()) {
                     val noteObj = notesArr.getJSONObject(i)
+                    val createdAt = noteObj.optLong("createdAt", 0L)
+                    val content = noteObj.optString("content", "")
+                    val fp = noteFingerprint(createdAt, content)
                     val syncId = noteObj.optString("syncId").ifEmpty {
-                        val legacyCreatedAt = noteObj.optLong("createdAt", 0L)
                         val legacyId = noteObj.optLong("id", 0L)
-                        "lz-$legacyCreatedAt-$legacyId"
+                        "lz-$createdAt-$legacyId"
                     }
                     if (syncId.isNotBlank()) {
-                        remoteNotesBySyncId[syncId] = noteObj
+                        val existing = remoteNotesByFingerprint[fp]
+                        if (existing == null) {
+                            remoteNotesByFingerprint[fp] = noteObj
+                            remoteNotesBySyncId[syncId] = noteObj
+                        } else {
+                            // If remote payload had duplicate entries, keep the newer one
+                            val existingUpdatedAt = existing.optLong("updatedAt", 0L)
+                            val thisUpdatedAt = noteObj.optLong("updatedAt", 0L)
+                            if (thisUpdatedAt > existingUpdatedAt) {
+                                val oldSyncId = existing.optString("syncId").ifEmpty { "lz-$createdAt-${existing.optLong("id", 0L)}" }
+                                remoteNotesBySyncId.remove(oldSyncId)
+                                remoteNotesByFingerprint[fp] = noteObj
+                                remoteNotesBySyncId[syncId] = noteObj
+                            }
+                        }
                     }
                 }
             }
@@ -328,6 +345,17 @@ class WebDavSyncManager @Inject constructor(
                     // Truly brand-new note -> insert locally
                     insertRemoteNoteToLocal(remoteSyncId, remoteObj)
                     downloadedNotesCount++
+                    // Dynamic tracking: register inserted note in memory to prevent duplicate in same session
+                    val dummyInserted = Note(
+                        id = 0L,
+                        syncId = remoteSyncId,
+                        content = remoteContent,
+                        createdAt = Instant.ofEpochMilli(remoteCreatedAt),
+                        updatedAt = Instant.ofEpochMilli(remoteObj.optLong("updatedAt", remoteCreatedAt))
+                    )
+                    localNotesBySyncId[remoteSyncId] = dummyInserted
+                    localNotesByFingerprint[remoteFingerprint] = dummyInserted
+                    processedLocalSyncIds.add(remoteSyncId)
                 } else {
                     processedLocalSyncIds.add(matchedLocal.syncId)
                     val remoteUpdatedAt = remoteObj.optLong("updatedAt", 0L)
@@ -444,12 +472,23 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            // Stage 5: Uploading Final Merged Payload
+            // Stage 5: Uploading Final Merged Payload (Sanitized & Deduplicated)
             onProgress(SyncProgress(SyncStage.UPLOADING_REMOTE, 0.85f, "正在回写云端全量数据..."))
-            val finalNotes = noteRepository.getAllNotes().first()
+            val allRawNotes = noteRepository.getAllNotes().first()
+            val finalUniqueNotes = mutableListOf<Note>()
+            val seenFinalFp = mutableSetOf<String>()
+            for (n in allRawNotes.filter { !it.isDeleted }) {
+                val fp = noteFingerprint(n.createdAt.toEpochMilli(), n.content)
+                if (fp in seenFinalFp) {
+                    database.noteDao().softDeleteNote(n.id, System.currentTimeMillis())
+                } else {
+                    seenFinalFp.add(fp)
+                    finalUniqueNotes.add(n)
+                }
+            }
             val finalTags = tagRepository.getAllTags().first()
 
-            val mergedPayloadJson = serializePayloadJson(finalNotes, finalTags)
+            val mergedPayloadJson = serializePayloadJson(finalUniqueNotes, finalTags)
             val jsonBytes = mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)
 
             if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
@@ -474,7 +513,7 @@ class WebDavSyncManager @Inject constructor(
                 put("version", 1)
                 put("isEncrypted", isEncryptionEnabled)
                 put("lastSyncTime", nowEpoch)
-                put("noteCount", finalNotes.size)
+                put("noteCount", finalUniqueNotes.size)
                 put("tagCount", finalTags.size)
                 put("device", android.os.Build.MODEL ?: "Android")
             }

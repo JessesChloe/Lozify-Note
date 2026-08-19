@@ -258,7 +258,7 @@ class HomeViewModel @Inject constructor(
                 return@launch
             }
 
-            val result = syncManager.performSync(forceFullSync = false) { progress ->
+            val result = syncManager.performSync(forceFullSync = true) { progress ->
                 when (progress.stage) {
                     com.witte.lozify.core.network.webdav.SyncStage.CONNECTING -> {
                         _pullSyncStatusText.value = "正在连接云端 ···"

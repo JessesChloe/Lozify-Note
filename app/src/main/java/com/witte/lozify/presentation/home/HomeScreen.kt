@@ -156,11 +156,11 @@ fun HomeScreen(
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
 
-    // Stage 29: Pull-to-sync nested scroll listener
+    // Stage 29/32: Pull-to-sync nested scroll listener (ultra-responsive physics)
     val nestedScrollConnection = remember {
         object : NestedScrollConnection {
             var accumulatedPullOffset = 0f
-            val pullThreshold = 70f // pixels to trigger sync
+            val pullThreshold = 40f // pixels to trigger sync
 
             override fun onPreScroll(
                 available: Offset,
@@ -172,13 +172,31 @@ fun HomeScreen(
                     listState.firstVisibleItemScrollOffset == 0
                 ) {
                     accumulatedPullOffset += available.y
-                    if (accumulatedPullOffset > 20f && uiState.pullSyncState == PullSyncState.IDLE) {
+                    if (accumulatedPullOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
                         homeViewModel.onPullDragging()
                     }
                 } else if (available.y < 0 && accumulatedPullOffset > 0) {
-                    accumulatedPullOffset = 0f
-                    if (uiState.pullSyncState == PullSyncState.PULLING) {
+                    accumulatedPullOffset = (accumulatedPullOffset + available.y).coerceAtLeast(0f)
+                    if (accumulatedPullOffset <= 5f && uiState.pullSyncState == PullSyncState.PULLING) {
                         homeViewModel.onPullCanceled()
+                    }
+                }
+                return Offset.Zero
+            }
+
+            override fun onPostScroll(
+                consumed: Offset,
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                if (source == NestedScrollSource.Drag &&
+                    available.y > 0 &&
+                    listState.firstVisibleItemIndex == 0 &&
+                    listState.firstVisibleItemScrollOffset == 0
+                ) {
+                    accumulatedPullOffset += available.y
+                    if (accumulatedPullOffset > 10f && uiState.pullSyncState == PullSyncState.IDLE) {
+                        homeViewModel.onPullDragging()
                     }
                 }
                 return Offset.Zero
@@ -188,11 +206,21 @@ fun HomeScreen(
                 if (accumulatedPullOffset >= pullThreshold && uiState.pullSyncState == PullSyncState.PULLING) {
                     accumulatedPullOffset = 0f
                     homeViewModel.triggerPullToSync()
-                } else {
+                    return available
+                } else if (uiState.pullSyncState == PullSyncState.PULLING) {
                     accumulatedPullOffset = 0f
-                    if (uiState.pullSyncState == PullSyncState.PULLING) {
-                        homeViewModel.onPullCanceled()
-                    }
+                    homeViewModel.onPullCanceled()
+                }
+                return Velocity.Zero
+            }
+
+            override suspend fun onPostFling(consumed: Velocity, available: Velocity): Velocity {
+                if (accumulatedPullOffset >= pullThreshold && uiState.pullSyncState == PullSyncState.PULLING) {
+                    accumulatedPullOffset = 0f
+                    homeViewModel.triggerPullToSync()
+                } else if (uiState.pullSyncState == PullSyncState.PULLING) {
+                    accumulatedPullOffset = 0f
+                    homeViewModel.onPullCanceled()
                 }
                 return Velocity.Zero
             }
