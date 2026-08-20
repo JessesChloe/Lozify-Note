@@ -36,7 +36,7 @@ class MarkdownVisualTransformation(
     private val checkboxUncheckedColor: Color = Color(0xFF9CA3AF)
 ) : VisualTransformation {
 
-    private val tagRegex = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+    private val tagRegex = Regex("""#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
     private val boldRegex = Regex("""\*\*(?s)(.*?)\*\*""")
     private val underlineRegex = Regex("""__(?s)(.*?)__""")
     private val highlightRegex = Regex("""==(?s)(.*?)==""")

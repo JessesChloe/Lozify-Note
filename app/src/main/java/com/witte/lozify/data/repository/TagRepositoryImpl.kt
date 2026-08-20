@@ -124,7 +124,7 @@ class TagRepositoryImpl @Inject constructor(
         // Remove tag from each note's content
         notes.forEach { noteEntity ->
             // Build regex pattern matching tag boundaries
-            val tagPattern = Regex("""(?<![a-zA-Z0-9])#${Regex.escape(tagName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
+            val tagPattern = Regex("""#${Regex.escape(tagName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
 
             // Replace tag with empty string
             var updatedContent = noteEntity.content.replace(tagPattern, "")
@@ -201,7 +201,7 @@ class TagRepositoryImpl @Inject constructor(
 
             notes.forEach { noteEntity ->
                 // Build regex pattern matching tag boundaries for old tag
-                val oldTagPattern = Regex("""(?<![a-zA-Z0-9])#${Regex.escape(oldName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
+                val oldTagPattern = Regex("""#${Regex.escape(oldName)}(?![a-zA-Z0-9\u4e00-\u9fa5_])""")
 
                 // Replace with new tag name
                 val updatedContent = noteEntity.content.replace(oldTagPattern, "#$newName")

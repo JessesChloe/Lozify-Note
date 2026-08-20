@@ -27,12 +27,8 @@ class TagAutocompletionTest {
             }
         }
         if (hashIndex != -1) {
-            val prevChar = if (hashIndex > 0) text[hashIndex - 1] else null
-            val isAlphaNumeric = prevChar != null && (prevChar in 'a'..'z' || prevChar in 'A'..'Z' || prevChar in '0'..'9')
-            if (!isAlphaNumeric) {
-                val query = text.substring(hashIndex + 1, cursorPos)
-                return Pair(hashIndex, query)
-            }
+            val query = text.substring(hashIndex + 1, cursorPos)
+            return Pair(hashIndex, query)
         }
         return null
     }
@@ -59,6 +55,14 @@ class TagAutocompletionTest {
     }
 
     @Test
+    fun testTypingTagAfterEnglishWithoutSpace() {
+        // e.g. "email#domain" - preceded by English letter 'l'
+        val text = "email#domain"
+        val result = findActiveTagQuery(text, 12)
+        assertEquals(Pair(5, "domain"), result)
+    }
+
+    @Test
     fun testTypingTagAfterPunctuationWithoutSpace() {
         val text = "跑步打卡，#"
         val result = findActiveTagQuery(text, text.length)
@@ -68,14 +72,6 @@ class TagAutocompletionTest {
     @Test
     fun testSpaceAfterTagDismissesPicker() {
         val text = "Hello #task "
-        val result = findActiveTagQuery(text, 12)
-        assertNull(result)
-    }
-
-    @Test
-    fun testHashInMiddleOfWordIgnored() {
-        // e.g. "email#domain" - preceded by English letter 'l'
-        val text = "email#domain"
         val result = findActiveTagQuery(text, 12)
         assertNull(result)
     }

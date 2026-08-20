@@ -112,7 +112,7 @@ fun NoteEditorBottomSheet(
     var showTagPickerManuallyDismissed by remember { mutableStateOf(false) }
     var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
-    // Helper to find #tag query before cursor (Triggers after Chinese characters, punctuation, whitespace, newlines, or start of line)
+    // Helper to find #tag query before cursor (Triggers after English, Chinese, punctuation, whitespace, newlines, or start of line)
     fun findActiveTagQuery(text: String, cursorPos: Int): Pair<Int, String>? {
         if (cursorPos <= 0 || cursorPos > text.length) return null
         var hashIndex = -1
@@ -127,12 +127,8 @@ fun NoteEditorBottomSheet(
             }
         }
         if (hashIndex != -1) {
-            val prevChar = if (hashIndex > 0) text[hashIndex - 1] else null
-            val isAlphaNumeric = prevChar != null && (prevChar in 'a'..'z' || prevChar in 'A'..'Z' || prevChar in '0'..'9')
-            if (!isAlphaNumeric) {
-                val query = text.substring(hashIndex + 1, cursorPos)
-                return Pair(hashIndex, query)
-            }
+            val query = text.substring(hashIndex + 1, cursorPos)
+            return Pair(hashIndex, query)
         }
         return null
     }

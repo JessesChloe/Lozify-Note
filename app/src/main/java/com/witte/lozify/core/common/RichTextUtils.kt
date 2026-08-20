@@ -31,7 +31,7 @@ object RichTextUtils {
     private val BOLD_REGEX = Regex("""\*\*(?s)(.+?)\*\*""")
     private val UNDERLINE_REGEX = Regex("""__(?s)(.+?)__""")
     private val HIGHLIGHT_REGEX = Regex("""==(?s)(.+?)==""")
-    private val TAG_REGEX = Regex("""(?<![a-zA-Z0-9])#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
+    private val TAG_REGEX = Regex("""#[a-zA-Z0-9\u4e00-\u9fa5_]+""")
     val URL_REGEX = Regex("""(?i)\b(?:https?://|www\.)[^\s<>"'{}|\\^`\[\]\u4e00-\u9fa5]+|(?:[a-zA-Z0-9-]+\.)+(?:com|cn|org|net|io|me|cc|top|app|dev|ai|xyz|site|info)(?:/[^\s<>"'{}|\\^`\[\]\u4e00-\u9fa5]*)?""")
     private val CHECKBOX_SYMBOL_PATTERN = Regex("""[☐☑]""")
     private val STRIP_MENTION_REGEX = Regex("""@\[((?:(?!\]\(note:).)*)\]\(note:\d+\)""")

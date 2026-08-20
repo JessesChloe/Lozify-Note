@@ -106,4 +106,21 @@ class RichTextUtilsTest {
         assertEquals(firstResult.mentions, thirdResult.mentions)
         assertEquals(firstResult.annotatedString.text, thirdResult.annotatedString.text)
     }
+
+    @Test
+    fun testParseRichText_tagDirectlyAfterEnglish() {
+        val input = "project#backend and task#urgent"
+        val parsed = RichTextUtils.parseRichText(input)
+
+        assertEquals(listOf("backend", "urgent"), parsed.tags)
+    }
+
+    @Test
+    fun testParseRichText_urlAnchorPreservedNotExtractedAsTag() {
+        val input = "查看文档 https://developer.android.com/guide#activity 详情"
+        val parsed = RichTextUtils.parseRichText(input)
+
+        // The #activity inside the URL must NOT be extracted as a tag
+        assertTrue(parsed.tags.isEmpty())
+    }
 }
