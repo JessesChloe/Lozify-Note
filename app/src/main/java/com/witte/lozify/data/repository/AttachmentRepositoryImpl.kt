@@ -93,6 +93,35 @@ class AttachmentRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun addGenericFileAttachment(noteId: Long, sourceUri: Uri): Attachment? {
+        return try {
+            val result = com.witte.lozify.core.common.FileUtils.copyFileToPrivateStorage(
+                context = context,
+                sourceUri = sourceUri
+            ) ?: return null
+
+            val relativePath = result.second
+            val mimeType = com.witte.lozify.core.common.FileUtils.getMimeType(context, sourceUri)
+            val fileSize = com.witte.lozify.core.common.FileUtils.getFileSize(context, sourceUri)
+
+            val attachment = Attachment(
+                id = 0,
+                noteId = noteId,
+                filePath = relativePath,
+                displayOrder = 0,
+                createdAt = Instant.now(),
+                mimeType = mimeType,
+                fileSize = if (fileSize > 0) fileSize else null
+            )
+
+            val attachmentId = attachmentDao.insertAttachment(attachment.toEntity())
+            attachment.copy(id = attachmentId)
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
     override suspend fun cleanupOrphanedImages() {
         // Get all attachment file paths currently in database
         val allAttachments = attachmentDao.getAllAttachments()

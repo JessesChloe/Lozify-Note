@@ -343,17 +343,20 @@ fun HomeScreen(
                     } else {
                         "笔记已保存"
                     }
-                    snackbarHostState.showSnackbar(message)
-                    // Mark flag to scroll to index 0 when new note arrives in UI
+                    scope.launch {
+                        snackbarHostState.showSnackbar(message)
+                    }
+                    // Secondary insurance: ensure list is pinned at index 0
                     if (editingNoteId == null) {
-                        shouldScrollToTopOnNewNote = true
                         scope.launch {
                             listState.scrollToItem(0, 0)
                         }
                     }
                 }
                 is EditorViewModel.EditorEvent.SaveError -> {
-                    snackbarHostState.showSnackbar("保存失败: ${event.message}")
+                    scope.launch {
+                        snackbarHostState.showSnackbar("保存失败: ${event.message}")
+                    }
                 }
             }
         }
@@ -768,13 +771,15 @@ fun HomeScreen(
                 editingNoteId = null
                 editingNoteContent = null
             },
-            onSave = { textFieldValue, imageUris ->
-                if (editingNoteId == null) {
+            onSave = { textFieldValue, imageUris, fileUris ->
+                val isNewNote = editingNoteId == null
+                if (isNewNote) {
+                    shouldScrollToTopOnNewNote = true
                     scope.launch {
-                        listState.scrollToItem(0)
+                        listState.scrollToItem(0, 0)
                     }
                 }
-                editorViewModel.saveNote(textFieldValue, imageUris, editingNoteId)
+                editorViewModel.saveNote(textFieldValue, imageUris, fileUris, editingNoteId)
             },
             initialContent = editingNoteContent,
             allNotes = uiState.notes,

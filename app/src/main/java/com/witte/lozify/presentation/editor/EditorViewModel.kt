@@ -107,14 +107,21 @@ class EditorViewModel @Inject constructor(
      * Stage 5: Added noteId parameter for updating existing notes.
      * Stage 6: Added imageUris parameter for image attachment handling.
      * Stage 9 Refactor: Now accepts TextFieldValue instead of plain String.
+     * Stage 43: Added fileUris parameter for generic document/file attachment handling.
      *
      * @param textFieldValue The note content as TextFieldValue
      * @param imageUris List of selected image URIs to attach
+     * @param fileUris List of selected generic file URIs to attach
      * @param noteId Optional note ID for editing (null for new note)
      */
-    fun saveNote(textFieldValue: TextFieldValue, imageUris: List<Uri> = emptyList(), noteId: Long? = null) {
+    fun saveNote(
+        textFieldValue: TextFieldValue,
+        imageUris: List<Uri> = emptyList(),
+        fileUris: List<Uri> = emptyList(),
+        noteId: Long? = null
+    ) {
         val content = textFieldValue.text
-        if (content.isBlank()) {
+        if (content.isBlank() && imageUris.isEmpty() && fileUris.isEmpty()) {
             return
         }
 
@@ -154,6 +161,24 @@ class EditorViewModel @Inject constructor(
                                 toNoteId = toNoteId,
                                 mentionText = mentionText
                             )
+                        }
+
+                        // Process new image attachments
+                        imageUris.forEach { uri ->
+                            try {
+                                attachmentRepository.addImageAttachment(noteId, uri)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // Process new generic file attachments (Stage 43)
+                        fileUris.forEach { uri ->
+                            try {
+                                attachmentRepository.addGenericFileAttachment(noteId, uri)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
                         }
 
                         val updatedNote = note.copy(
@@ -196,6 +221,15 @@ class EditorViewModel @Inject constructor(
                             attachmentRepository.addImageAttachment(newNoteId, uri)
                         } catch (e: Exception) {
                             // Continue processing other images even if one fails
+                            e.printStackTrace()
+                        }
+                    }
+
+                    // Stage 43: Process generic file attachments with error handling
+                    fileUris.forEach { uri ->
+                        try {
+                            attachmentRepository.addGenericFileAttachment(newNoteId, uri)
+                        } catch (e: Exception) {
                             e.printStackTrace()
                         }
                     }

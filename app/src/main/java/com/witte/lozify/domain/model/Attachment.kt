@@ -31,6 +31,20 @@ data class Attachment(
     val fileSize: Long? = null
 ) {
     /**
+     * Check if this is an image attachment.
+     */
+    fun isImage(): Boolean {
+        if (mimeType?.startsWith("image/", ignoreCase = true) == true) return true
+        val ext = filePath.substringAfterLast('.', "").lowercase()
+        return ext in listOf("jpg", "jpeg", "png", "webp", "gif", "bmp", "heic", "heif", "svg")
+    }
+
+    /**
+     * Check if this is a generic file/document attachment.
+     */
+    fun isFile(): Boolean = !isImage()
+
+    /**
      * Check if this is a JPEG image.
      */
     fun isJpeg(): Boolean = mimeType?.lowercase()?.contains("jpeg") == true
@@ -39,6 +53,38 @@ data class Attachment(
      * Check if this is a PNG image.
      */
     fun isPng(): Boolean = mimeType?.lowercase()?.contains("png") == true
+
+    /**
+     * Get clean display file name without internal UUID prefix.
+     */
+    fun getDisplayName(): String {
+        val fileName = filePath.substringAfterLast('/')
+        val underscoreIdx = fileName.indexOf('_')
+        return if (underscoreIdx in 1..9) {
+            fileName.substring(underscoreIdx + 1)
+        } else {
+            fileName
+        }
+    }
+
+    /**
+     * Get formatted file size string (e.g. 1.2 MB, 450 KB).
+     */
+    fun getFormattedFileSize(): String {
+        val bytes = fileSize ?: return ""
+        if (bytes <= 0) return "0 B"
+        if (bytes < 1024) return "$bytes B"
+        val kb = bytes / 1024.0
+        if (kb < 1024) {
+            return String.format(java.util.Locale.US, "%.1f KB", kb)
+        }
+        val mb = kb / 1024.0
+        if (mb < 1024) {
+            return String.format(java.util.Locale.US, "%.1f MB", mb)
+        }
+        val gb = mb / 1024.0
+        return String.format(java.util.Locale.US, "%.2f GB", gb)
+    }
 
     /**
      * Get file size in MB (for display purposes).

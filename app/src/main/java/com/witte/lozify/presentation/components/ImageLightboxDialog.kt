@@ -6,8 +6,11 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.calculatePan
+import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
@@ -25,6 +28,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.pointer.positionChanged
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -73,6 +77,10 @@ fun ImageLightboxDialog(
 
     var isCurrentPageZoomed by remember { mutableStateOf(false) }
     var showLongPressMenu by remember { mutableStateOf(false) }
+
+    LaunchedEffect(pagerState.currentPage) {
+        isCurrentPageZoomed = false
+    }
 
     fun saveCurrentImage() {
         val currentImage = images.getOrNull(pagerState.currentPage)
@@ -290,20 +298,40 @@ private fun ZoomableImage(
                 )
             }
             .pointerInput(Unit) {
-                detectTransformGestures { _, pan, zoom, _ ->
-                    val newScale = (scale * zoom).coerceIn(1f, 5f)
-                    val maxOffsetX = (size.width * (newScale - 1f)) / 2f
-                    val maxOffsetY = (size.height * (newScale - 1f)) / 2f
+                awaitEachGesture {
+                    awaitFirstDown(requireUnconsumed = false)
+                    do {
+                        val event = awaitPointerEvent()
+                        val downCount = event.changes.count { it.pressed }
+                        val currentlyZoomed = scale > 1.05f
 
-                    scale = newScale
-                    offset = if (newScale > 1.05f) {
-                        Offset(
-                            x = (offset.x + pan.x).coerceIn(-maxOffsetX, maxOffsetX),
-                            y = (offset.y + pan.y).coerceIn(-maxOffsetY, maxOffsetY)
-                        )
-                    } else {
-                        Offset.Zero
-                    }
+                        if (downCount >= 2 || currentlyZoomed) {
+                            val zoomChange = event.calculateZoom()
+                            val panChange = event.calculatePan()
+
+                            if (zoomChange != 1f || panChange != Offset.Zero) {
+                                val newScale = (scale * zoomChange).coerceIn(1f, 5f)
+                                val maxOffsetX = (size.width * (newScale - 1f)) / 2f
+                                val maxOffsetY = (size.height * (newScale - 1f)) / 2f
+
+                                scale = newScale
+                                offset = if (newScale > 1.05f) {
+                                    Offset(
+                                        x = (offset.x + panChange.x).coerceIn(-maxOffsetX, maxOffsetX),
+                                        y = (offset.y + panChange.y).coerceIn(-maxOffsetY, maxOffsetY)
+                                    )
+                                } else {
+                                    Offset.Zero
+                                }
+
+                                event.changes.forEach {
+                                    if (it.positionChanged()) {
+                                        it.consume()
+                                    }
+                                }
+                            }
+                        }
+                    } while (event.changes.any { it.pressed })
                 }
             },
         contentAlignment = Alignment.Center

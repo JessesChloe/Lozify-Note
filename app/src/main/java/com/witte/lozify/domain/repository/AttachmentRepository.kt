@@ -55,6 +55,15 @@ interface AttachmentRepository {
     suspend fun addImageAttachment(noteId: Long, sourceUri: Uri): Attachment?
 
     /**
+     * Add generic document/file attachment from external URI (Stage 43).
+     *
+     * @param noteId Note ID to attach file to
+     * @param sourceUri External file URI
+     * @return Created attachment, or null if operation failed
+     */
+    suspend fun addGenericFileAttachment(noteId: Long, sourceUri: Uri): Attachment?
+
+    /**
      * Clean up orphaned images (files not referenced by any attachment).
      *
      * Call this periodically or during app maintenance.

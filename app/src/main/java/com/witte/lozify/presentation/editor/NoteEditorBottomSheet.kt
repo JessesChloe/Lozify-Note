@@ -25,7 +25,9 @@ import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.automirrored.filled.Undo
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.MoreHoriz
+import androidx.compose.material.icons.outlined.AttachFile
 import androidx.compose.material.icons.outlined.BorderColor
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FormatListBulleted
 import androidx.compose.material.icons.outlined.FormatUnderlined
 import androidx.compose.material.icons.outlined.Image
@@ -60,6 +62,7 @@ import androidx.compose.ui.window.Popup
 import androidx.compose.ui.window.PopupPositionProvider
 import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
+import com.witte.lozify.core.common.FileUtils
 import com.witte.lozify.core.common.MarkdownVisualTransformation
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.core.common.SmartInputFilter
@@ -69,11 +72,12 @@ import com.witte.lozify.domain.model.Note
  * NoteEditorBottomSheet - Flomo-style lightweight editor with floating secondary capsule toolbar.
  *
  * Stage 17: 1:1 Flomo Visual Toolbar & List Functionality Alignment.
+ * Stage 43: Generic file attachment upload & chip preview.
  *
  * @param sheetState Bottom sheet state
  * @param viewModel Editor ViewModel for format state management
  * @param onDismiss Callback when sheet is dismissed
- * @param onSave Callback when save button clicked with TextFieldValue and image URIs
+ * @param onSave Callback when save button clicked with TextFieldValue, image URIs, and file URIs
  * @param initialContent Optional initial content for editing (null for new note)
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -82,7 +86,7 @@ fun NoteEditorBottomSheet(
     sheetState: SheetState,
     viewModel: EditorViewModel,
     onDismiss: () -> Unit,
-    onSave: (TextFieldValue, List<Uri>) -> Unit,
+    onSave: (TextFieldValue, List<Uri>, List<Uri>) -> Unit,
     initialContent: String? = null,
     allNotes: List<Note> = emptyList(),
     currentNoteId: Long = 0L,
@@ -92,6 +96,7 @@ fun NoteEditorBottomSheet(
         mutableStateOf(TextFieldValue(text = initialContent ?: ""))
     }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
+    var selectedFileUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var showNotePicker by remember { mutableStateOf(false) }
     var isSecondaryCapsuleOpen by remember { mutableStateOf(false) }
     val focusRequester = remember { FocusRequester() }
@@ -158,6 +163,15 @@ fun NoteEditorBottomSheet(
             if (initialContent == null) {
                 viewModel.saveDraft(textFieldValue.text, updatedList)
             }
+        }
+    }
+
+    // File picker launcher (Generic documents/files)
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenMultipleDocuments()
+    ) { uris: List<Uri>? ->
+        if (!uris.isNullOrEmpty()) {
+            selectedFileUris = (selectedFileUris + uris).distinct()
         }
     }
 
@@ -329,7 +343,7 @@ fun NoteEditorBottomSheet(
                             }
                         )
 
-                        // Stage 41: 1:1 Flomo Floating Popup TagPicker (Anchored directly above the active cursor line)
+                        // Stage 41 & 44: Dynamic Follow-Cursor Popup TagPicker
                         if (isTagPickerVisible) {
                             activeTagQuery?.let { queryInfo ->
                                 val cursorPos = textFieldValue.selection.end.coerceIn(0, textFieldValue.text.length)
@@ -338,9 +352,11 @@ fun NoteEditorBottomSheet(
                                 } catch (e: Exception) {
                                     Rect.Zero
                                 }
+                                val density = androidx.compose.ui.platform.LocalDensity.current
+                                val leftOffsetPx = remember(density) { with(density) { 12.dp.roundToPx() } }
 
                                 Popup(
-                                    popupPositionProvider = remember(cursorRect) {
+                                    popupPositionProvider = remember(cursorRect, leftOffsetPx) {
                                         object : PopupPositionProvider {
                                             override fun calculatePosition(
                                                 anchorBounds: IntRect,
@@ -349,13 +365,24 @@ fun NoteEditorBottomSheet(
                                                 popupContentSize: IntSize
                                             ): IntOffset {
                                                 val cursorLineTopWindowY = anchorBounds.top + cursorRect.top.toInt()
-                                                var popupY = cursorLineTopWindowY - popupContentSize.height - 12
+                                                var popupY = cursorLineTopWindowY - popupContentSize.height - 10
                                                 // Keep popup fully visible on screen
-                                                if (popupY < 60) {
-                                                    popupY = 60
+                                                if (popupY < 40) {
+                                                    popupY = 40
                                                 }
-                                                val popupX = (anchorBounds.right - popupContentSize.width - 24)
-                                                    .coerceAtLeast(anchorBounds.left + 24)
+
+                                                // Dynamic horizontal follow-cursor logic:
+                                                // 1. Far left: clamped to anchorBounds.left (left edge of text field)
+                                                // 2. Far right: clamped to anchorBounds.right - popupContentSize.width (right edge)
+                                                // 3. Middle: cursorX minus slight left offset (12.dp)
+                                                val cursorAbsoluteX = anchorBounds.left + cursorRect.left.toInt()
+                                                val targetPopupX = cursorAbsoluteX - leftOffsetPx
+
+                                                val minX = anchorBounds.left
+                                                val maxX = (anchorBounds.right - popupContentSize.width).coerceAtLeast(minX)
+
+                                                val popupX = targetPopupX.coerceIn(minX, maxX)
+
                                                 return IntOffset(popupX, popupY)
                                             }
                                         }
@@ -372,7 +399,7 @@ fun NoteEditorBottomSheet(
                                         tagQuery = queryInfo.second,
                                         onTagSelected = { tag -> onSelectTag(tag) },
                                         onDismiss = { showTagPickerManuallyDismissed = true },
-                                        modifier = Modifier.widthIn(min = 250.dp, max = 310.dp)
+                                        modifier = Modifier.widthIn(min = 200.dp, max = 260.dp)
                                     )
                                 }
                             }
@@ -401,6 +428,85 @@ fun NoteEditorBottomSheet(
                         }
                     }
 
+                    // Stage 43: Generic file attachments preview
+                    if (selectedFileUris.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LazyRow(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(selectedFileUris) { uri ->
+                                val context = androidx.compose.ui.platform.LocalContext.current
+                                val rawName = FileUtils.getFileName(context, uri)
+                                val displayName = FileUtils.getDisplayFileName(rawName)
+                                val fileSize = FileUtils.formatFileSize(FileUtils.getFileSize(context, uri))
+                                val category = FileUtils.getFileCategory(displayName)
+
+                                Card(
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
+                                    border = BorderStroke(0.8.dp, Color(0xFFE5E7EB)),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = when (category) {
+                                                FileUtils.FileCategory.PDF,
+                                                FileUtils.FileCategory.DOCUMENT -> Icons.Outlined.Description
+                                                else -> Icons.Outlined.AttachFile
+                                            },
+                                            contentDescription = null,
+                                            tint = when (category) {
+                                                FileUtils.FileCategory.PDF -> Color(0xFFE53935)
+                                                FileUtils.FileCategory.DOCUMENT -> Color(0xFF1E88E5)
+                                                FileUtils.FileCategory.SPREADSHEET -> Color(0xFF43A047)
+                                                FileUtils.FileCategory.PRESENTATION -> Color(0xFFFB8C00)
+                                                FileUtils.FileCategory.ARCHIVE -> Color(0xFFFFB300)
+                                                FileUtils.FileCategory.AUDIO -> Color(0xFF8E24AA)
+                                                FileUtils.FileCategory.VIDEO -> Color(0xFF00ACC1)
+                                                FileUtils.FileCategory.CODE -> Color(0xFF5E35B1)
+                                                FileUtils.FileCategory.OTHER -> Color(0xFF757575)
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = displayName,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF333333),
+                                            maxLines = 1,
+                                            modifier = Modifier.widthIn(max = 130.dp)
+                                        )
+                                        if (fileSize.isNotBlank()) {
+                                            Text(
+                                                text = fileSize,
+                                                fontSize = 10.sp,
+                                                color = Color(0xFF888888)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                selectedFileUris = selectedFileUris.filter { it != uri }
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "移除附件",
+                                                tint = Color(0xFF888888),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
                     Spacer(modifier = Modifier.height(10.dp))
                 }
                 HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
@@ -418,7 +524,7 @@ fun NoteEditorBottomSheet(
                         IconToolbarButton(icon = Icons.Outlined.FormatListBulleted, contentDescription = "无序列表", isActive = activeFormats.contains(RichTextUtils.FormatType.LIST_UNORDERED), onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) })
                         IconToolbarButton(icon = Icons.Default.MoreHoriz, contentDescription = "更多格式", isActive = isSecondaryCapsuleOpen, onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen })
                     }
-                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
+                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty() || selectedFileUris.isNotEmpty()
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -436,7 +542,17 @@ fun NoteEditorBottomSheet(
                             )
                         }
                         IconButton(
-                            onClick = { if (hasContent) { onSave(textFieldValue, selectedImageUris); textFieldValue = TextFieldValue(""); selectedImageUris = emptyList(); viewModel.clearActiveFormats(); viewModel.clearDraft(); onDismiss() } },
+                            onClick = {
+                                if (hasContent) {
+                                    onSave(textFieldValue, selectedImageUris, selectedFileUris)
+                                    textFieldValue = TextFieldValue("")
+                                    selectedImageUris = emptyList()
+                                    selectedFileUris = emptyList()
+                                    viewModel.clearActiveFormats()
+                                    viewModel.clearDraft()
+                                    onDismiss()
+                                }
+                            },
                             enabled = hasContent,
                             modifier = Modifier.size(36.dp).background(color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED), shape = CircleShape)
                         ) {
@@ -514,6 +630,15 @@ fun NoteEditorBottomSheet(
                                 imagePickerLauncher.launch(
                                     PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
                                 )
+                            }
+                        )
+
+                        // 4.5. File Attachment (Upload Generic Files - to the left of Undo)
+                        IconToolbarButton(
+                            icon = Icons.Outlined.AttachFile,
+                            contentDescription = "上传文件附件",
+                            onClick = {
+                                filePickerLauncher.launch(arrayOf("*/*"))
                             }
                         )
 

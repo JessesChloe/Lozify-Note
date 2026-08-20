@@ -521,13 +521,25 @@ fun NoteCard(
                 }
             }
 
-            // Stage 13 UI Refactor: Dynamic Responsive Image Grid (AttachmentGrid)
-            if (attachments.isNotEmpty() && filesDir != null) {
+            // Stage 13 & 43 UI: Images vs Generic File Attachments
+            val imageAttachments = remember(attachments) { attachments.filter { it.isImage() } }
+            val fileAttachments = remember(attachments) { attachments.filter { it.isFile() } }
+
+            if (imageAttachments.isNotEmpty() && filesDir != null) {
                 Spacer(modifier = Modifier.height(10.dp))
                 AttachmentGrid(
-                    attachments = attachments,
+                    attachments = imageAttachments,
                     filesDir = filesDir,
                     onImageClick = onImageClick,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+
+            if (fileAttachments.isNotEmpty() && filesDir != null) {
+                Spacer(modifier = Modifier.height(10.dp))
+                FileAttachmentList(
+                    attachments = fileAttachments,
+                    filesDir = filesDir,
                     modifier = Modifier.fillMaxWidth()
                 )
             }
