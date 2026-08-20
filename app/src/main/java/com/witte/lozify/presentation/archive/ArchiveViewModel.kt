@@ -51,4 +51,13 @@ class ArchiveViewModel @Inject constructor(
             noteRepository.hardDeleteNote(noteId)
         }
     }
+
+    /**
+     * Permanently delete all notes in trash.
+     */
+    fun emptyTrash() {
+        viewModelScope.launch {
+            noteRepository.emptyTrash()
+        }
+    }
 }

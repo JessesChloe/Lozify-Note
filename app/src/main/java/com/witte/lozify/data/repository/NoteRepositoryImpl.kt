@@ -198,6 +198,13 @@ class NoteRepositoryImpl @Inject constructor(
         }
     }
 
+    override suspend fun emptyTrash() {
+        val trashedNotes = noteDao.getDeletedNotesWithRelations().first()
+        trashedNotes.forEach { noteWithRel ->
+            hardDeleteNote(noteWithRel.note.id)
+        }
+    }
+
     override suspend fun togglePinStatus(noteId: Long, isPinned: Boolean) {
         noteDao.updatePinStatus(noteId, isPinned, Instant.now())
     }

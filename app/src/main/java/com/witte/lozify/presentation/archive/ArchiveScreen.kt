@@ -13,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.outlined.DeleteSweep
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -32,11 +33,7 @@ import java.time.Instant
 
 /**
  * Trash Screen (Stage 10 & 36: Recycle Bin with Long-Press Action Sheet & Permanent Delete Confirmation).
- *
- * Stage 36 UI Refactor:
- * - Removed unintuitive swipe-to-dismiss gestures.
- * - Added Long-Press (and Tap) on note cards to trigger action sheet.
- * - Added safety confirmation dialog for permanent deletion.
+ * Stage 46: Added one-click Empty Trash action in top bar.
  */
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -51,6 +48,8 @@ fun ArchiveScreen(
     var selectedNoteForAction by remember { mutableStateOf<Note?>(null) }
     // Permanent deletion confirmation dialog state
     var noteToDeletePermanently by remember { mutableStateOf<Note?>(null) }
+    // Empty all trash confirmation dialog state
+    var showEmptyTrashDialog by remember { mutableStateOf(false) }
 
     Scaffold(
         topBar = {
@@ -68,6 +67,17 @@ fun ArchiveScreen(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "返回"
                         )
+                    }
+                },
+                actions = {
+                    if (archivedNotes.isNotEmpty()) {
+                        IconButton(onClick = { showEmptyTrashDialog = true }) {
+                            Icon(
+                                imageVector = Icons.Outlined.DeleteSweep,
+                                contentDescription = "清空回收站",
+                                tint = Color(0xFFFF5252)
+                            )
+                        }
                     }
                 },
                 colors = TopAppBarDefaults.topAppBarColors(
@@ -299,6 +309,57 @@ fun ArchiveScreen(
             dismissButton = {
                 TextButton(
                     onClick = { noteToDeletePermanently = null }
+                ) {
+                    Text(
+                        text = "取消",
+                        color = Color(0xFF666666)
+                    )
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
+    // Safety Confirmation Dialog for Emptying Trash (Stage 46)
+    if (showEmptyTrashDialog) {
+        val count = archivedNotes.size
+        AlertDialog(
+            onDismissRequest = { showEmptyTrashDialog = false },
+            title = {
+                Text(
+                    text = "清空回收站",
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 17.sp,
+                    color = Color(0xFF222222)
+                )
+            },
+            text = {
+                Text(
+                    text = "确定要清空回收站中的全部 $count 条笔记吗？\n\n此操作将永久销毁所有已删除笔记及附件，清空后无法找回。",
+                    fontSize = 14.sp,
+                    color = Color(0xFF666666),
+                    lineHeight = 20.sp
+                )
+            },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        showEmptyTrashDialog = false
+                        archiveViewModel.emptyTrash()
+                        Toast.makeText(context, "回收站已清空", Toast.LENGTH_SHORT).show()
+                    }
+                ) {
+                    Text(
+                        text = "一键清空",
+                        color = MaterialTheme.colorScheme.error,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { showEmptyTrashDialog = false }
                 ) {
                     Text(
                         text = "取消",

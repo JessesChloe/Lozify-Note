@@ -83,6 +83,11 @@ interface NoteRepository {
     suspend fun hardDeleteNote(noteId: Long)
 
     /**
+     * Empty trash by permanently deleting all notes in trash and their associated entities.
+     */
+    suspend fun emptyTrash()
+
+    /**
      * Toggle pin status for a note.
      */
     suspend fun togglePinStatus(noteId: Long, isPinned: Boolean)
