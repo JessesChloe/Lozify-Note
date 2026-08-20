@@ -250,68 +250,17 @@ fun NoteEditorBottomSheet(
         windowInsets = WindowInsets.ime,
         modifier = modifier.wrapContentHeight()
     ) {
-        Column(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight(),
-            horizontalAlignment = Alignment.CenterHorizontally
+                .wrapContentHeight()
         ) {
-            // Stage 41: Floating TagPicker OUTSIDE & ABOVE the editor bottom sheet (Flomo style)
-            if (isTagPickerVisible) {
-                activeTagQuery?.let { queryInfo ->
-                    TagPicker(
-                        availableTags = availableTags,
-                        tagQuery = queryInfo.second,
-                        onTagSelected = { tag -> onSelectTag(tag) },
-                        onDismiss = { showTagPickerManuallyDismissed = true },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 16.dp)
-                            .padding(bottom = 10.dp)
-                    )
-                }
-            }
-
-            // Floating NotePicker OUTSIDE & ABOVE the editor bottom sheet
-            if (showNotePicker) {
-                NotePicker(
-                    allNotes = allNotes,
-                    currentNoteId = currentNoteId,
-                    onDismiss = { showNotePicker = false },
-                    onNoteSelected = { noteId, mentionText ->
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-
-                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
-                            currentText.substring(0, maxOf(0, cursorPos - 1))
-                        } else {
-                            currentText.substring(0, cursorPos)
-                        }
-                        val afterCursor = currentText.substring(cursorPos)
-
-                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                        val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                        updateTextWithHistory(
-                            TextFieldValue(
-                                text = newText,
-                                selection = TextRange(newCursorPos)
-                            )
-                        )
-
-                        showNotePicker = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp)
-                        .padding(bottom = 10.dp)
-                )
-            }
-
             // Main Editor Bottom Sheet White Container
             Surface(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .align(Alignment.BottomCenter)
+                    .padding(top = 180.dp),
                 shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
                 color = Color.White
             ) {
@@ -662,8 +611,72 @@ fun NoteEditorBottomSheet(
             }
         }
     }
-}
-}
+
+            // Stage 41: Floating NotePicker OUTSIDE & ABOVE the editor bottom sheet
+            if (showNotePicker) {
+                NotePicker(
+                    allNotes = allNotes,
+                    currentNoteId = currentNoteId,
+                    onDismiss = { showNotePicker = false },
+                    onNoteSelected = { noteId, mentionText ->
+                        val currentText = textFieldValue.text
+                        val cursorPos = textFieldValue.selection.start
+
+                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
+                            currentText.substring(0, maxOf(0, cursorPos - 1))
+                        } else {
+                            currentText.substring(0, cursorPos)
+                        }
+                        val afterCursor = currentText.substring(cursorPos)
+
+                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                        val newText = beforeCursor + mentionMarkdown + afterCursor
+
+                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                        updateTextWithHistory(
+                            TextFieldValue(
+                                text = newText,
+                                selection = TextRange(newCursorPos)
+                            )
+                        )
+
+                        showNotePicker = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.TopCenter)
+                        .padding(horizontal = 16.dp)
+                        .padding(top = 10.dp)
+                )
+            }
+
+            // Stage 41: Dynamic Cursor/Line-Anchored Floating TagPicker (1:1 Flomo style)
+            if (isTagPickerVisible) {
+                activeTagQuery?.let { queryInfo ->
+                    val cursorPos = textFieldValue.selection.end
+                    val textBeforeCursor = textFieldValue.text.substring(0, cursorPos.coerceAtMost(textFieldValue.text.length))
+                    val lines = textBeforeCursor.split('\n')
+                    val wrappedLineCount = lines.sumOf { (it.length / 20).coerceAtLeast(0) }
+                    val totalLineIndex = (lines.size - 1) + wrappedLineCount
+
+                    val lineOffsetDp = (totalLineIndex * 24).dp
+                    val targetY = (180.dp + 45.dp + lineOffsetDp - 220.dp).coerceAtLeast(0.dp)
+
+                    TagPicker(
+                        availableTags = availableTags,
+                        tagQuery = queryInfo.second,
+                        onTagSelected = { tag -> onSelectTag(tag) },
+                        onDismiss = { showTagPickerManuallyDismissed = true },
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(end = 16.dp)
+                            .widthIn(min = 250.dp, max = 310.dp)
+                            .offset(y = targetY)
+                    )
+                }
+            }
+        }
+    }
 
     // Auto-focus when sheet opens
     LaunchedEffect(Unit) {

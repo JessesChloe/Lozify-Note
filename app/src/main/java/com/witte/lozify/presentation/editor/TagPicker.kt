@@ -53,8 +53,7 @@ fun TagPicker(
 
     Card(
         modifier = modifier
-            .fillMaxWidth()
-            .heightIn(max = 280.dp),
+            .heightIn(max = 220.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
