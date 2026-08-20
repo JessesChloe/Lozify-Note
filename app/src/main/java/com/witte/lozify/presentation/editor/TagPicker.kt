@@ -54,30 +54,30 @@ fun TagPicker(
     Card(
         modifier = modifier
             .fillMaxWidth()
-            .heightIn(max = 220.dp),
-        shape = RoundedCornerShape(14.dp),
+            .heightIn(max = 280.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
-        border = BorderStroke(0.6.dp, Color(0xFFEBEBEB))
+        elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+        border = BorderStroke(0.6.dp, Color(0xFFE5E5EA))
     ) {
         LazyColumn(
             modifier = Modifier.fillMaxWidth(),
-            contentPadding = PaddingValues(vertical = 6.dp)
+            contentPadding = PaddingValues(vertical = 8.dp)
         ) {
             items(filteredTags, key = { it.id }) { tag ->
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .clickable { onTagSelected(tag) }
-                        .padding(horizontal = 18.dp, vertical = 11.dp),
+                        .padding(horizontal = 20.dp, vertical = 13.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
                         text = "# ${tag.name}",
                         fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF222222),
-                        letterSpacing = 0.2.sp
+                        fontWeight = FontWeight.Normal,
+                        color = Color(0xFF2C2C2E),
+                        letterSpacing = 0.3.sp
                     )
                 }
             }

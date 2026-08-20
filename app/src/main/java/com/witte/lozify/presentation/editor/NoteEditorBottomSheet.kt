@@ -245,72 +245,105 @@ fun NoteEditorBottomSheet(
             onDismiss()
         },
         sheetState = sheetState,
-        containerColor = Color.White,
+        containerColor = Color.Transparent,
+        dragHandle = null,
         windowInsets = WindowInsets.ime,
         modifier = modifier.wrapContentHeight()
     ) {
-        Box(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .wrapContentHeight()
+                .wrapContentHeight(),
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Column(
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 4.dp)
-                ) {
-                    // Stage 41: TagPicker ABOVE TextField to avoid keyboard occlusion (Flomo style)
-                    if (isTagPickerVisible) {
-                        activeTagQuery?.let { queryInfo ->
-                            TagPicker(
-                                availableTags = availableTags,
-                                tagQuery = queryInfo.second,
-                                onTagSelected = { tag -> onSelectTag(tag) },
-                                onDismiss = { showTagPickerManuallyDismissed = true }
-                            )
-                            Spacer(modifier = Modifier.height(10.dp))
+            // Stage 41: Floating TagPicker OUTSIDE & ABOVE the editor bottom sheet (Flomo style)
+            if (isTagPickerVisible) {
+                activeTagQuery?.let { queryInfo ->
+                    TagPicker(
+                        availableTags = availableTags,
+                        tagQuery = queryInfo.second,
+                        onTagSelected = { tag -> onSelectTag(tag) },
+                        onDismiss = { showTagPickerManuallyDismissed = true },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp)
+                            .padding(bottom = 10.dp)
+                    )
+                }
+            }
+
+            // Floating NotePicker OUTSIDE & ABOVE the editor bottom sheet
+            if (showNotePicker) {
+                NotePicker(
+                    allNotes = allNotes,
+                    currentNoteId = currentNoteId,
+                    onDismiss = { showNotePicker = false },
+                    onNoteSelected = { noteId, mentionText ->
+                        val currentText = textFieldValue.text
+                        val cursorPos = textFieldValue.selection.start
+
+                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
+                            currentText.substring(0, maxOf(0, cursorPos - 1))
+                        } else {
+                            currentText.substring(0, cursorPos)
                         }
-                    }
+                        val afterCursor = currentText.substring(cursorPos)
 
-                    // NotePicker ABOVE TextField to avoid keyboard occlusion
-                    if (showNotePicker) {
-                        NotePicker(
-                            allNotes = allNotes,
-                            currentNoteId = currentNoteId,
-                            onDismiss = { showNotePicker = false },
-                            onNoteSelected = { noteId, mentionText ->
-                                val currentText = textFieldValue.text
-                                val cursorPos = textFieldValue.selection.start
+                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                        val newText = beforeCursor + mentionMarkdown + afterCursor
 
-                                val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
-                                    currentText.substring(0, maxOf(0, cursorPos - 1))
-                                } else {
-                                    currentText.substring(0, cursorPos)
-                                }
-                                val afterCursor = currentText.substring(cursorPos)
-
-                                val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                                val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                                val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                                updateTextWithHistory(
-                                    TextFieldValue(
-                                        text = newText,
-                                        selection = TextRange(newCursorPos)
-                                    )
-                                )
-
-                                showNotePicker = false
-                            }
+                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
+                        updateTextWithHistory(
+                            TextFieldValue(
+                                text = newText,
+                                selection = TextRange(newCursorPos)
+                            )
                         )
 
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
+                        showNotePicker = false
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                        .padding(bottom = 10.dp)
+                )
+            }
 
-                    // Borderless text input field with real-time Markdown syntax highlighting
+            // Main Editor Bottom Sheet White Container
+            Surface(
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+                color = Color.White
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .wrapContentHeight()
+                ) {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // Flomo-styled drag handle pill
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(top = 10.dp, bottom = 4.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(width = 36.dp, height = 4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(Color(0xFFDDDDDD))
+                            )
+                        }
+
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 4.dp)
+                        ) {
+                            // Borderless text input field with real-time Markdown syntax highlighting
                     TextField(
                         value = textFieldValue,
                         onValueChange = ::onValueChange,
@@ -629,6 +662,8 @@ fun NoteEditorBottomSheet(
             }
         }
     }
+}
+}
 
     // Auto-focus when sheet opens
     LaunchedEffect(Unit) {
