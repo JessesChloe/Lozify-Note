@@ -129,7 +129,8 @@ class RichTextUtilsTest {
         val input = "节点2@[节点1](note:22) #工作 **加粗** ==高亮=="
         val summary = RichTextUtils.getCleanSummary(input, 30)
 
-        assertEquals("节点2 节点1 #工作 加粗 高亮", summary)
+        // Mentions are completely stripped to preserve pure body text
+        assertEquals("节点2 #工作 加粗 高亮", summary)
     }
 
     @Test
@@ -137,11 +138,19 @@ class RichTextUtilsTest {
         val input = "节点3@[节点2@[节点1](note:22)](note:23)"
         val summary = RichTextUtils.getCleanSummary(input, 50)
 
-        // Must NOT contain any brackets, parentheses, or raw note: tokens
+        // Must NOT contain any brackets, parentheses, or raw note: tokens, and keeps pure body
         assertFalse(summary.contains("["))
         assertFalse(summary.contains("]"))
         assertFalse(summary.contains("note:"))
-        assertEquals("节点3 节点2 节点1", summary)
+        assertEquals("节点3", summary)
+    }
+
+    @Test
+    fun testGetCleanSummary_pureMentionFallback() {
+        val input = "@[会议纪要](note:10)"
+        val summary = RichTextUtils.getCleanSummary(input, 50)
+
+        assertEquals("会议纪要", summary)
     }
 
     @Test

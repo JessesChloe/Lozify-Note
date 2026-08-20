@@ -522,10 +522,11 @@ object RichTextUtils {
      * Generate a pristine, plain-text single-line summary of note content.
      *
      * Stage 45: Flomo-aligned clean summary extraction.
-     * - Strips all @[...](note:id) references (replaces with mention text)
-     * - Strips bold (**), underline (__), highlight (==), checkboxes (- [ ])
-     * - Strips residual Markdown symbols, brackets, and newlines
-     * - Truncates to maxLength without dangling syntax
+     * - Prioritizes the note's own body text by completely stripping @mentions.
+     * - Strips bold (**), underline (__), highlight (==), checkboxes (- [ ]).
+     * - Strips residual Markdown symbols, brackets, and newlines.
+     * - Falls back to mention text only if the note has NO other content.
+     * - Truncates to maxLength without dangling syntax.
      *
      * @param content Raw note content
      * @param maxLength Maximum length of summary
@@ -534,16 +535,8 @@ object RichTextUtils {
     fun getCleanSummary(content: String, maxLength: Int = 30): String {
         if (content.isBlank()) return "未命名笔记"
 
-        var clean = content
-        // 1. Loop to strip any nested or regular mentions (@[text](note:123) -> text)
-        var prevClean: String
-        do {
-            prevClean = clean
-            clean = clean.replace(STRIP_MENTION_REGEX, " $1 ")
-        } while (clean != prevClean && clean.contains("](note:"))
-
-        // 2. Strip standard Markdown formatters
-        clean = clean
+        // 1. Strip standard Markdown formatters and checkboxes first
+        val clean = content
             .replace(BOLD_REGEX, "$1")
             .replace(UNDERLINE_REGEX, "$1")
             .replace(HIGHLIGHT_REGEX, "$1")
@@ -551,24 +544,41 @@ object RichTextUtils {
             .replace(CHECKBOX_SYMBOL_PATTERN, "")
             .replace(LIST_PATTERN, "")
 
-        // 3. Remove residual mention fragments like "](note:123)" if malformed
-        clean = clean.replace(Regex("""\]\(note:\d+\)"""), "")
-        clean = clean.replace(Regex("""@\["""), "")
+        // 2. Primary pass: Strip all mentions completely (@[text](note:id) -> "")
+        var bodyWithoutMentions = clean
+        var prevClean: String
+        do {
+            prevClean = bodyWithoutMentions
+            bodyWithoutMentions = bodyWithoutMentions.replace(STRIP_MENTION_REGEX, "")
+        } while (bodyWithoutMentions != prevClean && bodyWithoutMentions.contains("](note:"))
 
-        // 4. Flatten newlines and multiple spaces
-        clean = clean.replace(Regex("""[\r\n\t]+"""), " ")
-        clean = clean.replace(Regex("""\s{2,}"""), " ").trim()
+        bodyWithoutMentions = bodyWithoutMentions
+            .replace(Regex("""\]\(note:\d+\)"""), "")
+            .replace(Regex("""@\["""), "")
+            .replace(Regex("""[\r\n\t]+"""), " ")
+            .replace(Regex("""\s{2,}"""), " ")
+            .replace('[', ' ')
+            .replace(']', ' ')
+            .replace(Regex("""\s{2,}"""), " ")
+            .trim()
 
-        // 5. Remove problematic brackets that could break outer markdown
-        clean = clean.replace('[', ' ').replace(']', ' ').replace(Regex("""\s{2,}"""), " ").trim()
-
-        if (clean.isBlank()) return "未命名笔记"
-
-        return if (clean.length > maxLength) {
-            clean.take(maxLength) + "..."
-        } else {
-            clean
+        // If the note has real body text, use that body text
+        if (bodyWithoutMentions.isNotBlank()) {
+            return if (bodyWithoutMentions.length > maxLength) {
+                bodyWithoutMentions.take(maxLength) + "..."
+            } else {
+                bodyWithoutMentions
+            }
         }
+
+        // Fallback: If note consisted ONLY of mentions, extract the first mention text
+        val firstMention = MENTION_REGEX.find(content)?.groupValues?.getOrNull(1)?.trim()
+        if (!firstMention.isNullOrBlank()) {
+            val fallback = firstMention.replace(Regex("""[\[\]()@\r\n]"""), " ").trim()
+            return if (fallback.length > maxLength) fallback.take(maxLength) + "..." else fallback
+        }
+
+        return "未命名笔记"
     }
 
     /**
