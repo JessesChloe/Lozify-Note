@@ -38,21 +38,21 @@ class SmartInputFilterTest {
     }
 
     @Test
-    fun testSmartEnterEscape_jumpsOutOfClosingMarker() {
+    fun testSmartEnterEscape_jumpsOutOfClosingMarkerWithoutNewline() {
         // User types content inside bold: "**Hello|**" (pos: 7)
         val oldValue = TextFieldValue(text = "**Hello**", selection = TextRange(7))
-        // User presses Enter -> inserts newline at position 7: "**Hello\n**" (pos: 8)
+        // User presses Enter on soft keyboard -> inserts newline at position 7: "**Hello\n**" (pos: 8)
         val newValue = TextFieldValue(text = "**Hello\n**", selection = TextRange(8))
 
         val result = SmartInputFilter.applySmartInputFilter(oldValue, newValue)
 
-        // SmartInputFilter jumps out of "**": "**Hello**\n" (pos: 10)
-        assertEquals("**Hello**\n", result.text)
-        assertEquals(10, result.selection.start)
+        // SmartInputFilter jumps OUT of "**" staying on the same line without breaking: "**Hello**|" (pos: 9)
+        assertEquals("**Hello**", result.text)
+        assertEquals(9, result.selection.start)
     }
 
     @Test
-    fun testSmartEnterEscape_emptyMarkersCleanlyRemovedOnEnter() {
+    fun testSmartEnterEscape_emptyMarkersJumpOutWithoutNewline() {
         // User is inside empty bold: "**|**" (pos: 2)
         val oldValue = TextFieldValue(text = "****", selection = TextRange(2))
         // User presses Enter -> inserts newline at position 2: "**\n**" (pos: 3)
@@ -60,9 +60,9 @@ class SmartInputFilterTest {
 
         val result = SmartInputFilter.applySmartInputFilter(oldValue, newValue)
 
-        // Empty markers should be cleanly removed, leaving only a newline "\n" (pos: 1)
-        assertEquals("\n", result.text)
-        assertEquals(1, result.selection.start)
+        // Jumps out to end of empty markers on same line: "****|" (pos: 4)
+        assertEquals("****", result.text)
+        assertEquals(4, result.selection.start)
     }
 
     @Test
