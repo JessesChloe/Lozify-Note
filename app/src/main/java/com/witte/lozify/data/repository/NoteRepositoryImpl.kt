@@ -41,7 +41,7 @@ class NoteRepositoryImpl @Inject constructor(
 
     override fun getAllNotes(): Flow<List<Note>> {
         return noteDao.getAllNotesWithRelations().map { notesWithRelations ->
-            notesWithRelations.toDomainModels()
+            notesWithRelations.toFilteredDomainModels()
         }
     }
 
@@ -53,15 +53,15 @@ class NoteRepositoryImpl @Inject constructor(
 
     override fun getNoteThread(noteId: Long): Flow<NoteThread?> {
         return noteDao.getAllNotesWithRelations().map { notesWithRelations ->
-            val allNotes = notesWithRelations.toDomainModels()
+            val allNotes = notesWithRelations.toFilteredDomainModels()
             val allNotesMap = allNotes.associateBy { it.id }
             val mainNote = allNotesMap[noteId] ?: return@map null
 
-            // Parents: notes mentioning mainNote (incoming relations to mainNote)
+            // Parents: notes mentioning mainNote (incoming relations from active notes)
             val parentIds = mainNote.incomingRelations.map { it.fromNoteId }
             val parents = parentIds.mapNotNull { allNotesMap[it] }
 
-            // Children: notes mentioned by mainNote (outgoing relations from mainNote)
+            // Children: notes mentioned by mainNote (outgoing relations to active notes)
             val childIds = mainNote.outgoingRelations.map { it.toNoteId }
             val children = childIds.mapNotNull { allNotesMap[it] }
 
@@ -75,13 +75,13 @@ class NoteRepositoryImpl @Inject constructor(
 
     override fun searchNotes(query: String): Flow<List<Note>> {
         return noteDao.searchNotesWithRelations(query).map { notesWithRelations ->
-            notesWithRelations.toDomainModels()
+            notesWithRelations.toFilteredDomainModels()
         }
     }
 
     override fun getPinnedNotes(): Flow<List<Note>> {
         return noteDao.getPinnedNotesWithRelations().map { notesWithRelations ->
-            notesWithRelations.toDomainModels()
+            notesWithRelations.toFilteredDomainModels()
         }
     }
 
@@ -105,7 +105,21 @@ class NoteRepositoryImpl @Inject constructor(
 
     override fun getNotesByTag(tagId: Long): Flow<List<Note>> {
         return noteDao.getNotesByTagWithRelations(tagId).map { notesWithRelations ->
-            notesWithRelations.toDomainModels()
+            notesWithRelations.toFilteredDomainModels()
+        }
+    }
+
+    private fun List<com.witte.lozify.data.local.model.NoteWithTagsAndAttachments>.toFilteredDomainModels(): List<Note> {
+        val activeIds = map { it.note.id }.toSet()
+        return map { nwr ->
+            nwr.toDomainModel().copy(
+                outgoingRelations = nwr.outgoingRelations
+                    .filter { it.toNoteId in activeIds }
+                    .toDomainModels(),
+                incomingRelations = nwr.incomingRelations
+                    .filter { it.fromNoteId in activeIds }
+                    .toDomainModels()
+            )
         }
     }
 

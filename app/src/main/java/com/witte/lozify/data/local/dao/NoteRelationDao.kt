@@ -20,15 +20,25 @@ import kotlinx.coroutines.flow.Flow
 interface NoteRelationDao {
 
     /**
-     * Get all outgoing relations from a note (notes that this note @mentions).
+     * Get all outgoing relations from a note (notes that this note @mentions) where target note is active.
      */
-    @Query("SELECT * FROM note_relations WHERE from_note_id = :noteId ORDER BY created_at DESC")
+    @Query("""
+        SELECT note_relations.* FROM note_relations
+        INNER JOIN notes ON note_relations.to_note_id = notes.id
+        WHERE note_relations.from_note_id = :noteId AND notes.is_deleted = 0 AND notes.is_archived = 0
+        ORDER BY note_relations.created_at DESC
+    """)
     fun getOutgoingRelations(noteId: Long): Flow<List<NoteRelationEntity>>
 
     /**
-     * Get all incoming relations to a note (backlinks - notes that @mention this note).
+     * Get all incoming relations to a note (backlinks - notes that @mention this note) where source note is active.
      */
-    @Query("SELECT * FROM note_relations WHERE to_note_id = :noteId ORDER BY created_at DESC")
+    @Query("""
+        SELECT note_relations.* FROM note_relations
+        INNER JOIN notes ON note_relations.from_note_id = notes.id
+        WHERE note_relations.to_note_id = :noteId AND notes.is_deleted = 0 AND notes.is_archived = 0
+        ORDER BY note_relations.created_at DESC
+    """)
     fun getIncomingRelations(noteId: Long): Flow<List<NoteRelationEntity>>
 
     /**
@@ -43,15 +53,23 @@ interface NoteRelationDao {
     suspend fun getRelation(fromNoteId: Long, toNoteId: Long): NoteRelationEntity?
 
     /**
-     * Get count of outgoing relations for a note.
+     * Get count of outgoing relations for a note (targeting active notes).
      */
-    @Query("SELECT COUNT(*) FROM note_relations WHERE from_note_id = :noteId")
+    @Query("""
+        SELECT COUNT(*) FROM note_relations
+        INNER JOIN notes ON note_relations.to_note_id = notes.id
+        WHERE note_relations.from_note_id = :noteId AND notes.is_deleted = 0 AND notes.is_archived = 0
+    """)
     suspend fun getOutgoingRelationsCount(noteId: Long): Int
 
     /**
-     * Get count of incoming relations (backlinks) for a note.
+     * Get count of incoming relations (backlinks) for a note (from active notes).
      */
-    @Query("SELECT COUNT(*) FROM note_relations WHERE to_note_id = :noteId")
+    @Query("""
+        SELECT COUNT(*) FROM note_relations
+        INNER JOIN notes ON note_relations.from_note_id = notes.id
+        WHERE note_relations.to_note_id = :noteId AND notes.is_deleted = 0 AND notes.is_archived = 0
+    """)
     suspend fun getIncomingRelationsCount(noteId: Long): Int
 
     /**
