@@ -93,7 +93,7 @@ fun NoteEditorBottomSheet(
 
     var showTagPickerManuallyDismissed by remember { mutableStateOf(false) }
 
-    // Helper to find #tag query before cursor
+    // Helper to find #tag query before cursor (Triggers after Chinese characters, punctuation, whitespace, newlines, or start of line)
     fun findActiveTagQuery(text: String, cursorPos: Int): Pair<Int, String>? {
         if (cursorPos <= 0 || cursorPos > text.length) return null
         var hashIndex = -1
@@ -108,7 +108,9 @@ fun NoteEditorBottomSheet(
             }
         }
         if (hashIndex != -1) {
-            if (hashIndex == 0 || text[hashIndex - 1].isWhitespace() || text[hashIndex - 1] == '\n') {
+            val prevChar = if (hashIndex > 0) text[hashIndex - 1] else null
+            val isAlphaNumeric = prevChar != null && (prevChar in 'a'..'z' || prevChar in 'A'..'Z' || prevChar in '0'..'9')
+            if (!isAlphaNumeric) {
                 val query = text.substring(hashIndex + 1, cursorPos)
                 return Pair(hashIndex, query)
             }
@@ -257,51 +259,12 @@ fun NoteEditorBottomSheet(
             Column(
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextField(
-                            value = textFieldValue,
-                            onValueChange = ::onValueChange,
-                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF454545), lineHeight = 22.sp),
-                            visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
-                            placeholder = { Text(text = "现在的想法是...", color = Color(0xFFB0B0B0), fontSize = 15.sp) },
-                            colors = TextFieldDefaults.colors(
-                                focusedTextColor = Color(0xFF454545), unfocusedTextColor = Color(0xFF454545),
-                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                                disabledContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent,
-                                unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
-                                cursorColor = Color(0xFF00C853)
-                            ),
-                            modifier = Modifier.fillMaxWidth().heightIn(min = 130.dp, max = 240.dp).focusRequester(focusRequester)
-                        )
-                        if (selectedImageUris.isNotEmpty()) {
-                            Spacer(modifier = Modifier.height(6.dp))
-                            LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                items(selectedImageUris) { uri ->
-                                    Box(modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0))) {
-                                        AsyncImage(model = uri, contentDescription = "预览图片", contentScale = ContentScale.Crop, modifier = Modifier.size(68.dp))
-                                        IconButton(
-                                            onClick = {
-                                                val updated = selectedImageUris.filter { it != uri }
-                                                selectedImageUris = updated
-                                                if (initialContent == null) viewModel.saveDraft(textFieldValue.text, updated)
-                                            },
-                                            modifier = Modifier.align(Alignment.TopEnd).size(20.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                        ) {
-                                            Icon(imageVector = Icons.Default.Close, contentDescription = "移除图片", tint = Color.White, modifier = Modifier.size(12.dp))
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(10.dp))
-                    }
+                    // Floating NotePicker
                     if (showNotePicker) {
                         NotePicker(
                             allNotes = allNotes,
@@ -316,20 +279,71 @@ fun NoteEditorBottomSheet(
                                 updateTextWithHistory(TextFieldValue(text = beforeCursor + mentionMarkdown + afterCursor, selection = TextRange(beforeCursor.length + mentionMarkdown.length)))
                                 showNotePicker = false
                             },
-                            modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
+                            modifier = Modifier.fillMaxWidth()
                         )
+                        Spacer(modifier = Modifier.height(8.dp))
                     }
+
+                    // Stage 41: 1:1 Flomo TagPicker (Placed directly on the line above the input field)
                     if (isTagPickerVisible) {
                         activeTagQuery?.let { queryInfo ->
-                            TagPicker(
-                                availableTags = availableTags,
-                                tagQuery = queryInfo.second,
-                                onTagSelected = { tag -> onSelectTag(tag) },
-                                onDismiss = { showTagPickerManuallyDismissed = true },
-                                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).widthIn(min = 250.dp, max = 310.dp)
-                            )
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = 6.dp),
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                TagPicker(
+                                    availableTags = availableTags,
+                                    tagQuery = queryInfo.second,
+                                    onTagSelected = { tag -> onSelectTag(tag) },
+                                    onDismiss = { showTagPickerManuallyDismissed = true },
+                                    modifier = Modifier.widthIn(min = 250.dp, max = 310.dp)
+                                )
+                            }
                         }
                     }
+
+                    // Borderless text input field with real-time Markdown syntax highlighting
+                    TextField(
+                        value = textFieldValue,
+                        onValueChange = ::onValueChange,
+                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF454545), lineHeight = 22.sp),
+                        visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
+                        placeholder = { Text(text = "现在的想法是...", color = Color(0xFFB0B0B0), fontSize = 15.sp) },
+                        colors = TextFieldDefaults.colors(
+                            focusedTextColor = Color(0xFF454545), unfocusedTextColor = Color(0xFF454545),
+                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                            disabledContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
+                            cursorColor = Color(0xFF00C853)
+                        ),
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 130.dp, max = 240.dp).focusRequester(focusRequester)
+                    )
+
+                    // Image thumbnail preview
+                    if (selectedImageUris.isNotEmpty()) {
+                        Spacer(modifier = Modifier.height(6.dp))
+                        LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            items(selectedImageUris) { uri ->
+                                Box(modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0))) {
+                                    AsyncImage(model = uri, contentDescription = "预览图片", contentScale = ContentScale.Crop, modifier = Modifier.size(68.dp))
+                                    IconButton(
+                                        onClick = {
+                                            val updated = selectedImageUris.filter { it != uri }
+                                            selectedImageUris = updated
+                                            if (initialContent == null) viewModel.saveDraft(textFieldValue.text, updated)
+                                        },
+                                        modifier = Modifier.align(Alignment.TopEnd).size(20.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Close, contentDescription = "移除图片", tint = Color.White, modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(10.dp))
                 }
                 HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
                 Row(modifier = Modifier.fillMaxWidth().height(52.dp).background(Color.White).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
