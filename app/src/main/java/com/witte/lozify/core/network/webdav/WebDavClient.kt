@@ -371,7 +371,12 @@ class WebDavClient @Inject constructor() {
             val block = matcher.group(1) ?: continue
             val hrefMatcher = hrefPattern.matcher(block)
             if (hrefMatcher.find()) {
-                val href = hrefMatcher.group(1)?.trim() ?: continue
+                val rawHref = hrefMatcher.group(1)?.trim() ?: continue
+                val decodedHref = try {
+                    java.net.URLDecoder.decode(rawHref, java.nio.charset.StandardCharsets.UTF_8.name())
+                } catch (e: Exception) {
+                    rawHref
+                }
                 val isCollection = collectionPattern.matcher(block).find()
                 var length = 0L
                 val lengthMatcher = lengthPattern.matcher(block)
@@ -383,7 +388,7 @@ class WebDavClient @Inject constructor() {
                 if (modifiedMatcher.find()) {
                     modified = modifiedMatcher.group(1)?.trim() ?: ""
                 }
-                items.add(WebDavFileItem(href = href, isDirectory = isCollection, contentLength = length, lastModified = modified))
+                items.add(WebDavFileItem(href = decodedHref, isDirectory = isCollection, contentLength = length, lastModified = modified))
             }
         }
         return items

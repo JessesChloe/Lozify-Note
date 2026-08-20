@@ -791,9 +791,10 @@ class WebDavSyncManager @Inject constructor(
         val encFileName = "$fileName.enc"
         val remoteSubDir = "$remoteDir$subDir"
 
-        onProgress(0.2f)
+        // Ensure remote directories exist
+        webDavClient.ensureDirectory(serverUrl, username, password, remoteSubDir)
 
-        // Check remote files
+        // Check remote files in target sub-directory
         val remoteListRes = webDavClient.listFiles(serverUrl, username, password, remoteSubDir)
         val remoteNames = if (remoteListRes.isSuccess) {
             remoteListRes.getOrThrow().map { it.href.substringAfterLast('/') }.toSet()
@@ -820,7 +821,7 @@ class WebDavSyncManager @Inject constructor(
             } finally {
                 tempEncFile.delete()
             }
-        } else if (fileName in remoteNames || encFileName !in remoteNames) {
+        } else if (fileName in remoteNames) {
             onProgress(0.5f)
             val dlRes = webDavClient.downloadFile(
                 serverUrl, username, password,
@@ -834,7 +835,7 @@ class WebDavSyncManager @Inject constructor(
                 Result.failure(dlRes.exceptionOrNull() ?: Exception("从云端下载文件失败"))
             }
         } else {
-            Result.failure(java.io.FileNotFoundException("云端未找到此文件: $fileName"))
+            Result.failure(java.io.FileNotFoundException("云端尚未上传此附件文件。请在上传该文件的设备上进入设置点击「立即同步」将附件上云后重试"))
         }
     }
 }
