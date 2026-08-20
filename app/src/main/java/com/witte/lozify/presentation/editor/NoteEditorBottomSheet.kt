@@ -86,8 +86,9 @@ fun NoteEditorBottomSheet(
     sheetState: SheetState,
     viewModel: EditorViewModel,
     onDismiss: () -> Unit,
-    onSave: (TextFieldValue, List<Uri>, List<Uri>) -> Unit,
+    onSave: (TextFieldValue, List<Long>, List<Uri>, List<Uri>) -> Unit,
     initialContent: String? = null,
+    initialAttachments: List<com.witte.lozify.domain.model.Attachment> = emptyList(),
     allNotes: List<Note> = emptyList(),
     currentNoteId: Long = 0L,
     modifier: Modifier = Modifier
@@ -100,6 +101,9 @@ fun NoteEditorBottomSheet(
                 selection = TextRange(text.length)
             )
         )
+    }
+    var existingAttachments by remember(initialAttachments) {
+        mutableStateOf(initialAttachments)
     }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var selectedFileUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
@@ -385,10 +389,38 @@ fun NoteEditorBottomSheet(
                         }
                     }
 
-                    // Image thumbnail preview
-                    if (selectedImageUris.isNotEmpty()) {
+                    val existingImages = existingAttachments.filter { att ->
+                        att.mimeType?.startsWith("image/") == true ||
+                        (!att.filePath.startsWith("files/") && listOf(".jpg", ".jpeg", ".png", ".webp", ".gif").any { att.filePath.endsWith(it, ignoreCase = true) })
+                    }
+                    val existingFiles = existingAttachments.filter { it !in existingImages }
+
+                    // Image thumbnail preview (Existing + Newly selected)
+                    if (existingImages.isNotEmpty() || selectedImageUris.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            // 1. Existing images
+                            items(existingImages) { att ->
+                                val file = java.io.File(androidx.compose.ui.platform.LocalContext.current.filesDir, att.filePath)
+                                Box(modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0))) {
+                                    AsyncImage(
+                                        model = if (file.exists()) file else att.filePath,
+                                        contentDescription = "预览图片",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier.size(68.dp)
+                                    )
+                                    IconButton(
+                                        onClick = {
+                                            existingAttachments = existingAttachments.filter { it.id != att.id }
+                                        },
+                                        modifier = Modifier.align(Alignment.TopEnd).size(20.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Close, contentDescription = "移除图片", tint = Color.White, modifier = Modifier.size(12.dp))
+                                    }
+                                }
+                            }
+
+                            // 2. Newly selected images
                             items(selectedImageUris) { uri ->
                                 Box(modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0))) {
                                     AsyncImage(model = uri, contentDescription = "预览图片", contentScale = ContentScale.Crop, modifier = Modifier.size(68.dp))
@@ -407,13 +439,85 @@ fun NoteEditorBottomSheet(
                         }
                     }
 
-                    // Stage 43: Generic file attachments preview
-                    if (selectedFileUris.isNotEmpty()) {
+                    // Stage 43: Generic file attachments preview (Existing + Newly selected)
+                    if (existingFiles.isNotEmpty() || selectedFileUris.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(6.dp))
                         LazyRow(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
+                            // 1. Existing files
+                            items(existingFiles) { att ->
+                                val rawName = att.filePath.substringAfterLast('/')
+                                val displayName = FileUtils.getDisplayFileName(rawName)
+                                val file = java.io.File(androidx.compose.ui.platform.LocalContext.current.filesDir, att.filePath)
+                                val fileSize = if (file.exists()) FileUtils.formatFileSize(file.length()) else ""
+                                val category = FileUtils.getFileCategory(displayName)
+
+                                Card(
+                                    shape = RoundedCornerShape(8.dp),
+                                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
+                                    border = BorderStroke(0.8.dp, Color(0xFFE5E7EB)),
+                                    modifier = Modifier.height(36.dp)
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = when (category) {
+                                                FileUtils.FileCategory.PDF,
+                                                FileUtils.FileCategory.DOCUMENT -> Icons.Outlined.Description
+                                                else -> Icons.Outlined.AttachFile
+                                            },
+                                            contentDescription = null,
+                                            tint = when (category) {
+                                                FileUtils.FileCategory.PDF -> Color(0xFFE53935)
+                                                FileUtils.FileCategory.DOCUMENT -> Color(0xFF1E88E5)
+                                                FileUtils.FileCategory.SPREADSHEET -> Color(0xFF43A047)
+                                                FileUtils.FileCategory.PRESENTATION -> Color(0xFFFB8C00)
+                                                FileUtils.FileCategory.ARCHIVE -> Color(0xFFFFB300)
+                                                FileUtils.FileCategory.AUDIO -> Color(0xFF8E24AA)
+                                                FileUtils.FileCategory.VIDEO -> Color(0xFF00ACC1)
+                                                FileUtils.FileCategory.CODE -> Color(0xFF5E35B1)
+                                                FileUtils.FileCategory.OTHER -> Color(0xFF757575)
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                        Text(
+                                            text = displayName,
+                                            fontSize = 12.sp,
+                                            fontWeight = FontWeight.Medium,
+                                            color = Color(0xFF333333),
+                                            maxLines = 1,
+                                            modifier = Modifier.widthIn(max = 130.dp)
+                                        )
+                                        if (fileSize.isNotBlank()) {
+                                            Text(
+                                                text = fileSize,
+                                                fontSize = 10.sp,
+                                                color = Color(0xFF888888)
+                                            )
+                                        }
+                                        IconButton(
+                                            onClick = {
+                                                existingAttachments = existingAttachments.filter { it.id != att.id }
+                                            },
+                                            modifier = Modifier.size(16.dp)
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Close,
+                                                contentDescription = "移除附件",
+                                                tint = Color(0xFF888888),
+                                                modifier = Modifier.size(12.dp)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+
+                            // 2. Newly selected files
                             items(selectedFileUris) { uri ->
                                 val context = androidx.compose.ui.platform.LocalContext.current
                                 val rawName = FileUtils.getFileName(context, uri)
@@ -503,7 +607,7 @@ fun NoteEditorBottomSheet(
                         IconToolbarButton(icon = Icons.Outlined.FormatListBulleted, contentDescription = "无序列表", isActive = activeFormats.contains(RichTextUtils.FormatType.LIST_UNORDERED), onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) })
                         IconToolbarButton(icon = Icons.Default.MoreHoriz, contentDescription = "更多格式", isActive = isSecondaryCapsuleOpen, onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen })
                     }
-                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty() || selectedFileUris.isNotEmpty()
+                    val hasContent = textFieldValue.text.isNotBlank() || existingAttachments.isNotEmpty() || selectedImageUris.isNotEmpty() || selectedFileUris.isNotEmpty()
                     Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
@@ -523,8 +627,9 @@ fun NoteEditorBottomSheet(
                         IconButton(
                             onClick = {
                                 if (hasContent) {
-                                    onSave(textFieldValue, selectedImageUris, selectedFileUris)
+                                    onSave(textFieldValue, existingAttachments.map { it.id }, selectedImageUris, selectedFileUris)
                                     textFieldValue = TextFieldValue("")
+                                    existingAttachments = emptyList()
                                     selectedImageUris = emptyList()
                                     selectedFileUris = emptyList()
                                     viewModel.clearActiveFormats()

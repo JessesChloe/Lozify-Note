@@ -172,11 +172,7 @@ class NoteRepositoryImpl @Inject constructor(
             tagDao.insertNoteTagCrossRef(NoteTagCrossRef(note.id, tagId))
         }
 
-        // Update attachments: delete old ones, insert new ones
-        attachmentDao.deleteAllAttachmentsForNote(note.id)
-        note.attachments.forEach { attachment ->
-            attachmentDao.insertAttachment(attachment.toEntity())
-        }
+        // Note: Attachments are managed by AttachmentRepository explicitly to prevent accidental file/DB wipe
 
         // Update relations: remove old outgoing relations, add new ones
         relationDao.deleteAllOutgoingRelations(note.id)

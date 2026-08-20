@@ -101,27 +101,23 @@ class EditorViewModel @Inject constructor(
     }
 
     /**
-     * Save a new note to the database with automatic tag extraction.
-     *
-     * Stage 4: Extracts all #tags from content, creates/links them to note.
-     * Stage 5: Added noteId parameter for updating existing notes.
-     * Stage 6: Added imageUris parameter for image attachment handling.
-     * Stage 9 Refactor: Now accepts TextFieldValue instead of plain String.
-     * Stage 43: Added fileUris parameter for generic document/file attachment handling.
+     * Save a new note or update an existing note in the database.
      *
      * @param textFieldValue The note content as TextFieldValue
-     * @param imageUris List of selected image URIs to attach
-     * @param fileUris List of selected generic file URIs to attach
+     * @param keptExistingAttachmentIds List of existing attachment IDs to keep (for editing)
+     * @param imageUris List of new selected image URIs to attach
+     * @param fileUris List of new selected generic file URIs to attach
      * @param noteId Optional note ID for editing (null for new note)
      */
     fun saveNote(
         textFieldValue: TextFieldValue,
+        keptExistingAttachmentIds: List<Long> = emptyList(),
         imageUris: List<Uri> = emptyList(),
         fileUris: List<Uri> = emptyList(),
         noteId: Long? = null
     ) {
         val content = textFieldValue.text
-        if (content.isBlank() && imageUris.isEmpty() && fileUris.isEmpty()) {
+        if (content.isBlank() && keptExistingAttachmentIds.isEmpty() && imageUris.isEmpty() && fileUris.isEmpty()) {
             return
         }
 
@@ -147,13 +143,42 @@ class EditorViewModel @Inject constructor(
                 val mentions = RichTextUtils.extractMentionsFromContent(content)
 
                 if (noteId != null) {
-                    // Stage 5: Update existing note
+                    // Stage 5 & Stage 54: Update existing note
                     val existingNote = noteRepository.getNoteById(noteId).first()
                     existingNote?.let { note ->
-                        // Stage 7 Bug Fix: Clear old tag associations before setting new ones
+                        // 1. Delete removed attachments
+                        val currentDbAttachments = attachmentRepository.getAttachmentsForNote(noteId).first()
+                        val keptSet = keptExistingAttachmentIds.toSet()
+                        currentDbAttachments.filter { it.id !in keptSet }.forEach { att ->
+                            try {
+                                attachmentRepository.deleteAttachment(att.id)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // 2. Add newly picked image attachments
+                        imageUris.forEach { uri ->
+                            try {
+                                attachmentRepository.addImageAttachment(noteId, uri)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // 3. Add newly picked generic file attachments
+                        fileUris.forEach { uri ->
+                            try {
+                                attachmentRepository.addGenericFileAttachment(noteId, uri)
+                            } catch (e: Exception) {
+                                e.printStackTrace()
+                            }
+                        }
+
+                        // 4. Update tag associations
                         tagRepository.setTagsForNote(noteId, tags.map { it.id })
 
-                        // Stage 8: Clear old relations and insert new ones
+                        // 5. Update mention relations
                         noteRelationRepository.deleteRelationsForNote(noteId)
                         mentions.forEach { (toNoteId, mentionText) ->
                             noteRelationRepository.addRelation(
@@ -163,24 +188,7 @@ class EditorViewModel @Inject constructor(
                             )
                         }
 
-                        // Process new image attachments
-                        imageUris.forEach { uri ->
-                            try {
-                                attachmentRepository.addImageAttachment(noteId, uri)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-
-                        // Process new generic file attachments (Stage 43)
-                        fileUris.forEach { uri ->
-                            try {
-                                attachmentRepository.addGenericFileAttachment(noteId, uri)
-                            } catch (e: Exception) {
-                                e.printStackTrace()
-                            }
-                        }
-
+                        // 6. Update Note content and timestamp
                         val updatedNote = note.copy(
                             content = content.trim(),
                             updatedAt = now,

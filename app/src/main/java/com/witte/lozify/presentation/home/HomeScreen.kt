@@ -156,6 +156,7 @@ fun HomeScreen(
     var showEditor by remember { mutableStateOf(false) }
     var editingNoteId by remember { mutableStateOf<Long?>(null) }
     var editingNoteContent by remember { mutableStateOf<String?>(null) }
+    var editingNoteAttachments by remember { mutableStateOf<List<com.witte.lozify.domain.model.Attachment>>(emptyList()) }
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
 
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
@@ -722,6 +723,7 @@ fun HomeScreen(
                                 onEditClick = {
                                     editingNoteId = note.id
                                     editingNoteContent = note.content
+                                    editingNoteAttachments = note.attachments
                                     showEditor = true
                                 },
                                 onDeleteClick = {
@@ -771,8 +773,9 @@ fun HomeScreen(
                 showEditor = false
                 editingNoteId = null
                 editingNoteContent = null
+                editingNoteAttachments = emptyList()
             },
-            onSave = { textFieldValue, imageUris, fileUris ->
+            onSave = { textFieldValue, keptAttachmentIds, imageUris, fileUris ->
                 val isNewNote = editingNoteId == null
                 if (isNewNote) {
                     shouldScrollToTopOnNewNote = true
@@ -780,9 +783,16 @@ fun HomeScreen(
                         listState.scrollToItem(0, 0)
                     }
                 }
-                editorViewModel.saveNote(textFieldValue, imageUris, fileUris, editingNoteId)
+                editorViewModel.saveNote(
+                    textFieldValue = textFieldValue,
+                    keptExistingAttachmentIds = keptAttachmentIds,
+                    imageUris = imageUris,
+                    fileUris = fileUris,
+                    noteId = editingNoteId
+                )
             },
             initialContent = editingNoteContent,
+            initialAttachments = editingNoteAttachments,
             allNotes = uiState.notes,
             currentNoteId = editingNoteId ?: 0L
         )
