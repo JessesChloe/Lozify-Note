@@ -1,6 +1,7 @@
 package com.witte.lozify.presentation.home
 
 import android.widget.Toast
+import com.witte.lozify.domain.model.Note
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -116,6 +117,7 @@ fun NoteCard(
     incomingRelationsCount: Int = 0,
     outgoingRelations: List<NoteRelation> = emptyList(),
     incomingRelations: List<NoteRelation> = emptyList(),
+    allNotes: List<Note> = emptyList(),
     isHighlighted: Boolean = false,
     filesDir: File? = null,
     onTogglePinClick: () -> Unit,
@@ -603,11 +605,13 @@ fun NoteCard(
                 // Incoming relation blocks (backlinks from other notes referencing this note)
                 if (hasIncoming) {
                     incomingRelations.forEach { relation ->
+                        val fromNoteSummary = allNotes.find { it.id == relation.fromNoteId }?.getCleanSummary(30)
+                            ?: "来自关联笔记 #${relation.fromNoteId}"
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .clickable {
-                                    onRelationsClick?.invoke(incomingRelations, "反链列表")
+                                    onRelationsClick?.invoke(listOf(relation), "反链列表")
                                 }
                                 .padding(vertical = 3.dp),
                             verticalAlignment = Alignment.CenterVertically,
@@ -628,7 +632,7 @@ fun NoteCard(
                                 )
                             }
                             Text(
-                                text = relation.mentionText.ifBlank { "被其他笔记引用" },
+                                text = fromNoteSummary,
                                 fontSize = 12.sp,
                                 color = Color(0xFF757575),
                                 lineHeight = 17.sp,

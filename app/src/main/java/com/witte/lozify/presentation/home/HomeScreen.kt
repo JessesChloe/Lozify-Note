@@ -748,6 +748,7 @@ fun HomeScreen(
                                 },
                                 outgoingRelations = note.outgoingRelations,
                                 incomingRelations = note.incomingRelations,
+                                allNotes = uiState.notes,
                                 onImageClick = { imgIndex, images ->
                                     activeLightbox = Pair(imgIndex, images)
                                 },

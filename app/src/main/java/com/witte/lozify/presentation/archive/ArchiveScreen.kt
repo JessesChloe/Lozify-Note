@@ -136,6 +136,7 @@ fun ArchiveScreen(
                             incomingRelationsCount = note.incomingRelations.size,
                             outgoingRelations = note.outgoingRelations,
                             incomingRelations = note.incomingRelations,
+                            allNotes = archivedNotes,
                             onTogglePinClick = {},
                             onEditClick = {},
                             onDeleteClick = {},

@@ -299,7 +299,8 @@ fun NoteEditorBottomSheet(
                                 val cursorPos = textFieldValue.selection.start
                                 val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') currentText.substring(0, maxOf(0, cursorPos - 1)) else currentText.substring(0, cursorPos)
                                 val afterCursor = currentText.substring(cursorPos)
-                                val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                                val cleanText = mentionText.replace(Regex("""[\[\]()@\r\n]"""), " ").trim().take(25).ifBlank { "笔记" }
+                                val mentionMarkdown = "@[$cleanText](note:$noteId) "
                                 updateTextWithHistory(TextFieldValue(text = beforeCursor + mentionMarkdown + afterCursor, selection = TextRange(beforeCursor.length + mentionMarkdown.length)))
                                 showNotePicker = false
                             },

@@ -123,4 +123,32 @@ class RichTextUtilsTest {
         // The #activity inside the URL must NOT be extracted as a tag
         assertTrue(parsed.tags.isEmpty())
     }
+
+    @Test
+    fun testGetCleanSummary_stripsMentionsAndMarkdown() {
+        val input = "节点2@[节点1](note:22) #工作 **加粗** ==高亮=="
+        val summary = RichTextUtils.getCleanSummary(input, 30)
+
+        assertEquals("节点2 节点1 #工作 加粗 高亮", summary)
+    }
+
+    @Test
+    fun testGetCleanSummary_handlesNestedMentionsGracefully() {
+        val input = "节点3@[节点2@[节点1](note:22)](note:23)"
+        val summary = RichTextUtils.getCleanSummary(input, 50)
+
+        // Must NOT contain any brackets, parentheses, or raw note: tokens
+        assertFalse(summary.contains("["))
+        assertFalse(summary.contains("]"))
+        assertFalse(summary.contains("note:"))
+        assertEquals("节点3 节点2 节点1", summary)
+    }
+
+    @Test
+    fun testGetCleanSummary_multilineAndLengthLimit() {
+        val input = "第一行内容\n第二行内容非常非常长超过设定的最大限制"
+        val summary = RichTextUtils.getCleanSummary(input, 10)
+
+        assertEquals("第一行内容 第二行内...", summary)
+    }
 }

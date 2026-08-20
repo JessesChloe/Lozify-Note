@@ -35,16 +35,18 @@ data class Note(
     val incomingRelations: List<NoteRelation> = emptyList()
 ) {
     /**
-     * Get the first line or first 50 characters of content as title.
-     * Used for @mention display text and list previews.
+     * Get a pristine, plain-text single-line title without Markdown or @mention markup.
+     * Used for @mention display text, backlink cards, and list previews.
      */
-    fun getTitle(): String {
-        val firstLine = content.lines().firstOrNull()?.trim() ?: ""
-        return if (firstLine.length > 50) {
-            firstLine.take(50) + "..."
-        } else {
-            firstLine.ifEmpty { "未命名笔记" }
-        }
+    fun getTitle(maxLength: Int = 30): String {
+        return getCleanSummary(maxLength)
+    }
+
+    /**
+     * Get a pristine, plain-text summary of note content.
+     */
+    fun getCleanSummary(maxLength: Int = 30): String {
+        return com.witte.lozify.core.common.RichTextUtils.getCleanSummary(content, maxLength)
     }
 
     /**

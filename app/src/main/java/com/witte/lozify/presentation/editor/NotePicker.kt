@@ -181,8 +181,8 @@ fun NotePicker(
                         NotePickerItem(
                             note = note,
                             onClick = {
-                                // Use note title as mention text
-                                val mentionText = note.getTitle()
+                                // Use clean summary as mention text (max 25 chars, no markdown or brackets)
+                                val mentionText = note.getCleanSummary(25)
                                 onNoteSelected(note.id, mentionText)
                             }
                         )
@@ -208,9 +208,9 @@ private fun NotePickerItem(
             .clickable(onClick = onClick)
             .padding(vertical = 12.dp)
     ) {
-        // Note preview (first line or 50 chars)
+        // Clean single-line title preview
         Text(
-            text = note.getTitle(),
+            text = note.getCleanSummary(30),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = Color(0xFF333333),
@@ -220,9 +220,9 @@ private fun NotePickerItem(
 
         Spacer(modifier = Modifier.height(4.dp))
 
-        // Full content preview (gray, smaller)
+        // Clean full content preview (gray, stripped of markdown tags and brackets)
         Text(
-            text = note.content.replace("\n", " "),
+            text = note.getCleanSummary(80),
             fontSize = 13.sp,
             color = Color(0xFF999999),
             maxLines = 2,

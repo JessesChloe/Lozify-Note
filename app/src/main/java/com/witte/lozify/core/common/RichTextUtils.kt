@@ -147,7 +147,11 @@ object RichTextUtils {
         }
 
         // Replace mentions first so body text is clean
-        val contentWithoutMentions = processedContent.replace(MENTION_REGEX, "").trimEnd()
+        val contentWithoutMentions = processedContent
+            .replace(MENTION_REGEX, "")
+            .replace(Regex("""\]\(note:\d+\)"""), "")
+            .replace(Regex("""@\["""), "")
+            .trimEnd()
 
         val extractedTags = mutableListOf<String>()
         val builder = AnnotatedString.Builder()
@@ -491,19 +495,80 @@ object RichTextUtils {
      * Used for plain text export or clipboard copy.
      *
      * Stage 8: Added @mention marker stripping.
-     * Bug Fix: Use stricter regex to handle brackets inside mention text.
+     * Stage 45: Loop stripping for nested mentions and residual fragments.
      *
      * @param content Formatted text with Markdown markers
      * @return Plain text without markers
      */
     fun stripFormatting(content: String): String {
-        return content
-            .replace(STRIP_MENTION_REGEX, "$1")  // @mention → text only
-            .replace(BOLD_REGEX, "$1")           // Bold (DOTALL mode)
-            .replace(UNDERLINE_REGEX, "$1")      // Underline (DOTALL mode)
-            .replace(HIGHLIGHT_REGEX, "$1")      // Highlight (DOTALL mode)
-            .replace(STRIP_CHECKBOX_REGEX, "")   // Checkboxes
-            .trim()  // Remove leading/trailing whitespace
+        var clean = content
+        var prevClean: String
+        do {
+            prevClean = clean
+            clean = clean.replace(STRIP_MENTION_REGEX, "$1")
+        } while (clean != prevClean && clean.contains("](note:"))
+
+        return clean
+            .replace(BOLD_REGEX, "$1")
+            .replace(UNDERLINE_REGEX, "$1")
+            .replace(HIGHLIGHT_REGEX, "$1")
+            .replace(STRIP_CHECKBOX_REGEX, "")
+            .replace(Regex("""\]\(note:\d+\)"""), "")
+            .replace(Regex("""@\["""), "")
+            .trim()
+    }
+
+    /**
+     * Generate a pristine, plain-text single-line summary of note content.
+     *
+     * Stage 45: Flomo-aligned clean summary extraction.
+     * - Strips all @[...](note:id) references (replaces with mention text)
+     * - Strips bold (**), underline (__), highlight (==), checkboxes (- [ ])
+     * - Strips residual Markdown symbols, brackets, and newlines
+     * - Truncates to maxLength without dangling syntax
+     *
+     * @param content Raw note content
+     * @param maxLength Maximum length of summary
+     * @return Clean plain text summary
+     */
+    fun getCleanSummary(content: String, maxLength: Int = 30): String {
+        if (content.isBlank()) return "未命名笔记"
+
+        var clean = content
+        // 1. Loop to strip any nested or regular mentions (@[text](note:123) -> text)
+        var prevClean: String
+        do {
+            prevClean = clean
+            clean = clean.replace(STRIP_MENTION_REGEX, " $1 ")
+        } while (clean != prevClean && clean.contains("](note:"))
+
+        // 2. Strip standard Markdown formatters
+        clean = clean
+            .replace(BOLD_REGEX, "$1")
+            .replace(UNDERLINE_REGEX, "$1")
+            .replace(HIGHLIGHT_REGEX, "$1")
+            .replace(STRIP_CHECKBOX_REGEX, "")
+            .replace(CHECKBOX_SYMBOL_PATTERN, "")
+            .replace(LIST_PATTERN, "")
+
+        // 3. Remove residual mention fragments like "](note:123)" if malformed
+        clean = clean.replace(Regex("""\]\(note:\d+\)"""), "")
+        clean = clean.replace(Regex("""@\["""), "")
+
+        // 4. Flatten newlines and multiple spaces
+        clean = clean.replace(Regex("""[\r\n\t]+"""), " ")
+        clean = clean.replace(Regex("""\s{2,}"""), " ").trim()
+
+        // 5. Remove problematic brackets that could break outer markdown
+        clean = clean.replace('[', ' ').replace(']', ' ').replace(Regex("""\s{2,}"""), " ").trim()
+
+        if (clean.isBlank()) return "未命名笔记"
+
+        return if (clean.length > maxLength) {
+            clean.take(maxLength) + "..."
+        } else {
+            clean
+        }
     }
 
     /**
