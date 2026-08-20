@@ -262,6 +262,7 @@ chore(gradle): update Compose BOM to 2024.02.00
 | **38** | Lightbox Save Image to Gallery | ✅ Completed | 2026-08-20 | 2026-08-20 | Scoped Storage (Pictures/Lozify) saving via top download button & long-press sheet |
 | **39** | Release v1.2.4 Distribution | ✅ Completed | 2026-08-20 | 2026-08-20 | Lozify v1.2.4 release package, dual-channel update announcement, end-to-end verified |
 | **40** | Flomo-Style Pull Physics | ✅ Completed | 2026-08-20 | 2026-08-20 | Continuous rubber-band translation, 160dp travel, segmented bounce-back & deliberate sync trigger |
+| **41** | Flomo-Style #Tag Autocomplete | ✅ Completed | 2026-08-20 | 2026-08-20 | Real-time tag suggestion popover on '#', active tag filter (excludes trash/deleted), WebDAV sync compliant |
 
 **Status Legend:**
 - ⚪ Not Started
@@ -474,6 +475,9 @@ adb exec-out screencap -p > screenshot.png
 
 ---
 
+- **2026-08-20**: Stage 41 Flomo 风格输入 '#' 实时标签选择浮层与活跃标签过滤系统
+  - 实现输入 '#' 或点击工具栏 '#' 弹出白底高质感圆角浮层卡片与实时模糊过滤
+  - 严格过滤废弃/已删除标签（仅展示 `usageCount > 0 || isPinned` 活跃标签），并与坚果云 WebDAV 同步 100% 兼容
 - **2026-08-20**: Stage 40 Flomo 风格连续弹性下拉手势与卡片位移视差系统
   - 引入 Animatable 驱动 160dp 超大行程橡皮筋弹性下移，瀑布流卡片整体平滑下沉
   - 分段式手感：轻拉查看笔记数并松手弹性回弹（不触发同步），深拉达 85dp 触发坚果云同步

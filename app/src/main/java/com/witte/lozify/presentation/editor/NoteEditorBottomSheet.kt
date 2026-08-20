@@ -87,8 +87,39 @@ fun NoteEditorBottomSheet(
     val undoStack = remember { mutableStateListOf<TextFieldValue>() }
     val redoStack = remember { mutableStateListOf<TextFieldValue>() }
 
-    // Collect activeFormats from ViewModel
+    // Collect activeFormats and availableTags from ViewModel
     val activeFormats by viewModel.activeFormats.collectAsState()
+    val availableTags by viewModel.availableTags.collectAsState()
+
+    var showTagPickerManuallyDismissed by remember { mutableStateOf(false) }
+
+    // Helper to find #tag query before cursor
+    fun findActiveTagQuery(text: String, cursorPos: Int): Pair<Int, String>? {
+        if (cursorPos <= 0 || cursorPos > text.length) return null
+        var hashIndex = -1
+        for (i in cursorPos - 1 downTo 0) {
+            val ch = text[i]
+            if (ch == '#') {
+                hashIndex = i
+                break
+            }
+            if (ch.isWhitespace() || ch == '\n' || ch == '@') {
+                break
+            }
+        }
+        if (hashIndex != -1) {
+            if (hashIndex == 0 || text[hashIndex - 1].isWhitespace() || text[hashIndex - 1] == '\n') {
+                val query = text.substring(hashIndex + 1, cursorPos)
+                return Pair(hashIndex, query)
+            }
+        }
+        return null
+    }
+
+    val activeTagQuery = remember(textFieldValue.text, textFieldValue.selection) {
+        findActiveTagQuery(textFieldValue.text, textFieldValue.selection.end)
+    }
+    val isTagPickerVisible = activeTagQuery != null && !showTagPickerManuallyDismissed && availableTags.isNotEmpty()
 
     // Restore draft if creating a new note and editor is empty
     LaunchedEffect(Unit) {
@@ -140,7 +171,27 @@ fun NoteEditorBottomSheet(
                 showNotePicker = true
             }
         }
+        showTagPickerManuallyDismissed = false
         updateTextWithHistory(filteredValue)
+    }
+
+    // Handle tag autocompletion selection
+    fun onSelectTag(tag: com.witte.lozify.domain.model.Tag) {
+        val queryInfo = activeTagQuery ?: return
+        val hashPos = queryInfo.first
+        val currentText = textFieldValue.text
+        val cursorPos = textFieldValue.selection.end
+        val beforeHash = currentText.substring(0, hashPos)
+        val afterCursor = currentText.substring(cursorPos)
+        val tagText = "#${tag.name} "
+        val newText = beforeHash + tagText + afterCursor
+        val newCursorPos = beforeHash.length + tagText.length
+        updateTextWithHistory(
+            TextFieldValue(
+                text = newText,
+                selection = TextRange(newCursorPos)
+            )
+        )
     }
 
     // Helper function to apply formatting
@@ -211,6 +262,19 @@ fun NoteEditorBottomSheet(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
+                    // Stage 41: TagPicker ABOVE TextField to avoid keyboard occlusion (Flomo style)
+                    if (isTagPickerVisible) {
+                        activeTagQuery?.let { queryInfo ->
+                            TagPicker(
+                                availableTags = availableTags,
+                                tagQuery = queryInfo.second,
+                                onTagSelected = { tag -> onSelectTag(tag) },
+                                onDismiss = { showTagPickerManuallyDismissed = true }
+                            )
+                            Spacer(modifier = Modifier.height(10.dp))
+                        }
+                    }
+
                     // NotePicker ABOVE TextField to avoid keyboard occlusion
                     if (showNotePicker) {
                         NotePicker(
@@ -356,6 +420,7 @@ fun NoteEditorBottomSheet(
                                 val currentText = textFieldValue.text
                                 val cursorPos = textFieldValue.selection.start
                                 val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
+                                showTagPickerManuallyDismissed = false
                                 updateTextWithHistory(
                                     TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
                                 )

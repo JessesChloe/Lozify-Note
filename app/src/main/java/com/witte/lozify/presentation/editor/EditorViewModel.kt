@@ -16,10 +16,13 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Instant
 import javax.inject.Inject
@@ -33,6 +36,7 @@ import javax.inject.Inject
  * Stage 6: Integrated image attachment handling with AttachmentRepository.
  * Stage 9 Refactor: Upgraded to TextFieldValue + activeFormats for WYSIWYG editing.
  * Stage 17: Draft auto-saving and restoring.
+ * Stage 41: Real-time tag autocompletion filtered to active (non-deleted) tags.
  */
 @HiltViewModel
 class EditorViewModel @Inject constructor(
@@ -42,6 +46,21 @@ class EditorViewModel @Inject constructor(
     private val noteRelationRepository: NoteRelationRepository,
     private val preferencesManager: UserPreferencesManager
 ) : ViewModel() {
+
+    /**
+     * Stage 41: Available active tags for #tag autocompletion.
+     * Only includes tags that have active note references or are pinned.
+     * Deleted tags or tags with only deleted notes (trash) are automatically excluded.
+     */
+    val availableTags: StateFlow<List<Tag>> = tagRepository.getAllTags()
+        .map { tags ->
+            tags.filter { it.usageCount > 0 || it.isPinned }
+        }
+        .stateIn(
+            scope = viewModelScope,
+            started = SharingStarted.WhileSubscribed(5000),
+            initialValue = emptyList()
+        )
 
     /**
      * Events emitted by the editor.
