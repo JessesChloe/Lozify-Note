@@ -1,35 +1,38 @@
 package com.witte.lozify.presentation.home
 
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.Canvas
+import android.widget.Toast
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.IntrinsicSize
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.material.icons.filled.Link
+import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.ModalBottomSheet
@@ -43,34 +46,46 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
-import com.witte.lozify.presentation.components.ImageLightboxDialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.domain.model.Note
+import com.witte.lozify.presentation.components.ImageLightboxDialog
 import java.io.File
+import java.time.Duration
+import java.time.Instant
 
 /**
- * NoteDetailBottomSheet - Context Thread Timeline View (上下文时间线视图).
+ * NoteDetailBottomSheet - Option B: Single-Card Focus with Progressive Relations.
  *
- * Stage 13 Refactor (Flomo/Twitter-style Thread View):
- * - Displays a connected timeline of notes: Parents (Backlinks) -> Main Focus Note -> Children (Outgoing Mentions)
- * - Renders a vertical timeline linking cards like a thread
- * - Highlights the focused main note with prominent accent styling
+ * Stage 47 Refactor (Flomo/Atomic Card Alignment):
+ * - Displays the focused note with 100% full content fidelity (rich text, tags, attachments, files).
+ * - Replaced heavy 3-layer thread timeline with lightweight bottom relation capsules (出链 ↖ / 反链 🔗).
+ * - Smooth in-place switching: tapping any relation chip smoothly navigates to that note in-sheet.
  *
  * @param noteId ID of the central focused note
- * @param filesDir Application files directory for image attachments
+ * @param filesDir Application files directory for image/file attachments
  * @param sheetState ModalBottomSheet state for dismiss control
  * @param onDismiss Callback when sheet is dismissed
- * @param onSelectNote Callback when user clicks another note in the thread to switch focus
+ * @param onSelectNote Callback when user clicks another relation note
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun NoteDetailBottomSheet(
     noteId: Long,
@@ -83,8 +98,14 @@ fun NoteDetailBottomSheet(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var activeLightbox by remember { mutableStateOf<Pair<Int, List<File>>?>(null) }
+    val context = LocalContext.current
+    val clipboardManager = LocalClipboardManager.current
+    val uriHandler = LocalUriHandler.current
+
+    var currentViewingNoteId by remember { mutableStateOf(noteId) }
 
     LaunchedEffect(noteId) {
+        currentViewingNoteId = noteId
         viewModel.loadNoteThread(noteId)
     }
 
@@ -97,38 +118,9 @@ fun NoteDetailBottomSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(bottom = 16.dp)
+                .padding(horizontal = 16.dp)
+                .padding(bottom = 24.dp)
         ) {
-            // Header: Title + Close button
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Spacer(modifier = Modifier.weight(1f))
-
-                Text(
-                    text = "上下文时间线",
-                    fontSize = 17.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color(0xFF333333),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(2f)
-                )
-
-                IconButton(
-                    onClick = onDismiss,
-                    modifier = Modifier.weight(1f, fill = false)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.KeyboardArrowDown,
-                        contentDescription = "关闭",
-                        tint = Color(0xFF666666)
-                    )
-                }
-            }
-
             when {
                 uiState.isLoading -> {
                     Box(
@@ -159,199 +151,314 @@ fun NoteDetailBottomSheet(
                 }
                 uiState.thread != null -> {
                     val thread = uiState.thread!!
-                    val threadItems = buildList {
-                        // 1. Parent notes (referencing main note)
-                        thread.parents.forEachIndexed { index, parentNote ->
-                            add(ThreadDisplayItem(
-                                note = parentNote,
-                                type = ThreadItemType.PARENT,
-                                label = if (thread.parents.size > 1) "上级引用 · ${index + 1}" else "上级引用"
-                            ))
-                        }
-                        // 2. Focused main note
-                        add(ThreadDisplayItem(
-                            note = thread.mainNote,
-                            type = ThreadItemType.MAIN,
-                            label = "当前焦点笔记"
-                        ))
-                        // 3. Child notes (referenced by main note)
-                        thread.children.forEachIndexed { index, childNote ->
-                            add(ThreadDisplayItem(
-                                note = childNote,
-                                type = ThreadItemType.CHILD,
-                                label = if (thread.children.size > 1) "衍生提及 · ${index + 1}" else "衍生提及"
-                            ))
-                        }
-                    }
+                    val note = thread.mainNote
+                    val scrollState = rememberScrollState()
 
-                    LazyColumn(
-                        contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-                        modifier = Modifier.fillMaxWidth()
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .heightIn(max = 560.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
                     ) {
-                        itemsIndexed(threadItems, key = { _, item -> "${item.type}_${item.note.id}" }) { index, item ->
-                            val isFirst = (index == 0)
-                            val isLast = (index == threadItems.size - 1)
-
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .verticalScroll(scrollState)
+                                .padding(16.dp)
+                        ) {
+                            // Top Bar: Timestamp + Actions
                             Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                ) {
+                                    Text(
+                                        text = formatRelativeTime(note.createdAt),
+                                        fontSize = 12.sp,
+                                        color = Color(0xFF9E9E9E)
+                                    )
+                                    if (note.isPinned) {
+                                        Icon(
+                                            imageVector = Icons.Default.PushPin,
+                                            contentDescription = "置顶",
+                                            tint = Color(0xFF4C88FF),
+                                            modifier = Modifier.size(13.dp)
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                                ) {
+                                    IconButton(
+                                        onClick = {
+                                            val plainText = RichTextUtils.stripFormatting(note.content)
+                                            clipboardManager.setText(AnnotatedString(plainText))
+                                            Toast.makeText(context, "内容已复制", Toast.LENGTH_SHORT).show()
+                                        },
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.ContentCopy,
+                                            contentDescription = "复制内容",
+                                            tint = Color(0xFF888888),
+                                            modifier = Modifier.size(16.dp)
+                                        )
+                                    }
+                                    IconButton(
+                                        onClick = onDismiss,
+                                        modifier = Modifier.size(28.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Close,
+                                            contentDescription = "关闭",
+                                            tint = Color(0xFF888888),
+                                            modifier = Modifier.size(18.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.height(10.dp))
+
+                            // Note Body with Rich Text & Tags
+                            val parsed = remember(note.content) {
+                                RichTextUtils.parseRichText(note.content, tagColor = Color(0xFF84A2EE))
+                            }
+
+                            val inlineContent = remember(parsed.tags) {
+                                buildMap {
+                                    parsed.tags.forEach { tag ->
+                                        put(
+                                            "tag_$tag",
+                                            InlineTextContent(
+                                                Placeholder(
+                                                    width = RichTextUtils.calculateTagBadgeWidth(tag),
+                                                    height = 20.sp,
+                                                    placeholderVerticalAlign = PlaceholderVerticalAlign.Center
+                                                )
+                                            ) {
+                                                Box(
+                                                    modifier = Modifier
+                                                        .clip(RoundedCornerShape(4.dp))
+                                                        .background(Color(0xFFEBF3FF))
+                                                        .padding(horizontal = 6.dp, vertical = 2.dp),
+                                                    contentAlignment = Alignment.Center
+                                                ) {
+                                                    Text(
+                                                        text = "#$tag",
+                                                        fontSize = 12.sp,
+                                                        color = Color(0xFF4C88FF),
+                                                        fontWeight = FontWeight.Medium
+                                                    )
+                                                }
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+
+                            var textLayoutResultState by remember { mutableStateOf<TextLayoutResult?>(null) }
+
+                            Text(
+                                text = parsed.annotatedString,
+                                inlineContent = inlineContent,
+                                style = TextStyle(
+                                    fontSize = 15.sp,
+                                    color = Color(0xFF333333),
+                                    lineHeight = 22.sp
+                                ),
+                                onTextLayout = { layoutResult: TextLayoutResult ->
+                                    textLayoutResultState = layoutResult
+                                },
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(IntrinsicSize.Min)
-                            ) {
-                                // Left: Timeline connector line and dot
-                                TimelineIndicator(
-                                    isFirst = isFirst,
-                                    isLast = isLast,
-                                    type = item.type,
-                                    modifier = Modifier.fillMaxHeight()
+                                    .pointerInput(parsed.annotatedString) {
+                                        detectTapGestures(
+                                            onTap = { offset ->
+                                                textLayoutResultState?.let { layoutResult ->
+                                                    val charOffset = layoutResult.getOffsetForPosition(offset)
+                                                    val url = RichTextUtils.getUrlAtOffset(parsed.annotatedString, charOffset)
+                                                    if (url != null) {
+                                                        try {
+                                                            val fullUrl = if (url.startsWith("http://", ignoreCase = true) || url.startsWith("https://", ignoreCase = true)) {
+                                                                url
+                                                            } else {
+                                                                "https://$url"
+                                                            }
+                                                            uriHandler.openUri(fullUrl)
+                                                        } catch (e: Exception) {
+                                                            Toast.makeText(context, "无法打开链接", Toast.LENGTH_SHORT).show()
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        )
+                                    }
+                            )
+
+                            // Image Attachments
+                            val imageAttachments = note.attachments.filter { it.isImage() }
+                            if (imageAttachments.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                AttachmentGrid(
+                                    attachments = imageAttachments,
+                                    filesDir = filesDir,
+                                    onImageClick = { index, images ->
+                                        activeLightbox = Pair(index, images)
+                                    }
                                 )
+                            }
 
-                                Spacer(modifier = Modifier.width(8.dp))
+                            // Generic File Attachments
+                            val fileAttachments = note.attachments.filter { it.isFile() }
+                            if (fileAttachments.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(10.dp))
+                                FileAttachmentList(
+                                    attachments = fileAttachments,
+                                    filesDir = filesDir ?: context.filesDir
+                                )
+                            }
 
-                                // Right: Note content card with header label
-                                Column(
-                                    modifier = Modifier
-                                        .weight(1f)
-                                        .padding(bottom = if (isLast) 24.dp else 16.dp)
-                                ) {
-                                    // Node label header
-                                    when (item.type) {
-                                        ThreadItemType.MAIN -> {
-                                            Row(
-                                                modifier = Modifier.padding(bottom = 6.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(15.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF00C853)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Box(
-                                                        modifier = Modifier
-                                                            .size(5.dp)
-                                                            .clip(CircleShape)
-                                                            .background(Color.White)
-                                                    )
-                                                }
-                                                Text(
-                                                    text = "当前焦点笔记",
-                                                    fontSize = 12.sp,
-                                                    fontWeight = FontWeight.Bold,
-                                                    color = Color(0xFF222222)
-                                                )
-                                            }
+                            // Progressive Relations Section (出链 ↖ / 反链 🔗)
+                            val outgoing = note.outgoingRelations
+                            val incoming = note.incomingRelations
+
+                            if (outgoing.isNotEmpty() || incoming.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(12.dp))
+                                HorizontalDivider(color = Color(0xFFF0F0F0))
+                                Spacer(modifier = Modifier.height(10.dp))
+
+                                // Outgoing Mentions (引用的笔记 ↖)
+                                if (outgoing.isNotEmpty()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.padding(bottom = 6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(15.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF8E8E93)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier
+                                                    .size(9.dp)
+                                                    .graphicsLayer(rotationZ = 45f)
+                                            )
                                         }
-                                        ThreadItemType.PARENT -> {
-                                            Row(
-                                                modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(15.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF8E8E93)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Link,
-                                                        contentDescription = null,
-                                                        tint = Color.White,
-                                                        modifier = Modifier.size(9.dp)
-                                                    )
-                                                }
-                                                Text(
-                                                    text = item.label,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = Color(0xFF757575)
-                                                )
-                                            }
-                                        }
-                                        ThreadItemType.CHILD -> {
-                                            Row(
-                                                modifier = Modifier.padding(bottom = 5.dp, start = 2.dp),
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(6.dp)
-                                            ) {
-                                                Box(
-                                                    modifier = Modifier
-                                                        .size(15.dp)
-                                                        .clip(CircleShape)
-                                                        .background(Color(0xFF8E8E93)),
-                                                    contentAlignment = Alignment.Center
-                                                ) {
+                                        Text(
+                                            text = "引用的笔记 (${outgoing.size})",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF888888)
+                                        )
+                                    }
+
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        outgoing.forEach { mention ->
+                                            val targetNote = thread.children.find { it.id == mention.toNoteId }
+                                            val title = targetNote?.getCleanSummary(30)
+                                                ?: mention.mentionText.ifBlank { "关联笔记" }
+
+                                            RelationChip(
+                                                title = title,
+                                                icon = {
                                                     Icon(
                                                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                                                         contentDescription = null,
-                                                        tint = Color.White,
+                                                        tint = Color(0xFF4C88FF),
                                                         modifier = Modifier
-                                                            .size(9.dp)
+                                                            .size(10.dp)
                                                             .graphicsLayer(rotationZ = 45f)
                                                     )
+                                                },
+                                                onClick = {
+                                                    currentViewingNoteId = mention.toNoteId
+                                                    viewModel.loadNoteThread(mention.toNoteId)
+                                                    onSelectNote?.invoke(mention.toNoteId)
                                                 }
-                                                Text(
-                                                    text = item.label,
-                                                    fontSize = 11.sp,
-                                                    fontWeight = FontWeight.Medium,
-                                                    color = Color(0xFF1A73E8)
-                                                )
-                                            }
+                                            )
                                         }
                                     }
+                                }
 
-                                    // Card Body
-                                    val isMain = item.type == ThreadItemType.MAIN
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .clip(RoundedCornerShape(12.dp))
-                                            .background(if (isMain) Color(0xFFF9FBFF) else Color.White)
-                                            .border(
-                                                border = if (isMain) {
-                                                    BorderStroke(1.5.dp, Color(0xFF4C88FF))
-                                                } else {
-                                                    BorderStroke(1.dp, Color(0xFFE8EAED))
-                                                },
-                                                shape = RoundedCornerShape(12.dp)
+                                if (outgoing.isNotEmpty() && incoming.isNotEmpty()) {
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                }
+
+                                // Incoming Backlinks (被引用的笔记 🔗)
+                                if (incoming.isNotEmpty()) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.padding(bottom = 6.dp)
+                                    ) {
+                                        Box(
+                                            modifier = Modifier
+                                                .size(15.dp)
+                                                .clip(CircleShape)
+                                                .background(Color(0xFF8E8E93)),
+                                            contentAlignment = Alignment.Center
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Link,
+                                                contentDescription = null,
+                                                tint = Color.White,
+                                                modifier = Modifier.size(9.dp)
                                             )
-                                            .then(
-                                                if (!isMain && onSelectNote != null) {
-                                                    Modifier.clickable { onSelectNote(item.note.id) }
-                                                } else {
-                                                    Modifier
+                                        }
+                                        Text(
+                                            text = "被引用的笔记 (${incoming.size})",
+                                            fontSize = 11.sp,
+                                            fontWeight = FontWeight.SemiBold,
+                                            color = Color(0xFF888888)
+                                        )
+                                    }
+
+                                    FlowRow(
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        verticalArrangement = Arrangement.spacedBy(6.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        incoming.forEach { relation ->
+                                            val sourceNote = thread.parents.find { it.id == relation.fromNoteId }
+                                            val title = sourceNote?.getCleanSummary(30)
+                                                ?: "关联笔记 #${relation.fromNoteId}"
+
+                                            RelationChip(
+                                                title = title,
+                                                icon = {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Link,
+                                                        contentDescription = null,
+                                                        tint = Color(0xFF4C88FF),
+                                                        modifier = Modifier.size(10.dp)
+                                                    )
+                                                },
+                                                onClick = {
+                                                    currentViewingNoteId = relation.fromNoteId
+                                                    viewModel.loadNoteThread(relation.fromNoteId)
+                                                    onSelectNote?.invoke(relation.fromNoteId)
                                                 }
                                             )
-                                    ) {
-                                        NoteCard(
-                                            noteId = item.note.id,
-                                            content = item.note.content,
-                                            timestamp = formatRelativeTime(item.note.createdAt),
-                                            isPinned = item.note.isPinned,
-                                            attachments = item.note.attachments,
-                                            outgoingRelationsCount = 0,
-                                            incomingRelationsCount = 0,
-                                            isHighlighted = isMain,
-                                            filesDir = filesDir,
-                                            onTogglePinClick = { /* Read-only in thread */ },
-                                            onEditClick = { /* Read-only in thread */ },
-                                            onDeleteClick = { /* Read-only in thread */ },
-                                            onCheckboxToggle = { _, _ -> /* Read-only */ },
-                                            onTagClick = null,
-                                            onMentionClick = { clickedNoteId ->
-                                                onSelectNote?.invoke(clickedNoteId)
-                                            },
-                                            onRelationsClick = null,
-                                            outgoingRelations = emptyList(),
-                                            incomingRelations = emptyList(),
-                                            onImageClick = { index, images ->
-                                                activeLightbox = Pair(index, images)
-                                            },
-                                            hideOperations = true
-                                        )
+                                        }
                                     }
                                 }
                             }
@@ -361,7 +468,7 @@ fun NoteDetailBottomSheet(
             }
         }
 
-        // Stage 16: Fullscreen Image Lightbox
+        // Fullscreen Image Lightbox
         activeLightbox?.let { (initialIndex, images) ->
             ImageLightboxDialog(
                 images = images,
@@ -373,98 +480,42 @@ fun NoteDetailBottomSheet(
 }
 
 /**
- * Timeline rail indicator with connector lines and styled node dot.
+ * Clickable capsule chip for linked relations.
  */
 @Composable
-private fun TimelineIndicator(
-    isFirst: Boolean,
-    isLast: Boolean,
-    type: ThreadItemType,
+private fun RelationChip(
+    title: String,
+    icon: @Composable () -> Unit,
+    onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Canvas(
+    Row(
         modifier = modifier
-            .width(22.dp)
-            .fillMaxHeight()
+            .clip(RoundedCornerShape(8.dp))
+            .background(Color(0xFFF2F4F7))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 10.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
     ) {
-        val centerX = size.width / 2f
-        val dotCenterY = 32.dp.toPx() // Vertically aligned with top area of the card
-
-        val lineColor = Color(0xFFDCE2E8)
-        val strokeWidth = 2.dp.toPx()
-
-        // Top vertical line
-        if (!isFirst) {
-            drawLine(
-                color = lineColor,
-                start = Offset(centerX, 0f),
-                end = Offset(centerX, dotCenterY - 8.dp.toPx()),
-                strokeWidth = strokeWidth
-            )
-        }
-
-        // Bottom vertical line
-        if (!isLast) {
-            drawLine(
-                color = lineColor,
-                start = Offset(centerX, dotCenterY + 8.dp.toPx()),
-                end = Offset(centerX, size.height),
-                strokeWidth = strokeWidth
-            )
-        }
-
-        // Node dot
-        when (type) {
-            ThreadItemType.MAIN -> {
-                // Glowing outer ring
-                drawCircle(
-                    color = Color(0xFFE8F0FE),
-                    radius = 8.dp.toPx(),
-                    center = Offset(centerX, dotCenterY)
-                )
-                // Solid center dot
-                drawCircle(
-                    color = Color(0xFF1A73E8),
-                    radius = 4.5.dp.toPx(),
-                    center = Offset(centerX, dotCenterY)
-                )
-            }
-            ThreadItemType.PARENT -> {
-                drawCircle(
-                    color = Color(0xFF9E9E9E),
-                    radius = 4.dp.toPx(),
-                    center = Offset(centerX, dotCenterY)
-                )
-            }
-            ThreadItemType.CHILD -> {
-                drawCircle(
-                    color = Color(0xFF4C88FF),
-                    radius = 4.dp.toPx(),
-                    center = Offset(centerX, dotCenterY)
-                )
-            }
-        }
+        icon()
+        Text(
+            text = title,
+            fontSize = 12.sp,
+            fontWeight = FontWeight.Medium,
+            color = Color(0xFF333333),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
-
-private enum class ThreadItemType {
-    PARENT,
-    MAIN,
-    CHILD
-}
-
-private data class ThreadDisplayItem(
-    val note: Note,
-    val type: ThreadItemType,
-    val label: String
-)
 
 /**
  * Format timestamp to relative time string for detail view.
  */
-private fun formatRelativeTime(instant: java.time.Instant): String {
-    val now = java.time.Instant.now()
-    val duration = java.time.Duration.between(instant, now)
+private fun formatRelativeTime(instant: Instant): String {
+    val now = Instant.now()
+    val duration = Duration.between(instant, now)
 
     return when {
         duration.toMinutes() < 1 -> "刚刚"
