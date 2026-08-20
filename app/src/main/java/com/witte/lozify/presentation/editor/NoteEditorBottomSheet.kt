@@ -93,7 +93,13 @@ fun NoteEditorBottomSheet(
     modifier: Modifier = Modifier
 ) {
     var textFieldValue by remember(initialContent) {
-        mutableStateOf(TextFieldValue(text = initialContent ?: ""))
+        val text = initialContent ?: ""
+        mutableStateOf(
+            TextFieldValue(
+                text = text,
+                selection = TextRange(text.length)
+            )
+        )
     }
     var selectedImageUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
     var selectedFileUris by remember { mutableStateOf<List<Uri>>(emptyList()) }
