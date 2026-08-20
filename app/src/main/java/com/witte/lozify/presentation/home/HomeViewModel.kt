@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.firstOrNull
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import com.witte.lozify.core.update.AppUpdateInfo
@@ -138,7 +139,7 @@ class HomeViewModel @Inject constructor(
         }
     ) { base, maxCollapseLines, sortOrder, pullSync ->
         val allNotes = base.allNotes
-        val allTags = base.allTags
+        val allTags = base.allTags.filter { it.usageCount > 0 || it.isPinned }
         val selectedTagId = base.selectedTagId
         val searchQuery = base.searchQuery
 
@@ -329,7 +330,7 @@ class HomeViewModel @Inject constructor(
         }
         UserStats(
             notesCount = allNotes.size,
-            tagsCount = allTags.size,
+            tagsCount = allTags.count { it.usageCount > 0 || it.isPinned },
             daysCount = daysCount
         )
     }.stateIn(
@@ -357,6 +358,7 @@ class HomeViewModel @Inject constructor(
      * Expose allTags for navigation and tag edit screen.
      */
     val allTags: StateFlow<List<Tag>> = tagRepository.getAllTags()
+        .map { tags -> tags.filter { it.usageCount > 0 || it.isPinned } }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),

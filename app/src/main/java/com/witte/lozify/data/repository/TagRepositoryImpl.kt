@@ -226,4 +226,11 @@ class TagRepositoryImpl @Inject constructor(
     override suspend fun togglePinTag(tagId: Long, isPinned: Boolean) {
         tagDao.updatePinStatus(tagId, isPinned)
     }
+
+    /**
+     * Stage 55: Cleanup orphaned unpinned tags with 0 active notes.
+     */
+    override suspend fun cleanupOrphanedTags() {
+        tagDao.cleanupOrphanedTags()
+    }
 }

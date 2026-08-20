@@ -167,6 +167,7 @@ class WebDavSyncManager @Inject constructor(
                     if (manifestObj != null) {
                         val remoteLastSyncTime = manifestObj.optLong("lastSyncTime", 0L)
                         val remoteNoteCount = manifestObj.optInt("noteCount", -1)
+                        val remoteTagCount = manifestObj.optInt("tagCount", -1)
                         val remotePurgedCount = manifestObj.optInt("purgedCount", 0)
                         val localLastSyncTime = preferencesManager.webdavLastSyncTime.value
                         val localPurgedCount = preferencesManager.getPurgedSyncIds().size
@@ -174,11 +175,13 @@ class WebDavSyncManager @Inject constructor(
                         val localAllNotes = noteRepository.getAllNotesIncludingDeleted().first()
                         val maxLocalUpdatedAt = localAllNotes.maxOfOrNull { it.updatedAt.toEpochMilli() } ?: 0L
                         val activeLocalNotesCount = localAllNotes.count { !it.isDeleted && !it.isArchived }
+                        val activeLocalTagsCount = tagRepository.getAllTags().first().count { it.usageCount > 0 || it.isPinned }
 
                         if (remoteLastSyncTime > 0 && localLastSyncTime > 0 &&
                             remoteLastSyncTime <= localLastSyncTime &&
                             maxLocalUpdatedAt <= localLastSyncTime &&
                             remoteNoteCount == activeLocalNotesCount &&
+                            (remoteTagCount == -1 || remoteTagCount == activeLocalTagsCount) &&
                             remotePurgedCount == localPurgedCount
                         ) {
                             onProgress(SyncProgress(SyncStage.COMPLETED, 1.0f, "已是最新数据"))
@@ -417,6 +420,9 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
+            // Stage 55: Clean up orphaned unpinned tags with 0 active notes
+            database.tagDao().cleanupOrphanedTags()
+
             // Stage 4: Syncing Images
             onProgress(SyncProgress(SyncStage.SYNCING_IMAGES, 0.65f, "正在同步多媒体图片附件..."))
             var uploadedImagesCount = 0
@@ -569,7 +575,8 @@ class WebDavSyncManager @Inject constructor(
                     finalUniqueNotes.add(n)
                 }
             }
-            val finalTags = tagRepository.getAllTags().first()
+            database.tagDao().cleanupOrphanedTags()
+            val finalTags = tagRepository.getAllTags().first().filter { it.usageCount > 0 || it.isPinned }
 
             val mergedPayloadJson = serializePayloadJson(finalUniqueNotes, finalTags, allPurgedSyncIds)
             val jsonBytes = mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)

@@ -147,4 +147,19 @@ interface TagDao {
      */
     @Query("SELECT COUNT(*) FROM tags")
     fun getTagsCount(): Flow<Int>
+
+    /**
+     * Cleanup orphaned unpinned tags that are not associated with any active note.
+     */
+    @Query("""
+        DELETE FROM tags
+        WHERE is_pinned = 0
+        AND id NOT IN (
+            SELECT DISTINCT tag_id
+            FROM note_tag_cross_ref
+            INNER JOIN notes ON note_tag_cross_ref.note_id = notes.id
+            WHERE notes.is_deleted = 0
+        )
+    """)
+    suspend fun cleanupOrphanedTags()
 }

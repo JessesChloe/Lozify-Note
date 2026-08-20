@@ -107,4 +107,9 @@ interface TagRepository {
      * @param isPinned New pin status
      */
     suspend fun togglePinTag(tagId: Long, isPinned: Boolean)
+
+    /**
+     * Cleanup orphaned unpinned tags that have 0 active note references.
+     */
+    suspend fun cleanupOrphanedTags()
 }

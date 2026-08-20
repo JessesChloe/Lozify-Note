@@ -212,6 +212,9 @@ class NoteRepositoryImpl @Inject constructor(
 
             // Finally delete the note entity
             noteDao.deleteNote(entity)
+
+            // Stage 55: Clean up orphaned tags
+            tagDao.cleanupOrphanedTags()
         }
     }
 
@@ -225,6 +228,9 @@ class NoteRepositoryImpl @Inject constructor(
         trashedNotes.forEach { noteWithRel ->
             hardDeleteNote(noteWithRel.note.id)
         }
+
+        // Stage 55: Clean up orphaned tags
+        tagDao.cleanupOrphanedTags()
     }
 
     override suspend fun togglePinStatus(noteId: Long, isPinned: Boolean) {
@@ -241,6 +247,21 @@ class NoteRepositoryImpl @Inject constructor(
 
     override suspend fun restoreNote(noteId: Long) {
         noteDao.restoreNote(noteId, Instant.now())
+
+        // Stage 55: Re-link tags from restored note content
+        val note = noteDao.getNoteByIdDirect(noteId)
+        if (note != null) {
+            val tagNames = com.witte.lozify.core.common.RichTextUtils.stripFormatting(note.content)
+                .let { clean ->
+                    Regex("""#([a-zA-Z0-9\u4e00-\u9fa5_]+)""").findAll(clean).map { it.groupValues[1] }.distinct().toList()
+                }
+            tagNames.forEach { tagName ->
+                val tagId = tagDao.getTagByName(tagName)?.id ?: tagDao.insertTag(
+                    com.witte.lozify.data.local.entity.TagEntity(name = tagName, createdAt = Instant.now())
+                )
+                tagDao.insertNoteTagCrossRef(com.witte.lozify.data.local.entity.NoteTagCrossRef(noteId, tagId))
+            }
+        }
     }
 
     override fun getActiveNotesCount(): Flow<Int> {
