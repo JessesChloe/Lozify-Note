@@ -17,6 +17,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.List
 import androidx.compose.material.icons.automirrored.filled.Redo
@@ -38,14 +39,26 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.text.TextRange
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.IntRect
+import androidx.compose.ui.unit.IntSize
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Popup
+import androidx.compose.ui.window.PopupPositionProvider
+import androidx.compose.ui.window.PopupProperties
 import coil.compose.AsyncImage
 import com.witte.lozify.core.common.MarkdownVisualTransformation
 import com.witte.lozify.core.common.RichTextUtils
@@ -92,6 +105,7 @@ fun NoteEditorBottomSheet(
     val availableTags by viewModel.availableTags.collectAsState()
 
     var showTagPickerManuallyDismissed by remember { mutableStateOf(false) }
+    var textLayoutResult by remember { mutableStateOf<TextLayoutResult?>(null) }
 
     // Helper to find #tag query before cursor (Triggers after Chinese characters, punctuation, whitespace, newlines, or start of line)
     fun findActiveTagQuery(text: String, cursorPos: Int): Pair<Int, String>? {
@@ -284,42 +298,86 @@ fun NoteEditorBottomSheet(
                         Spacer(modifier = Modifier.height(8.dp))
                     }
 
-                    // Stage 41: 1:1 Flomo TagPicker (Placed directly on the line above the input field)
-                    if (isTagPickerVisible) {
-                        activeTagQuery?.let { queryInfo ->
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 6.dp),
-                                contentAlignment = Alignment.CenterEnd
-                            ) {
-                                TagPicker(
-                                    availableTags = availableTags,
-                                    tagQuery = queryInfo.second,
-                                    onTagSelected = { tag -> onSelectTag(tag) },
-                                    onDismiss = { showTagPickerManuallyDismissed = true },
-                                    modifier = Modifier.widthIn(min = 250.dp, max = 310.dp)
-                                )
+                    // Borderless text input field with real-time Markdown syntax highlighting and cursor tracking
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        BasicTextField(
+                            value = textFieldValue,
+                            onValueChange = ::onValueChange,
+                            onTextLayout = { textLayoutResult = it },
+                            textStyle = TextStyle(
+                                fontSize = 15.sp,
+                                color = Color(0xFF454545),
+                                lineHeight = 22.sp
+                            ),
+                            visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
+                            cursorBrush = SolidColor(Color(0xFF00C853)),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(min = 130.dp, max = 240.dp)
+                                .focusRequester(focusRequester),
+                            decorationBox = { innerTextField ->
+                                Box(modifier = Modifier.fillMaxWidth()) {
+                                    if (textFieldValue.text.isEmpty()) {
+                                        Text(
+                                            text = "现在的想法是...",
+                                            color = Color(0xFFB0B0B0),
+                                            fontSize = 15.sp
+                                        )
+                                    }
+                                    innerTextField()
+                                }
+                            }
+                        )
+
+                        // Stage 41: 1:1 Flomo Floating Popup TagPicker (Anchored directly above the active cursor line)
+                        if (isTagPickerVisible) {
+                            activeTagQuery?.let { queryInfo ->
+                                val cursorPos = textFieldValue.selection.end.coerceIn(0, textFieldValue.text.length)
+                                val cursorRect = try {
+                                    textLayoutResult?.getCursorRect(cursorPos) ?: Rect.Zero
+                                } catch (e: Exception) {
+                                    Rect.Zero
+                                }
+
+                                Popup(
+                                    popupPositionProvider = remember(cursorRect) {
+                                        object : PopupPositionProvider {
+                                            override fun calculatePosition(
+                                                anchorBounds: IntRect,
+                                                windowSize: IntSize,
+                                                layoutDirection: LayoutDirection,
+                                                popupContentSize: IntSize
+                                            ): IntOffset {
+                                                val cursorLineTopWindowY = anchorBounds.top + cursorRect.top.toInt()
+                                                var popupY = cursorLineTopWindowY - popupContentSize.height - 12
+                                                // Keep popup fully visible on screen
+                                                if (popupY < 60) {
+                                                    popupY = 60
+                                                }
+                                                val popupX = (anchorBounds.right - popupContentSize.width - 24)
+                                                    .coerceAtLeast(anchorBounds.left + 24)
+                                                return IntOffset(popupX, popupY)
+                                            }
+                                        }
+                                    },
+                                    properties = PopupProperties(
+                                        focusable = false,
+                                        dismissOnBackPress = true,
+                                        dismissOnClickOutside = true
+                                    ),
+                                    onDismissRequest = { showTagPickerManuallyDismissed = true }
+                                ) {
+                                    TagPicker(
+                                        availableTags = availableTags,
+                                        tagQuery = queryInfo.second,
+                                        onTagSelected = { tag -> onSelectTag(tag) },
+                                        onDismiss = { showTagPickerManuallyDismissed = true },
+                                        modifier = Modifier.widthIn(min = 250.dp, max = 310.dp)
+                                    )
+                                }
                             }
                         }
                     }
-
-                    // Borderless text input field with real-time Markdown syntax highlighting
-                    TextField(
-                        value = textFieldValue,
-                        onValueChange = ::onValueChange,
-                        textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF454545), lineHeight = 22.sp),
-                        visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
-                        placeholder = { Text(text = "现在的想法是...", color = Color(0xFFB0B0B0), fontSize = 15.sp) },
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF454545), unfocusedTextColor = Color(0xFF454545),
-                            focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFF00C853)
-                        ),
-                        modifier = Modifier.fillMaxWidth().heightIn(min = 130.dp, max = 240.dp).focusRequester(focusRequester)
-                    )
 
                     // Image thumbnail preview
                     if (selectedImageUris.isNotEmpty()) {
