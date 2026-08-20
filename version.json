@@ -1,9 +1,9 @@
 {
-  "versionCode": 6,
-  "versionName": "1.2.4",
+  "versionCode": 7,
+  "versionName": "1.2.5",
   "releaseDate": "2026-08-20",
-  "changelog": "🖼️ 1. 本地图片智能压缩引擎：2K 视觉无损压缩（体积骤降 90%），设置中心支持原图直通切换\n📥 2. 全屏大图保存相册：大图预览新增下载按钮与长按菜单，原画质一键导出至 Pictures/Lozify\n🗑️ 3. 回收站交互全面升级：废弃反直觉滑动，重构为长按操作面板与彻底删除二次确认弹框\n🛡️ 4. 彻底解决已删除卡片死灰复燃 Bug，多端回收站状态实时双向同步\n⚡ 5. 首页下拉刷新手势阻尼重构（75dp 舒适阈值），彻底杜绝正常浏览误触",
-  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.4/Lozify-v1.2.4.apk",
-  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.4/Lozify-v1.2.4.apk",
+  "changelog": "📎 1. 通用文件附件与按需云同步：支持 PDF/Word/Excel/PPT/ZIP/音视频等多格式附件，WebDAV 按需流式懒加载，省流极速同步\n🎵 2. 原生轻量卡片音乐播放器：音频附件 40dp 极简卡片，内嵌播放/暂停/停止控制与 2dp 动态呼吸进度线\n🔗 3. 双链详情页重构：极简单卡片聚焦呈现，底部新增渐进式关系胶囊区，已删除卡片双链自动动态隐去\n✏️ 4. 智能编辑器交互升级：旧卡片编辑光标自动吸底；格式图标防重 Toggle；符号内按回车直接跳出不换行\n🗑️ 5. 回收站一键清空：顶部新增一键清空与安全二次确认弹窗",
+  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.5/Lozify-v1.2.5.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.5/Lozify-v1.2.5.apk",
   "isForceUpdate": false
 }
