@@ -191,6 +191,24 @@ class UserPreferencesManager @Inject constructor(
         _webdavEncryptionPassword.value = ""
     }
 
+    // --- Purged Sync IDs (Tombstone Purge Protocol for Multi-Device Empty Trash Sync) ---
+    private val _purgedSyncIds = MutableStateFlow<Set<String>>(
+        prefs.getStringSet(KEY_PURGED_SYNC_IDS, emptySet()) ?: emptySet()
+    )
+    val purgedSyncIds: StateFlow<Set<String>> = _purgedSyncIds.asStateFlow()
+
+    fun recordPurgedSyncIds(newSyncIds: Collection<String>) {
+        if (newSyncIds.isEmpty()) return
+        val current = _purgedSyncIds.value
+        val updated = (current + newSyncIds).toList().takeLast(1000).toSet()
+        _purgedSyncIds.value = updated
+        prefs.edit().putStringSet(KEY_PURGED_SYNC_IDS, updated).apply()
+    }
+
+    fun getPurgedSyncIds(): Set<String> {
+        return _purgedSyncIds.value
+    }
+
     companion object {
         private const val PREFS_NAME = "lozify_user_preferences"
         private const val KEY_MAX_COLLAPSE_LINES = "key_max_collapse_lines"
@@ -198,6 +216,7 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_IMAGE_COMPRESSION_ENABLED = "key_image_compression_enabled"
         private const val KEY_DRAFT_TEXT = "key_draft_text"
         private const val KEY_DRAFT_IMAGE_URIS = "key_draft_image_uris"
+        private const val KEY_PURGED_SYNC_IDS = "key_purged_sync_ids"
 
         // WebDAV keys
         private const val KEY_WEBDAV_SERVER_URL = "key_webdav_server_url"

@@ -51,6 +51,12 @@ interface NoteDao {
     fun getNoteById(noteId: Long): Flow<NoteEntity?>
 
     /**
+     * Get a single note by ID synchronously (for repository operations).
+     */
+    @Query("SELECT * FROM notes WHERE id = :noteId LIMIT 1")
+    suspend fun getNoteByIdDirect(noteId: Long): NoteEntity?
+
+    /**
      * Get all notes containing specific text in content (for search).
      */
     @Query("""

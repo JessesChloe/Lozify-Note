@@ -36,7 +36,8 @@ class NoteRepositoryImpl @Inject constructor(
     private val noteDao: NoteDao,
     private val tagDao: TagDao,
     private val attachmentDao: AttachmentDao,
-    private val relationDao: NoteRelationDao
+    private val relationDao: NoteRelationDao,
+    private val preferencesManager: com.witte.lozify.core.preferences.UserPreferencesManager
 ) : NoteRepository {
 
     override fun getAllNotes(): Flow<List<Note>> {
@@ -194,9 +195,15 @@ class NoteRepositoryImpl @Inject constructor(
         // Even though ForeignKey.CASCADE is configured, explicitly clean up to be safe
 
         // Get note entity first
-        val noteEntity = noteDao.getNoteById(noteId).first()
+        val noteEntity = noteDao.getNoteByIdDirect(noteId) ?: noteDao.getNoteById(noteId).first()
 
         noteEntity?.let { entity ->
+            // Record syncId in purged tombstones to ensure multi-device synchronization
+            val syncId = entity.syncId
+            if (!syncId.isNullOrBlank()) {
+                preferencesManager.recordPurgedSyncIds(listOf(syncId))
+            }
+
             // Delete all tag associations (CASCADE should handle this, but explicit is safer)
             tagDao.deleteAllTagsForNote(noteId)
 
@@ -214,6 +221,11 @@ class NoteRepositoryImpl @Inject constructor(
 
     override suspend fun emptyTrash() {
         val trashedNotes = noteDao.getDeletedNotesWithRelations().first()
+        val syncIds = trashedNotes.mapNotNull { it.note.syncId }.filter { it.isNotBlank() }
+        if (syncIds.isNotEmpty()) {
+            preferencesManager.recordPurgedSyncIds(syncIds)
+        }
+
         trashedNotes.forEach { noteWithRel ->
             hardDeleteNote(noteWithRel.note.id)
         }

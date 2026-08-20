@@ -167,7 +167,9 @@ class WebDavSyncManager @Inject constructor(
                     if (manifestObj != null) {
                         val remoteLastSyncTime = manifestObj.optLong("lastSyncTime", 0L)
                         val remoteNoteCount = manifestObj.optInt("noteCount", -1)
+                        val remotePurgedCount = manifestObj.optInt("purgedCount", 0)
                         val localLastSyncTime = preferencesManager.webdavLastSyncTime.value
+                        val localPurgedCount = preferencesManager.getPurgedSyncIds().size
 
                         val localAllNotes = noteRepository.getAllNotesIncludingDeleted().first()
                         val maxLocalUpdatedAt = localAllNotes.maxOfOrNull { it.updatedAt.toEpochMilli() } ?: 0L
@@ -176,7 +178,8 @@ class WebDavSyncManager @Inject constructor(
                         if (remoteLastSyncTime > 0 && localLastSyncTime > 0 &&
                             remoteLastSyncTime <= localLastSyncTime &&
                             maxLocalUpdatedAt <= localLastSyncTime &&
-                            remoteNoteCount == activeLocalNotesCount
+                            remoteNoteCount == activeLocalNotesCount &&
+                            remotePurgedCount == localPurgedCount
                         ) {
                             onProgress(SyncProgress(SyncStage.COMPLETED, 1.0f, "已是最新数据"))
                             return@withContext SyncResult(
@@ -258,7 +261,26 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
-            val localNotes = noteRepository.getAllNotesIncludingDeleted().first()
+            // 3. Merge Tombstone Purged Sync IDs (Multi-Device Empty Trash Sync)
+            val localPurgedSet = preferencesManager.getPurgedSyncIds().toMutableSet()
+            val remotePurgedArr = remoteJson?.optJSONArray("purgedSyncIds") ?: JSONArray()
+            val remotePurgedSet = (0 until remotePurgedArr.length()).map { remotePurgedArr.getString(it) }.toSet()
+            val allPurgedSyncIds = (localPurgedSet + remotePurgedSet).toMutableSet()
+            preferencesManager.recordPurgedSyncIds(allPurgedSyncIds)
+
+            // 4. Cascade purge local notes matching allPurgedSyncIds
+            val rawLocalNotesBeforePurge = noteRepository.getAllNotesIncludingDeleted().first()
+            for (localNote in rawLocalNotesBeforePurge) {
+                if (localNote.syncId.isNotBlank() && localNote.syncId in allPurgedSyncIds) {
+                    localNote.attachments.forEach { att ->
+                        val file = File(context.filesDir, att.filePath)
+                        if (file.exists()) file.delete()
+                    }
+                    noteRepository.hardDeleteNote(localNote.id)
+                }
+            }
+
+            val localNotes = noteRepository.getAllNotesIncludingDeleted().first().filter { it.syncId !in allPurgedSyncIds }
             val localTags = tagRepository.getAllTags().first()
 
             val remoteNotesBySyncId = mutableMapOf<String, JSONObject>()
@@ -287,7 +309,7 @@ class WebDavSyncManager @Inject constructor(
                         val legacyId = noteObj.optLong("id", 0L)
                         "lz-$createdAt-$legacyId"
                     }
-                    if (syncId.isNotBlank()) {
+                    if (syncId.isNotBlank() && syncId !in allPurgedSyncIds) {
                         val existing = remoteNotesByFingerprint[fp]
                         if (existing == null) {
                             remoteNotesByFingerprint[fp] = noteObj
@@ -328,6 +350,8 @@ class WebDavSyncManager @Inject constructor(
 
             // Merge remote notes with dual-fingerprint anti-duplication & deletion LWW
             for ((remoteSyncId, remoteObj) in remoteNotesBySyncId) {
+                if (remoteSyncId in allPurgedSyncIds) continue
+
                 val remoteCreatedAt = remoteObj.optLong("createdAt", 0L)
                 val remoteContent = remoteObj.optString("content", "")
                 val isRemoteDeleted = remoteObj.optBoolean("isDeleted", false)
@@ -533,6 +557,7 @@ class WebDavSyncManager @Inject constructor(
             // Stage 5: Uploading Final Merged Payload (Sanitized & Deduplicated)
             onProgress(SyncProgress(SyncStage.UPLOADING_REMOTE, 0.85f, "正在回写云端全量数据..."))
             val allRawNotes = noteRepository.getAllNotesIncludingDeleted().first()
+                .filter { it.syncId !in allPurgedSyncIds }
             val finalUniqueNotes = mutableListOf<Note>()
             val seenFinalFp = mutableSetOf<String>()
             for (n in allRawNotes) {
@@ -546,7 +571,7 @@ class WebDavSyncManager @Inject constructor(
             }
             val finalTags = tagRepository.getAllTags().first()
 
-            val mergedPayloadJson = serializePayloadJson(finalUniqueNotes, finalTags)
+            val mergedPayloadJson = serializePayloadJson(finalUniqueNotes, finalTags, allPurgedSyncIds)
             val jsonBytes = mergedPayloadJson.toString(2).toByteArray(StandardCharsets.UTF_8)
 
             if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
@@ -573,6 +598,7 @@ class WebDavSyncManager @Inject constructor(
                 put("lastSyncTime", nowEpoch)
                 put("noteCount", finalUniqueNotes.count { !it.isDeleted && !it.isArchived })
                 put("tagCount", finalTags.size)
+                put("purgedCount", allPurgedSyncIds.size)
                 put("device", android.os.Build.MODEL ?: "Android")
             }
             webDavClient.uploadBytes(
@@ -691,10 +717,18 @@ class WebDavSyncManager @Inject constructor(
         }
     }
 
-    private fun serializePayloadJson(notes: List<Note>, tags: List<Tag>): JSONObject {
+    private fun serializePayloadJson(
+        notes: List<Note>,
+        tags: List<Tag>,
+        purgedSyncIds: Set<String> = emptySet()
+    ): JSONObject {
         val root = JSONObject()
         root.put("version", 1)
         root.put("exportedAt", Instant.now().toString())
+
+        val purgedArr = JSONArray()
+        purgedSyncIds.toList().takeLast(1000).forEach { purgedArr.put(it) }
+        root.put("purgedSyncIds", purgedArr)
 
         val tagsArr = JSONArray()
         tags.forEach { tag ->

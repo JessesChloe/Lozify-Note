@@ -104,4 +104,39 @@ class WebDavSyncTest {
         assertEquals(4, manifest.getInt("tagCount"))
         assertEquals("Xiaomi 14 Pro", manifest.getString("device"))
     }
+
+    @Test
+    fun testTombstonePurgeProtocol_preventsResurrectionAndSyncsEmptyTrash() {
+        val purgedSyncIds = setOf("lz-1787000000-note1", "lz-1787000000-note2")
+        val root = JSONObject().apply {
+            put("version", 1)
+            val purgedArr = JSONArray()
+            purgedSyncIds.forEach { purgedArr.put(it) }
+            put("purgedSyncIds", purgedArr)
+            put("notes", JSONArray().apply {
+                put(JSONObject().apply {
+                    put("syncId", "lz-1787000000-note3")
+                    put("content", "活跃笔记")
+                    put("isDeleted", false)
+                })
+            })
+            put("tags", JSONArray())
+        }
+
+        val jsonStr = root.toString()
+        val parsed = JSONObject(jsonStr)
+
+        val parsedPurgedArr = parsed.optJSONArray("purgedSyncIds") ?: JSONArray()
+        val parsedPurgedSet = (0 until parsedPurgedArr.length()).map { parsedPurgedArr.getString(it) }.toSet()
+
+        // 1. Purged set correctly restored
+        assertEquals(2, parsedPurgedSet.size)
+        assertTrue(parsedPurgedSet.contains("lz-1787000000-note1"))
+        assertTrue(parsedPurgedSet.contains("lz-1787000000-note2"))
+
+        // 2. Note3 is active and not in purged set
+        val note3 = parsed.getJSONArray("notes").getJSONObject(0)
+        val note3SyncId = note3.getString("syncId")
+        assertFalse(parsedPurgedSet.contains(note3SyncId))
+    }
 }
