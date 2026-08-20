@@ -445,48 +445,173 @@ object RichTextUtils {
      * @param formatType Formatting type (BOLD, UNDERLINE, HIGHLIGHT)
      * @return Modified content with markers inserted
      */
+    /**
+     * Result of toggleable formatting operation.
+     */
+    data class FormattingResult(
+        val newText: String,
+        val newCursorStart: Int,
+        val newCursorEnd: Int = newCursorStart
+    )
+
+    /**
+     * Apply intelligent toggleable formatting.
+     *
+     * Stage 52:
+     * - Prevents duplicate marker creation (e.g. repeated ************).
+     * - Toggles off when inside empty markers or unwraps when selection is already formatted.
+     * - Jumps out of closing marker if cursor is inside non-empty formatted text.
+     */
+    fun applyToggleableFormatting(
+        content: String,
+        selectionStart: Int,
+        selectionEnd: Int,
+        formatType: FormatType
+    ): FormattingResult {
+        val safeStart = minOf(selectionStart, selectionEnd).coerceIn(0, content.length)
+        val safeEnd = maxOf(selectionStart, selectionEnd).coerceIn(0, content.length)
+
+        val marker = when (formatType) {
+            FormatType.BOLD -> "**"
+            FormatType.UNDERLINE -> "__"
+            FormatType.HIGHLIGHT -> "=="
+            FormatType.LIST_UNORDERED -> "- "
+            FormatType.CHECKBOX_UNCHECKED -> "- [ ] "
+            FormatType.CHECKBOX_CHECKED -> "- [x] "
+            FormatType.MENTION -> ""
+        }
+
+        if (formatType == FormatType.LIST_UNORDERED) {
+            val lineStart = content.lastIndexOf('\n', (safeStart - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
+            val lineEnd = content.indexOf('\n', safeStart).let { if (it == -1) content.length else it }
+            val currentLine = content.substring(lineStart, lineEnd)
+
+            return if (currentLine.startsWith("- ")) {
+                val newText = content.substring(0, lineStart) + currentLine.removePrefix("- ") + content.substring(lineEnd)
+                val newCursor = (safeStart - 2).coerceIn(lineStart, newText.length)
+                FormattingResult(newText, newCursor)
+            } else {
+                val newText = content.substring(0, lineStart) + "- " + content.substring(lineStart)
+                val newCursor = (safeStart + 2).coerceIn(0, newText.length)
+                FormattingResult(newText, newCursor)
+            }
+        }
+
+        if (formatType == FormatType.CHECKBOX_UNCHECKED || formatType == FormatType.CHECKBOX_CHECKED) {
+            val lineStart = content.lastIndexOf('\n', (safeStart - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
+            val lineEnd = content.indexOf('\n', safeStart).let { if (it == -1) content.length else it }
+            val currentLine = content.substring(lineStart, lineEnd)
+
+            val checkboxPrefix = if (formatType == FormatType.CHECKBOX_UNCHECKED) "- [ ] " else "- [x] "
+            return if (currentLine.startsWith("- [ ] ") || currentLine.startsWith("- [x] ")) {
+                val prefixLen = 6
+                val newText = content.substring(0, lineStart) + currentLine.substring(prefixLen) + content.substring(lineEnd)
+                val newCursor = (safeStart - prefixLen).coerceIn(lineStart, newText.length)
+                FormattingResult(newText, newCursor)
+            } else {
+                val newText = content.substring(0, lineStart) + checkboxPrefix + content.substring(lineStart)
+                val newCursor = (safeStart + checkboxPrefix.length).coerceIn(0, newText.length)
+                FormattingResult(newText, newCursor)
+            }
+        }
+
+        if (marker.isEmpty()) {
+            return FormattingResult(content, safeStart, safeEnd)
+        }
+
+        val markerLen = marker.length
+
+        // Case A: No selection (cursor only)
+        if (safeStart == safeEnd) {
+            val cursor = safeStart
+
+            // 1. Inside empty markers (e.g. "**|**") -> Toggle off (remove the empty 4 markers)
+            if (cursor >= markerLen && cursor + markerLen <= content.length) {
+                val before = content.substring(cursor - markerLen, cursor)
+                val after = content.substring(cursor, cursor + markerLen)
+                if (before == marker && after == marker) {
+                    val newText = content.removeRange(cursor - markerLen, cursor + markerLen)
+                    val newCursor = (cursor - markerLen).coerceIn(0, newText.length)
+                    return FormattingResult(newText, newCursor)
+                }
+            }
+
+            // 2. Cursor is right before closing marker (e.g. "**hello|**") -> Jump out past closing marker
+            if (cursor + markerLen <= content.length) {
+                val next = content.substring(cursor, cursor + markerLen)
+                if (next == marker) {
+                    val beforeText = content.substring(0, cursor)
+                    val openIdx = beforeText.lastIndexOf(marker)
+                    if (openIdx != -1) {
+                        return FormattingResult(content, cursor + markerLen)
+                    }
+                }
+            }
+
+            // 3. Cursor is inside an active formatted block (e.g. "**he|llo**") -> Jump out to end of block
+            val beforeText = content.substring(0, cursor)
+            val afterText = content.substring(cursor)
+            val openIdx = beforeText.lastIndexOf(marker)
+            val closeIdxRel = afterText.indexOf(marker)
+            if (openIdx != -1 && closeIdxRel != -1) {
+                val closeIdx = cursor + closeIdxRel
+                val blockContent = content.substring(openIdx, closeIdx + markerLen)
+                if (!blockContent.contains('\n')) {
+                    return FormattingResult(content, closeIdx + markerLen)
+                }
+            }
+
+            // 4. Default: Insert empty markers (e.g. "****") and place cursor in the middle
+            val newText = content.substring(0, cursor) + marker + marker + content.substring(cursor)
+            val newCursor = (cursor + markerLen).coerceIn(0, newText.length)
+            return FormattingResult(newText, newCursor)
+        }
+
+        // Case B: Range selection
+        val selectedText = content.substring(safeStart, safeEnd)
+
+        // 1. Selected text already contains surrounding markers (e.g. selected "**hello**") -> Unwrap
+        if (selectedText.startsWith(marker) && selectedText.endsWith(marker) && selectedText.length >= markerLen * 2) {
+            val unwrapped = selectedText.substring(markerLen, selectedText.length - markerLen)
+            val newText = content.substring(0, safeStart) + unwrapped + content.substring(safeEnd)
+            return FormattingResult(newText, safeStart, safeStart + unwrapped.length)
+        }
+
+        // 2. Selection is surrounded by markers in outer text (e.g. **|hello|**) -> Unwrap
+        if (safeStart >= markerLen && safeEnd + markerLen <= content.length) {
+            val prev = content.substring(safeStart - markerLen, safeStart)
+            val next = content.substring(safeEnd, safeEnd + markerLen)
+            if (prev == marker && next == marker) {
+                val newText = content.substring(0, safeStart - markerLen) + selectedText + content.substring(safeEnd + markerLen)
+                val newStart = safeStart - markerLen
+                return FormattingResult(newText, newStart, newStart + selectedText.length)
+            }
+        }
+
+        // 3. Default: Wrap selected text
+        val newText = content.substring(0, safeStart) + marker + selectedText + marker + content.substring(safeEnd)
+        val newEnd = safeEnd + markerLen * 2
+        return FormattingResult(newText, safeStart, newEnd)
+    }
+
+    /**
+     * Insert formatting markers at cursor position.
+     *
+     * Used by editor toolbar buttons to wrap selected text.
+     *
+     * @param content Current text content
+     * @param selectionStart Selection start index
+     * @param selectionEnd Selection end index
+     * @param formatType Formatting type (BOLD, UNDERLINE, HIGHLIGHT)
+     * @return Modified content with markers inserted
+     */
     fun insertFormatting(
         content: String,
         selectionStart: Int,
         selectionEnd: Int,
         formatType: FormatType
     ): String {
-        // Safety: normalize selection range to prevent crashes
-        val safeStart = minOf(selectionStart, selectionEnd).coerceIn(0, content.length)
-        val safeEnd = maxOf(selectionStart, selectionEnd).coerceIn(0, content.length)
-
-        val (prefix, suffix) = when (formatType) {
-            FormatType.BOLD -> "**" to "**"
-            FormatType.UNDERLINE -> "__" to "__"
-            FormatType.HIGHLIGHT -> "==" to "=="
-            FormatType.MENTION -> "@[" to "](note:0)"  // Not used in toolbar, placeholder only
-            FormatType.LIST_UNORDERED -> "- " to ""
-            FormatType.CHECKBOX_UNCHECKED -> "- [ ] " to ""
-            FormatType.CHECKBOX_CHECKED -> "- [x] " to ""
-        }
-
-        if (formatType == FormatType.LIST_UNORDERED) {
-            val lineStart = content.lastIndexOf('\n', (safeStart - 1).coerceAtLeast(0)).let { if (it == -1) 0 else it + 1 }
-            val linePrefix = content.substring(lineStart, safeStart)
-            if (!linePrefix.trimStart().startsWith("- ")) {
-                return content.substring(0, lineStart) + "- " + content.substring(lineStart)
-            }
-            return content
-        }
-
-        return if (safeStart == safeEnd) {
-            // No selection: insert markers and place cursor between them
-            content.substring(0, safeStart) +
-                    prefix + suffix +
-                    content.substring(safeStart)
-        } else {
-            // Has selection: wrap selected text
-            content.substring(0, safeStart) +
-                    prefix +
-                    content.substring(safeStart, safeEnd) +
-                    suffix +
-                    content.substring(safeEnd)
-        }
+        return applyToggleableFormatting(content, selectionStart, selectionEnd, formatType).newText
     }
 
     /**

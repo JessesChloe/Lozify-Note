@@ -52,6 +52,20 @@ class SmartInputFilterTest {
     }
 
     @Test
+    fun testSmartEnterEscape_emptyMarkersCleanlyRemovedOnEnter() {
+        // User is inside empty bold: "**|**" (pos: 2)
+        val oldValue = TextFieldValue(text = "****", selection = TextRange(2))
+        // User presses Enter -> inserts newline at position 2: "**\n**" (pos: 3)
+        val newValue = TextFieldValue(text = "**\n**", selection = TextRange(3))
+
+        val result = SmartInputFilter.applySmartInputFilter(oldValue, newValue)
+
+        // Empty markers should be cleanly removed, leaving only a newline "\n" (pos: 1)
+        assertEquals("\n", result.text)
+        assertEquals(1, result.selection.start)
+    }
+
+    @Test
     fun testCursorRepulsion_repelsCursorFromBetweenDelimiters() {
         // Cursor lands between asterisk: "*|*" (pos: 1 of "**")
         val oldValue = TextFieldValue(text = "**", selection = TextRange(0))

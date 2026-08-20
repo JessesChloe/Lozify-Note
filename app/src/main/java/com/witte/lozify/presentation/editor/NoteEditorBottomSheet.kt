@@ -228,45 +228,21 @@ fun NoteEditorBottomSheet(
 
     // Helper function to apply formatting
     fun applyFormatting(formatType: RichTextUtils.FormatType) {
-        val currentText = textFieldValue.text
-        val selection = textFieldValue.selection
-
-        val min = selection.min
-        val max = selection.max
-
-        if (min < 0 || max > currentText.length) {
-            return
-        }
-
-        val newText = RichTextUtils.insertFormatting(
-            content = currentText,
-            selectionStart = min,
-            selectionEnd = max,
+        val result = RichTextUtils.applyToggleableFormatting(
+            content = textFieldValue.text,
+            selectionStart = textFieldValue.selection.start,
+            selectionEnd = textFieldValue.selection.end,
             formatType = formatType
         )
 
-        val markerLength = when (formatType) {
-            RichTextUtils.FormatType.BOLD,
-            RichTextUtils.FormatType.UNDERLINE,
-            RichTextUtils.FormatType.HIGHLIGHT -> 2
-            RichTextUtils.FormatType.LIST_UNORDERED -> 2
-            RichTextUtils.FormatType.MENTION -> 0
-            RichTextUtils.FormatType.CHECKBOX_UNCHECKED -> 6
-            RichTextUtils.FormatType.CHECKBOX_CHECKED -> 6
-        }
-
-        val newCursorPos = if (min == max) {
-            min + markerLength
-        } else {
-            max + markerLength * 2
-        }
-
-        val safeCursorPos = newCursorPos.coerceIn(0, newText.length)
-
         updateTextWithHistory(
             TextFieldValue(
-                text = newText,
-                selection = TextRange(safeCursorPos)
+                text = result.newText,
+                selection = if (result.newCursorStart == result.newCursorEnd) {
+                    TextRange(result.newCursorStart)
+                } else {
+                    TextRange(result.newCursorStart, result.newCursorEnd)
+                }
             )
         )
     }

@@ -160,4 +160,49 @@ class RichTextUtilsTest {
 
         assertEquals("第一行内容 第二行内...", summary)
     }
+
+    @Test
+    fun testApplyToggleableFormatting_firstClickInsertsQuadMarkers() {
+        // 1st click on empty text: "" with cursor at 0
+        val result = RichTextUtils.applyToggleableFormatting("", 0, 0, RichTextUtils.FormatType.BOLD)
+
+        assertEquals("****", result.newText)
+        assertEquals(2, result.newCursorStart)
+    }
+
+    @Test
+    fun testApplyToggleableFormatting_secondClickTogglesOffEmptyMarkers() {
+        // 2nd click when cursor is inside empty bold: "**|**" (cursor at 2)
+        val result = RichTextUtils.applyToggleableFormatting("****", 2, 2, RichTextUtils.FormatType.BOLD)
+
+        // Should cleanly toggle off and remove the empty "****", NOT create "************"
+        assertEquals("", result.newText)
+        assertEquals(0, result.newCursorStart)
+    }
+
+    @Test
+    fun testApplyToggleableFormatting_clickInsideFormattedTextJumpsOut() {
+        // Cursor at end of bold content: "**Hello|**" (cursor at 7)
+        val result = RichTextUtils.applyToggleableFormatting("**Hello**", 7, 7, RichTextUtils.FormatType.BOLD)
+
+        // Should jump past "**" to "**Hello**|" (cursor at 9)
+        assertEquals("**Hello**", result.newText)
+        assertEquals(9, result.newCursorStart)
+    }
+
+    @Test
+    fun testApplyToggleableFormatting_wrapAndUnwrapSelection() {
+        // 1. Wrap unformatted selected text "Hello"
+        val wrapResult = RichTextUtils.applyToggleableFormatting("Hello world", 0, 5, RichTextUtils.FormatType.BOLD)
+        assertEquals("**Hello** world", wrapResult.newText)
+        assertEquals(0, wrapResult.newCursorStart)
+        assertEquals(9, wrapResult.newCursorEnd)
+
+        // 2. Unwrap already formatted selected text "**Hello**"
+        val unwrapResult = RichTextUtils.applyToggleableFormatting("**Hello** world", 0, 9, RichTextUtils.FormatType.BOLD)
+        assertEquals("Hello world", unwrapResult.newText)
+        assertEquals(0, unwrapResult.newCursorStart)
+        assertEquals(5, unwrapResult.newCursorEnd)
+    }
 }
+

@@ -115,14 +115,33 @@ object SmartInputFilter {
                         tempValue = TextFieldValue(text = newText, selection = TextRange(newCursor))
                     } else {
                         for (marker in MARKER_PAIRS) {
-                            // Check if right after oldCursor in oldValue there is a closing marker (e.g. "**", "==", "__")
-                            if (oldCursor + 2 <= oldValue.text.length) {
-                                val nextTwo = oldValue.text.substring(oldCursor, oldCursor + 2)
+                            val markerLen = marker.length
+
+                            // Subcase 1: Cursor was inside EMPTY markers (e.g. "**|**", "==|==", "__|__")
+                            if (oldCursor >= markerLen && oldCursor + markerLen <= oldValue.text.length) {
+                                val before = oldValue.text.substring(oldCursor - markerLen, oldCursor)
+                                val after = oldValue.text.substring(oldCursor, oldCursor + markerLen)
+                                if (before == marker && after == marker) {
+                                    val prefix = oldValue.text.substring(0, oldCursor - markerLen)
+                                    val suffix = oldValue.text.substring(oldCursor + markerLen)
+                                    val newText = prefix + "\n" + suffix
+                                    val newCursor = (prefix.length + 1).coerceIn(0, newText.length)
+                                    tempValue = TextFieldValue(
+                                        text = newText,
+                                        selection = TextRange(newCursor)
+                                    )
+                                    break
+                                }
+                            }
+
+                            // Subcase 2: Cursor was before closing marker (e.g. "**hello|**")
+                            if (oldCursor + markerLen <= oldValue.text.length) {
+                                val nextTwo = oldValue.text.substring(oldCursor, oldCursor + markerLen)
                                 if (nextTwo == marker) {
                                     val prefix = oldValue.text.substring(0, oldCursor)
-                                    val suffix = oldValue.text.substring(oldCursor + 2)
+                                    val suffix = oldValue.text.substring(oldCursor + markerLen)
                                     val newText = prefix + marker + insertedText + suffix
-                                    val newCursor = (oldCursor + 2 + addedCount).coerceIn(0, newText.length)
+                                    val newCursor = (oldCursor + markerLen + addedCount).coerceIn(0, newText.length)
                                     tempValue = TextFieldValue(
                                         text = newText,
                                         selection = TextRange(newCursor)
