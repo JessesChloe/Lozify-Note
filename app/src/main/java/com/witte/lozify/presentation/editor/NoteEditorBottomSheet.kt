@@ -245,8 +245,7 @@ fun NoteEditorBottomSheet(
             onDismiss()
         },
         sheetState = sheetState,
-        containerColor = Color.Transparent,
-        dragHandle = null,
+        containerColor = Color.White,
         windowInsets = WindowInsets.ime,
         modifier = modifier.wrapContentHeight()
     ) {
@@ -255,203 +254,100 @@ fun NoteEditorBottomSheet(
                 .fillMaxWidth()
                 .wrapContentHeight()
         ) {
-            // Main Editor Bottom Sheet White Container
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.BottomCenter)
-                    .padding(top = 180.dp),
-                shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-                color = Color.White
+            Column(
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .wrapContentHeight()
+                        .padding(horizontal = 16.dp, vertical = 4.dp)
                 ) {
                     Column(
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Flomo-styled drag handle pill
-                        Box(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = 10.dp, bottom = 4.dp),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(width = 36.dp, height = 4.dp)
-                                    .clip(RoundedCornerShape(2.dp))
-                                    .background(Color(0xFFDDDDDD))
-                            )
-                        }
-
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = 16.dp, vertical = 4.dp)
-                        ) {
-                            // Borderless text input field with real-time Markdown syntax highlighting
-                    TextField(
-                        value = textFieldValue,
-                        onValueChange = ::onValueChange,
-                        textStyle = androidx.compose.ui.text.TextStyle(
-                            fontSize = 15.sp,
-                            color = Color(0xFF454545),
-                            lineHeight = 22.sp
-                        ),
-                        visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
-                        placeholder = {
-                            Text(
-                                text = "现在的想法是...",
-                                color = Color(0xFFB0B0B0),
-                                fontSize = 15.sp
-                            )
-                        },
-                        colors = TextFieldDefaults.colors(
-                            focusedTextColor = Color(0xFF454545),
-                            unfocusedTextColor = Color(0xFF454545),
-                            focusedContainerColor = Color.Transparent,
-                            unfocusedContainerColor = Color.Transparent,
-                            disabledContainerColor = Color.Transparent,
-                            focusedIndicatorColor = Color.Transparent,
-                            unfocusedIndicatorColor = Color.Transparent,
-                            disabledIndicatorColor = Color.Transparent,
-                            cursorColor = Color(0xFF00C853)
-                        ),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(130.dp)
-                            .focusRequester(focusRequester)
-                    )
-
-                    // Image thumbnail preview
-                    if (selectedImageUris.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(6.dp))
-                        LazyRow(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(selectedImageUris) { uri ->
-                                Box(
-                                    modifier = Modifier
-                                        .size(68.dp)
-                                        .clip(RoundedCornerShape(8.dp))
-                                        .background(Color(0xFFF0F0F0))
-                                ) {
-                                    AsyncImage(
-                                        model = uri,
-                                        contentDescription = "预览图片",
-                                        contentScale = ContentScale.Crop,
-                                        modifier = Modifier.size(68.dp)
-                                    )
-
-                                    IconButton(
-                                        onClick = {
-                                            val updated = selectedImageUris.filter { it != uri }
-                                            selectedImageUris = updated
-                                            if (initialContent == null) {
-                                                viewModel.saveDraft(textFieldValue.text, updated)
-                                            }
-                                        },
-                                        modifier = Modifier
-                                            .align(Alignment.TopEnd)
-                                            .size(20.dp)
-                                            .background(Color.Black.copy(alpha = 0.5f), CircleShape)
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Close,
-                                            contentDescription = "移除图片",
-                                            tint = Color.White,
-                                            modifier = Modifier.size(12.dp)
-                                        )
+                        TextField(
+                            value = textFieldValue,
+                            onValueChange = ::onValueChange,
+                            textStyle = androidx.compose.ui.text.TextStyle(fontSize = 15.sp, color = Color(0xFF454545), lineHeight = 22.sp),
+                            visualTransformation = remember { MarkdownVisualTransformation(tagColor = Color(0xFF84A2EE)) },
+                            placeholder = { Text(text = "现在的想法是...", color = Color(0xFFB0B0B0), fontSize = 15.sp) },
+                            colors = TextFieldDefaults.colors(
+                                focusedTextColor = Color(0xFF454545), unfocusedTextColor = Color(0xFF454545),
+                                focusedContainerColor = Color.Transparent, unfocusedContainerColor = Color.Transparent,
+                                disabledContainerColor = Color.Transparent, focusedIndicatorColor = Color.Transparent,
+                                unfocusedIndicatorColor = Color.Transparent, disabledIndicatorColor = Color.Transparent,
+                                cursorColor = Color(0xFF00C853)
+                            ),
+                            modifier = Modifier.fillMaxWidth().heightIn(min = 130.dp, max = 240.dp).focusRequester(focusRequester)
+                        )
+                        if (selectedImageUris.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            LazyRow(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                items(selectedImageUris) { uri ->
+                                    Box(modifier = Modifier.size(68.dp).clip(RoundedCornerShape(8.dp)).background(Color(0xFFF0F0F0))) {
+                                        AsyncImage(model = uri, contentDescription = "预览图片", contentScale = ContentScale.Crop, modifier = Modifier.size(68.dp))
+                                        IconButton(
+                                            onClick = {
+                                                val updated = selectedImageUris.filter { it != uri }
+                                                selectedImageUris = updated
+                                                if (initialContent == null) viewModel.saveDraft(textFieldValue.text, updated)
+                                            },
+                                            modifier = Modifier.align(Alignment.TopEnd).size(20.dp).background(Color.Black.copy(alpha = 0.5f), CircleShape)
+                                        ) {
+                                            Icon(imageVector = Icons.Default.Close, contentDescription = "移除图片", tint = Color.White, modifier = Modifier.size(12.dp))
+                                        }
                                     }
                                 }
                             }
                         }
+                        Spacer(modifier = Modifier.height(10.dp))
                     }
-
-                    Spacer(modifier = Modifier.height(10.dp))
-                }
-
-                HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
-
-                // Flomo Style Primary Row Toolbar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(52.dp)
-                        .background(Color.White)
-                        .padding(horizontal = 14.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Left formatting tools: #, 🖼️, B, ≡, ...
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Tag (#)
-                        TextToolbarButton(
-                            text = "#",
-                            fontSize = 19.sp,
-                            fontWeight = FontWeight.Bold,
-                            contentDescription = "插入标签",
-                            onClick = {
+                    if (showNotePicker) {
+                        NotePicker(
+                            allNotes = allNotes,
+                            currentNoteId = currentNoteId,
+                            onDismiss = { showNotePicker = false },
+                            onNoteSelected = { noteId, mentionText ->
                                 val currentText = textFieldValue.text
                                 val cursorPos = textFieldValue.selection.start
-                                val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
-                                showTagPickerManuallyDismissed = false
-                                updateTextWithHistory(
-                                    TextFieldValue(text = newText, selection = TextRange(cursorPos + 1))
-                                )
-                            }
-                        )
-
-                        // Gallery Image (🖼️)
-                        IconToolbarButton(
-                            icon = Icons.Outlined.Image,
-                            contentDescription = "选择图片",
-                            onClick = {
-                                imagePickerLauncher.launch(
-                                    PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                                )
-                            }
-                        )
-
-                        // Bold (B)
-                        TextToolbarButton(
-                            text = "B",
-                            fontSize = 18.sp,
-                            fontWeight = FontWeight.Bold,
-                            contentDescription = "加粗",
-                            isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD),
-                            onClick = { applyFormatting(RichTextUtils.FormatType.BOLD) }
-                        )
-
-                        // Unordered List (≡)
-                        IconToolbarButton(
-                            icon = Icons.Outlined.FormatListBulleted,
-                            contentDescription = "无序列表",
-                            onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) }
-                        )
-
-                        // More toggle (...)
-                        IconToolbarButton(
-                            icon = Icons.Default.MoreHoriz,
-                            contentDescription = "更多格式",
-                            isActive = isSecondaryCapsuleOpen,
-                            onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen }
+                                val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') currentText.substring(0, maxOf(0, cursorPos - 1)) else currentText.substring(0, cursorPos)
+                                val afterCursor = currentText.substring(cursorPos)
+                                val mentionMarkdown = "@[$mentionText](note:$noteId) "
+                                updateTextWithHistory(TextFieldValue(text = beforeCursor + mentionMarkdown + afterCursor, selection = TextRange(beforeCursor.length + mentionMarkdown.length)))
+                                showNotePicker = false
+                            },
+                            modifier = Modifier.fillMaxWidth().align(Alignment.TopCenter)
                         )
                     }
-
-                    // Right action tools: Mic (🎙️) & Send (🚀)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(10.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        // Mic button (Green circular outline)
+                    if (isTagPickerVisible) {
+                        activeTagQuery?.let { queryInfo ->
+                            TagPicker(
+                                availableTags = availableTags,
+                                tagQuery = queryInfo.second,
+                                onTagSelected = { tag -> onSelectTag(tag) },
+                                onDismiss = { showTagPickerManuallyDismissed = true },
+                                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 4.dp, bottom = 4.dp).widthIn(min = 250.dp, max = 310.dp)
+                            )
+                        }
+                    }
+                }
+                HorizontalDivider(color = Color(0xFFF2F2F2), thickness = 0.8.dp)
+                Row(modifier = Modifier.fillMaxWidth().height(52.dp).background(Color.White).padding(horizontal = 14.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                        TextToolbarButton(text = "#", fontSize = 19.sp, fontWeight = FontWeight.Bold, contentDescription = "插入标签", onClick = {
+                            val currentText = textFieldValue.text
+                            val cursorPos = textFieldValue.selection.start
+                            val newText = currentText.substring(0, cursorPos) + "#" + currentText.substring(cursorPos)
+                            updateTextWithHistory(TextFieldValue(text = newText, selection = TextRange(cursorPos + 1)))
+                            showTagPickerManuallyDismissed = false
+                        })
+                        IconToolbarButton(icon = Icons.Outlined.Image, contentDescription = "添加图片", onClick = { imagePickerLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
+                        TextToolbarButton(text = "B", fontSize = 18.sp, fontWeight = FontWeight.Black, contentDescription = "加粗", isActive = activeFormats.contains(RichTextUtils.FormatType.BOLD), onClick = { applyFormatting(RichTextUtils.FormatType.BOLD) })
+                        IconToolbarButton(icon = Icons.Outlined.FormatListBulleted, contentDescription = "无序列表", isActive = activeFormats.contains(RichTextUtils.FormatType.LIST_UNORDERED), onClick = { applyFormatting(RichTextUtils.FormatType.LIST_UNORDERED) })
+                        IconToolbarButton(icon = Icons.Default.MoreHoriz, contentDescription = "更多格式", isActive = isSecondaryCapsuleOpen, onClick = { isSecondaryCapsuleOpen = !isSecondaryCapsuleOpen })
+                    }
+                    val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
+                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalAlignment = Alignment.CenterVertically) {
                         Box(
                             modifier = Modifier
                                 .size(36.dp)
@@ -467,34 +363,12 @@ fun NoteEditorBottomSheet(
                                 modifier = Modifier.size(20.dp)
                             )
                         }
-
-                        // Send arrow button
-                        val hasContent = textFieldValue.text.isNotBlank() || selectedImageUris.isNotEmpty()
                         IconButton(
-                            onClick = {
-                                if (hasContent) {
-                                    onSave(textFieldValue, selectedImageUris)
-                                    textFieldValue = TextFieldValue("")
-                                    selectedImageUris = emptyList()
-                                    viewModel.clearActiveFormats()
-                                    viewModel.clearDraft()
-                                    onDismiss()
-                                }
-                            },
+                            onClick = { if (hasContent) { onSave(textFieldValue, selectedImageUris); textFieldValue = TextFieldValue(""); selectedImageUris = emptyList(); viewModel.clearActiveFormats(); viewModel.clearDraft(); onDismiss() } },
                             enabled = hasContent,
-                            modifier = Modifier
-                                .size(36.dp)
-                                .background(
-                                    color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED),
-                                    shape = CircleShape
-                                )
+                            modifier = Modifier.size(36.dp).background(color = if (hasContent) Color(0xFF00C853) else Color(0xFFEDEDED), shape = CircleShape)
                         ) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Send,
-                                contentDescription = "发送保存",
-                                tint = if (hasContent) Color.White else Color(0xFFAAAAAA),
-                                modifier = Modifier.size(18.dp)
-                            )
+                            Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = "发送保存", tint = if (hasContent) Color.White else Color(0xFFAAAAAA), modifier = Modifier.size(18.dp))
                         }
                     }
                 }
@@ -607,72 +481,6 @@ fun NoteEditorBottomSheet(
                             }
                         )
                     }
-                }
-            }
-        }
-    }
-
-            // Stage 41: Floating NotePicker OUTSIDE & ABOVE the editor bottom sheet
-            if (showNotePicker) {
-                NotePicker(
-                    allNotes = allNotes,
-                    currentNoteId = currentNoteId,
-                    onDismiss = { showNotePicker = false },
-                    onNoteSelected = { noteId, mentionText ->
-                        val currentText = textFieldValue.text
-                        val cursorPos = textFieldValue.selection.start
-
-                        val beforeCursor = if (cursorPos > 0 && currentText.getOrNull(cursorPos - 1) == '@') {
-                            currentText.substring(0, maxOf(0, cursorPos - 1))
-                        } else {
-                            currentText.substring(0, cursorPos)
-                        }
-                        val afterCursor = currentText.substring(cursorPos)
-
-                        val mentionMarkdown = "@[$mentionText](note:$noteId) "
-                        val newText = beforeCursor + mentionMarkdown + afterCursor
-
-                        val newCursorPos = beforeCursor.length + mentionMarkdown.length
-                        updateTextWithHistory(
-                            TextFieldValue(
-                                text = newText,
-                                selection = TextRange(newCursorPos)
-                            )
-                        )
-
-                        showNotePicker = false
-                    },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                        .padding(horizontal = 16.dp)
-                        .padding(top = 10.dp)
-                )
-            }
-
-            // Stage 41: Dynamic Cursor/Line-Anchored Floating TagPicker (1:1 Flomo style)
-            if (isTagPickerVisible) {
-                activeTagQuery?.let { queryInfo ->
-                    val cursorPos = textFieldValue.selection.end
-                    val textBeforeCursor = textFieldValue.text.substring(0, cursorPos.coerceAtMost(textFieldValue.text.length))
-                    val lines = textBeforeCursor.split('\n')
-                    val wrappedLineCount = lines.sumOf { (it.length / 20).coerceAtLeast(0) }
-                    val totalLineIndex = (lines.size - 1) + wrappedLineCount
-
-                    val lineOffsetDp = (totalLineIndex * 24).dp
-                    val targetY = (180.dp + 45.dp + lineOffsetDp - 220.dp).coerceAtLeast(0.dp)
-
-                    TagPicker(
-                        availableTags = availableTags,
-                        tagQuery = queryInfo.second,
-                        onTagSelected = { tag -> onSelectTag(tag) },
-                        onDismiss = { showTagPickerManuallyDismissed = true },
-                        modifier = Modifier
-                            .align(Alignment.TopEnd)
-                            .padding(end = 16.dp)
-                            .widthIn(min = 250.dp, max = 310.dp)
-                            .offset(y = targetY)
-                    )
                 }
             }
         }
