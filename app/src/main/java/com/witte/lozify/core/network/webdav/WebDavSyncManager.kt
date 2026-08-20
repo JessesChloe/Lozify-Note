@@ -138,9 +138,11 @@ class WebDavSyncManager @Inject constructor(
             // Ensure directories
             val dataDir = "${remoteDir}data/"
             val imagesDir = "${remoteDir}images/"
+            val filesDir = "${remoteDir}files/"
             webDavClient.ensureDirectory(serverUrl, username, password, remoteDir)
             webDavClient.ensureDirectory(serverUrl, username, password, dataDir)
             webDavClient.ensureDirectory(serverUrl, username, password, imagesDir)
+            webDavClient.ensureDirectory(serverUrl, username, password, filesDir)
 
             val isEncryptionEnabled = preferencesManager.webdavEncryptionEnabled.value
             val encryptionPassword = preferencesManager.webdavEncryptionPassword.value
@@ -448,6 +450,46 @@ class WebDavSyncManager @Inject constructor(
                 }
             }
 
+            // Upload missing local generic files (audio, documents, etc.)
+            val localFilesDir = File(context.filesDir, "files")
+            if (localFilesDir.exists()) {
+                val localDocFiles = localFilesDir.listFiles() ?: emptyArray()
+                val remoteFilesListRes = webDavClient.listFiles(serverUrl, username, password, filesDir)
+                val remoteDocNames = if (remoteFilesListRes.isSuccess) {
+                    remoteFilesListRes.getOrThrow().map { it.href.substringAfterLast('/') }.toSet()
+                } else emptySet()
+
+                for (localDoc in localDocFiles) {
+                    if (localDoc.isFile) {
+                        if (isEncryptionEnabled && encryptionPassword.isNotBlank()) {
+                            val encFileName = "${localDoc.name}.enc"
+                            if (encFileName !in remoteDocNames) {
+                                val tempEncFile = File(context.cacheDir, encFileName)
+                                try {
+                                    com.witte.lozify.core.security.CryptoUtils.encryptFile(localDoc, tempEncFile, encryptionPassword)
+                                    webDavClient.uploadFile(
+                                        serverUrl, username, password,
+                                        "$filesDir$encFileName",
+                                        tempEncFile,
+                                        contentType = "application/octet-stream"
+                                    )
+                                } finally {
+                                    tempEncFile.delete()
+                                }
+                            }
+                        } else {
+                            if (localDoc.name !in remoteDocNames) {
+                                webDavClient.uploadFile(
+                                    serverUrl, username, password,
+                                    "$filesDir${localDoc.name}",
+                                    localDoc
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // Download missing remote images
             val allMergedNotes = noteRepository.getAllNotes().first()
             for (note in allMergedNotes) {
@@ -711,5 +753,88 @@ class WebDavSyncManager @Inject constructor(
         root.put("notes", notesArr)
 
         return root
+    }
+
+    /**
+     * Stage 48: Download an attachment (document, audio, video) from WebDAV on-demand.
+     */
+    suspend fun downloadAttachmentOnDemand(
+        attachment: com.witte.lozify.domain.model.Attachment,
+        onProgress: (Float) -> Unit = {}
+    ): Result<File> = withContext(Dispatchers.IO) {
+        val serverUrl = preferencesManager.webdavServerUrl.value
+        val username = preferencesManager.webdavUsername.value
+        val password = preferencesManager.webdavPassword.value
+        val remoteDir = preferencesManager.webdavRemoteDir.value.let {
+            if (it.startsWith("/")) it else "/$it"
+        }.let {
+            if (it.endsWith("/")) it else "$it/"
+        }
+
+        if (serverUrl.isBlank() || username.isBlank() || password.isBlank()) {
+            return@withContext Result.failure(IllegalStateException("请先在设置中配置 WebDAV 服务器"))
+        }
+
+        val isEncryptionEnabled = preferencesManager.webdavEncryptionEnabled.value
+        val encryptionPassword = preferencesManager.webdavEncryptionPassword.value
+
+        val localTarget = File(context.filesDir, attachment.filePath)
+        if (localTarget.exists()) {
+            onProgress(1.0f)
+            return@withContext Result.success(localTarget)
+        }
+
+        localTarget.parentFile?.mkdirs()
+
+        val subDir = if (attachment.filePath.startsWith("files/")) "files/" else "images/"
+        val fileName = attachment.filePath.substringAfterLast('/')
+        val encFileName = "$fileName.enc"
+        val remoteSubDir = "$remoteDir$subDir"
+
+        onProgress(0.2f)
+
+        // Check remote files
+        val remoteListRes = webDavClient.listFiles(serverUrl, username, password, remoteSubDir)
+        val remoteNames = if (remoteListRes.isSuccess) {
+            remoteListRes.getOrThrow().map { it.href.substringAfterLast('/') }.toSet()
+        } else emptySet()
+
+        if (encFileName in remoteNames && encryptionPassword.isNotBlank()) {
+            val tempEncFile = File(context.cacheDir, encFileName)
+            try {
+                onProgress(0.4f)
+                val dlRes = webDavClient.downloadFile(
+                    serverUrl, username, password,
+                    "$remoteSubDir$encFileName",
+                    tempEncFile
+                )
+                if (dlRes.isFailure) {
+                    return@withContext Result.failure(dlRes.exceptionOrNull() ?: Exception("下载附件失败"))
+                }
+                onProgress(0.8f)
+                com.witte.lozify.core.security.CryptoUtils.decryptFile(tempEncFile, localTarget, encryptionPassword)
+                onProgress(1.0f)
+                Result.success(localTarget)
+            } catch (e: Exception) {
+                Result.failure(e)
+            } finally {
+                tempEncFile.delete()
+            }
+        } else if (fileName in remoteNames || encFileName !in remoteNames) {
+            onProgress(0.5f)
+            val dlRes = webDavClient.downloadFile(
+                serverUrl, username, password,
+                "$remoteSubDir$fileName",
+                localTarget
+            )
+            if (dlRes.isSuccess) {
+                onProgress(1.0f)
+                Result.success(localTarget)
+            } else {
+                Result.failure(dlRes.exceptionOrNull() ?: Exception("从云端下载文件失败"))
+            }
+        } else {
+            Result.failure(java.io.FileNotFoundException("云端未找到此文件: $fileName"))
+        }
     }
 }

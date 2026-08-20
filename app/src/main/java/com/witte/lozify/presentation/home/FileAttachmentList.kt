@@ -10,19 +10,23 @@ import androidx.compose.material.icons.automirrored.outlined.OpenInNew
 import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
 import com.witte.lozify.core.common.FileUtils
 import com.witte.lozify.domain.model.Attachment
 import java.io.File
@@ -32,15 +36,18 @@ import java.io.File
  *
  * Stage 43: Visually distinct from bidirectional links (@relations) with dedicated format-themed icons,
  * file sizes, and FileProvider invocation.
+ * Stage 48: Integrated AudioAttachmentCard for audio playback and on-demand WebDAV download for generic files.
  */
 @Composable
 fun FileAttachmentList(
     attachments: List<Attachment>,
     filesDir: File,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    viewModel: AudioAttachmentViewModel = hiltViewModel()
 ) {
     if (attachments.isEmpty()) return
     val context = LocalContext.current
+    val downloadingStates by viewModel.downloadingStates.collectAsState()
 
     Column(
         modifier = modifier.fillMaxWidth(),
@@ -51,83 +58,121 @@ fun FileAttachmentList(
             val fileSize = attachment.getFormattedFileSize()
             val category = FileUtils.getFileCategory(displayName, attachment.mimeType)
 
-            val (icon, iconColor, bgColor) = when (category) {
-                FileUtils.FileCategory.PDF -> Triple(Icons.Outlined.Description, Color(0xFFE53935), Color(0xFFFFEBEE))
-                FileUtils.FileCategory.DOCUMENT -> Triple(Icons.Outlined.Description, Color(0xFF1E88E5), Color(0xFFE3F2FD))
-                FileUtils.FileCategory.SPREADSHEET -> Triple(Icons.Outlined.TableChart, Color(0xFF43A047), Color(0xFFE8F5E9))
-                FileUtils.FileCategory.PRESENTATION -> Triple(Icons.Outlined.Slideshow, Color(0xFFFB8C00), Color(0xFFFFF3E0))
-                FileUtils.FileCategory.ARCHIVE -> Triple(Icons.Outlined.FolderZip, Color(0xFFFFB300), Color(0xFFFFF8E1))
-                FileUtils.FileCategory.AUDIO -> Triple(Icons.Outlined.AudioFile, Color(0xFF8E24AA), Color(0xFFF3E5F5))
-                FileUtils.FileCategory.VIDEO -> Triple(Icons.Outlined.VideoFile, Color(0xFF00ACC1), Color(0xFFE0F7FA))
-                FileUtils.FileCategory.CODE -> Triple(Icons.Outlined.Code, Color(0xFF5E35B1), Color(0xFFEDE7F6))
-                FileUtils.FileCategory.OTHER -> Triple(Icons.Outlined.AttachFile, Color(0xFF757575), Color(0xFFF5F5F5))
-            }
+            // Stage 48: Audio files get dedicated AudioAttachmentCard with player controls
+            if (category == FileUtils.FileCategory.AUDIO) {
+                AudioAttachmentCard(
+                    attachment = attachment,
+                    filesDir = filesDir,
+                    viewModel = viewModel
+                )
+            } else {
+                val localFile = remember(attachment.filePath, filesDir) {
+                    File(filesDir, attachment.filePath)
+                }
+                val fileExists = localFile.exists()
+                val isDownloading = downloadingStates.containsKey(attachment.id)
 
-            Card(
-                shape = RoundedCornerShape(8.dp),
-                colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
-                border = BorderStroke(0.6.dp, Color(0xFFEBEBEB)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable {
-                        val file = File(filesDir, attachment.filePath)
-                        FileUtils.openFileWithSystemApp(context, file, attachment.mimeType)
-                    }
-            ) {
-                Row(
+                val (icon, iconColor, bgColor) = when (category) {
+                    FileUtils.FileCategory.PDF -> Triple(Icons.Outlined.Description, Color(0xFFE53935), Color(0xFFFFEBEE))
+                    FileUtils.FileCategory.DOCUMENT -> Triple(Icons.Outlined.Description, Color(0xFF1E88E5), Color(0xFFE3F2FD))
+                    FileUtils.FileCategory.SPREADSHEET -> Triple(Icons.Outlined.TableChart, Color(0xFF43A047), Color(0xFFE8F5E9))
+                    FileUtils.FileCategory.PRESENTATION -> Triple(Icons.Outlined.Slideshow, Color(0xFFFB8C00), Color(0xFFFFF3E0))
+                    FileUtils.FileCategory.ARCHIVE -> Triple(Icons.Outlined.FolderZip, Color(0xFFFFB300), Color(0xFFFFF8E1))
+                    FileUtils.FileCategory.AUDIO -> Triple(Icons.Outlined.AudioFile, Color(0xFF8E24AA), Color(0xFFF3E5F5))
+                    FileUtils.FileCategory.VIDEO -> Triple(Icons.Outlined.VideoFile, Color(0xFF00ACC1), Color(0xFFE0F7FA))
+                    FileUtils.FileCategory.CODE -> Triple(Icons.Outlined.Code, Color(0xFF5E35B1), Color(0xFFEDE7F6))
+                    FileUtils.FileCategory.OTHER -> Triple(Icons.Outlined.AttachFile, Color(0xFF757575), Color(0xFFF5F5F5))
+                }
+
+                Card(
+                    shape = RoundedCornerShape(8.dp),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFFF7F8FA)),
+                    border = BorderStroke(0.6.dp, Color(0xFFEBEBEB)),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 10.dp, vertical = 7.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .clickable {
+                            if (fileExists) {
+                                FileUtils.openFileWithSystemApp(context, localFile, attachment.mimeType)
+                            } else {
+                                viewModel.downloadAndOpenFile(attachment)
+                            }
+                        }
                 ) {
-                    // Category Icon with subtle tinted container
-                    Box(
+                    Row(
                         modifier = Modifier
-                            .size(26.dp)
-                            .clip(RoundedCornerShape(6.dp))
-                            .background(bgColor),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .padding(horizontal = 10.dp, vertical = 7.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Icon(
-                            imageVector = icon,
-                            contentDescription = null,
-                            tint = iconColor,
-                            modifier = Modifier.size(16.dp)
-                        )
-                    }
+                        // Category Icon with subtle tinted container
+                        Box(
+                            modifier = Modifier
+                                .size(26.dp)
+                                .clip(RoundedCornerShape(6.dp))
+                                .background(bgColor),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = null,
+                                tint = iconColor,
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
 
-                    // File info (Name + Size)
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.Center
-                    ) {
-                        Text(
-                            text = displayName,
-                            fontSize = 13.sp,
-                            fontWeight = FontWeight.Medium,
-                            color = Color(0xFF333333),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        if (fileSize.isNotBlank()) {
+                        // File info (Name + Size / Status)
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
+                        ) {
                             Text(
-                                text = fileSize,
-                                fontSize = 11.sp,
-                                color = Color(0xFF8E8E93),
-                                lineHeight = 13.sp
+                                text = displayName,
+                                fontSize = 13.sp,
+                                fontWeight = FontWeight.Medium,
+                                color = Color(0xFF333333),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            val subtitle = when {
+                                isDownloading -> "正在从云端下载..."
+                                !fileExists -> if (fileSize.isNotBlank()) "☁️ 云端附件 · 点击下载 ($fileSize)" else "☁️ 云端附件 · 点击下载"
+                                else -> fileSize
+                            }
+                            if (subtitle.isNotBlank()) {
+                                Text(
+                                    text = subtitle,
+                                    fontSize = 11.sp,
+                                    color = if (!fileExists || isDownloading) Color(0xFF1E88E5) else Color(0xFF8E8E93),
+                                    lineHeight = 13.sp
+                                )
+                            }
+                        }
+
+                        // Status Icon (Open external or Cloud Download)
+                        if (isDownloading) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(16.dp),
+                                strokeWidth = 2.dp,
+                                color = Color(0xFF1E88E5)
+                            )
+                        } else if (!fileExists) {
+                            Icon(
+                                imageVector = Icons.Outlined.CloudDownload,
+                                contentDescription = "从云端下载",
+                                tint = Color(0xFF1E88E5),
+                                modifier = Modifier.size(16.dp)
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
+                                contentDescription = "打开文件",
+                                tint = Color(0xFFBDBDBD),
+                                modifier = Modifier.size(15.dp)
                             )
                         }
                     }
-
-                    // Open external indicator icon
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Outlined.OpenInNew,
-                        contentDescription = "打开文件",
-                        tint = Color(0xFFBDBDBD),
-                        modifier = Modifier.size(15.dp)
-                    )
                 }
             }
         }
