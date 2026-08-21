@@ -1,9 +1,9 @@
 {
-  "versionCode": 8,
-  "versionName": "1.2.6",
+  "versionCode": 9,
+  "versionName": "1.2.7",
   "releaseDate": "2026-08-21",
-  "changelog": "📖 1. 点击卡片正文直接展开：长文段卡片无需精确点击展开按钮，点击任意正文区域即可丝滑展开或收起\n🔘 2. 长按卡片弹出快捷操作半窗：长按卡片即刻呼出【编辑、分享、复制、删除】快捷操作菜单\n🎨 3. Flomo 同款三套雅致分享图模板：支持经典白、复古桃粉、暖木手账三套精美分享图，搭配二段式抽屉更换模板，一键保存相册或系统分享\n📅 4. 侧边栏打卡日历跨设备时区对齐与动态同步：修复多端时区差异导致的打卡热力图方块错位问题，支持自定义时区，同步即时响应刷新",
-  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.6/Lozify-v1.2.6.apk",
-  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.6/Lozify-v1.2.6.apk",
+  "changelog": "🎨 1. 1:1 Flomo 侧边栏与全新设置中心：顶部用户数据概览、13周打卡热力图、模块化设置与4宫格快捷磁贴\n✨ 2. 每日时光机回顾：智能匹配1年前、半年前、1个月前等历史灵感，高性能LazyColumn丝滑滚动，全宽大图排版\n👣 3. 随机漫步：灵动半窗卡片随机漫游历史便签，支持【换一篇】、原地编辑与生成分享卡片\n🔒 4. 私密密码锁与生物识别限免体验：支持4~6位PIN码与指纹/面容解锁，全面开放免费试用\n🛠️ 5. 稳定性深度优化：彻底根除启动闪退、类型转换冲突与标签编辑白屏问题",
+  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.7/Lozify-v1.2.7.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.7/Lozify-v1.2.7.apk",
   "isForceUpdate": false
 }
