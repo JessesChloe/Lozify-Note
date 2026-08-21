@@ -200,28 +200,6 @@ fun DrawerContent(
                 }
 
                 item {
-                    DrawerFeatureItem(
-                        icon = Icons.Outlined.AccountTree,
-                        label = "认知地图",
-                        onClick = {
-                            onNavigateToHelp()
-                            onCloseDrawer()
-                        }
-                    )
-                }
-
-                item {
-                    DrawerFeatureItem(
-                        icon = Icons.Outlined.DeleteOutline,
-                        label = "回收站",
-                        onClick = {
-                            onNavigateToTrash()
-                            onCloseDrawer()
-                        }
-                    )
-                }
-
-                item {
                     Spacer(modifier = Modifier.height(14.dp))
                 }
 
@@ -451,36 +429,39 @@ fun DrawerContent(
                         )
                     }
                 }
-            }
 
-            // Bottom System Entries (fixed at bottom)
-            HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+                // Bottom System Entries (Non-fixed, naturally scrolled to bottom)
+                item {
+                    Spacer(modifier = Modifier.height(12.dp))
+                    HorizontalDivider(color = Color(0xFFEEEEEE), thickness = 1.dp)
+                    Spacer(modifier = Modifier.height(8.dp))
+                }
 
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                verticalArrangement = Arrangement.spacedBy(4.dp)
-            ) {
-                // Trash Entry
-                DrawerSystemEntry(
-                    icon = Icons.Default.Delete,
-                    label = "回收站",
-                    onClick = {
-                        onNavigateToTrash()
-                        onCloseDrawer()
-                    }
-                )
+                item {
+                    DrawerSystemEntry(
+                        icon = Icons.Default.Delete,
+                        label = "回收站",
+                        onClick = {
+                            onNavigateToTrash()
+                            onCloseDrawer()
+                        }
+                    )
+                }
 
-                // Help Center Entry
-                DrawerSystemEntry(
-                    icon = Icons.Default.Info,
-                    label = "帮助中心",
-                    onClick = {
-                        onNavigateToHelp()
-                        onCloseDrawer()
-                    }
-                )
+                item {
+                    DrawerSystemEntry(
+                        icon = Icons.Default.Info,
+                        label = "帮助中心",
+                        onClick = {
+                            onNavigateToHelp()
+                            onCloseDrawer()
+                        }
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
         }
     }

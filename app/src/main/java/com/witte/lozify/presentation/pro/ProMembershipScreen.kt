@@ -393,9 +393,9 @@ fun ProMembershipScreen(
                         desc = "无感增量极速同步"
                     )
                     ProFeatureRow(
-                        icon = Icons.Outlined.AccountTree,
-                        title = "双链认知地图与知识图谱",
-                        desc = "网状双向链接全景呈现"
+                        icon = Icons.Outlined.Image,
+                        title = "全量多图排版与附件高保真图片导出",
+                        desc = "无损超清大图渲染"
                     )
                     ProFeatureRow(
                         icon = Icons.Outlined.Headphones,

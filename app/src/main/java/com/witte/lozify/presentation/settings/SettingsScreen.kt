@@ -516,9 +516,9 @@ fun SettingsScreen(
                             onClick = onOpenCalendarDetail
                         )
                         FlomoQuickTile(
-                            icon = Icons.Outlined.AccountTree,
-                            label = "认知地图",
-                            onClick = onNavigateToHelp
+                            icon = Icons.Outlined.Backup,
+                            label = "备份导出",
+                            onClick = onNavigateToBackup
                         )
                         FlomoQuickTile(
                             icon = Icons.Outlined.Tune,
