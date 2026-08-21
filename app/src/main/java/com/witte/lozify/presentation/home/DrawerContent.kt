@@ -553,29 +553,19 @@ private fun DrawerHeader(
                 )
             }
 
-            // Settings Gear Button (with red dot)
-            Box {
-                IconButton(
-                    onClick = {
-                        onNavigateToSettings()
-                        onCloseDrawer()
-                    },
-                    modifier = Modifier.size(36.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Outlined.Settings,
-                        contentDescription = "设置",
-                        tint = Color(0xFF666666),
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Box(
-                    modifier = Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-6).dp, y = 6.dp)
-                        .size(6.dp)
-                        .clip(CircleShape)
-                        .background(Color(0xFFFF5252))
+            // Settings Gear Button
+            IconButton(
+                onClick = {
+                    onNavigateToSettings()
+                    onCloseDrawer()
+                },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Settings,
+                    contentDescription = "设置",
+                    tint = Color(0xFF666666),
+                    modifier = Modifier.size(22.dp)
                 )
             }
         }
