@@ -78,8 +78,9 @@ fun AppLockOverlayScreen(
         }
     }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(isBiometricEnabled) {
         if (isBiometricEnabled) {
+            kotlinx.coroutines.delay(300)
             triggerBiometric()
         }
     }
