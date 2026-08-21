@@ -47,6 +47,12 @@ class UserPreferencesManager @Inject constructor(
     )
     val draftImageUris: StateFlow<List<String>> = _draftImageUris.asStateFlow()
 
+    // Stage 57: Calendar Timezone (Default: empty string for system default ZoneId)
+    private val _calendarTimeZone = MutableStateFlow(
+        prefs.getString(KEY_CALENDAR_TIMEZONE, "") ?: ""
+    )
+    val calendarTimeZone: StateFlow<String> = _calendarTimeZone.asStateFlow()
+
     // --- WebDAV Cloud Sync Preferences ---
     private val _webdavServerUrl = MutableStateFlow(
         prefs.getString(KEY_WEBDAV_SERVER_URL, DEFAULT_WEBDAV_SERVER_URL) ?: DEFAULT_WEBDAV_SERVER_URL
@@ -105,6 +111,11 @@ class UserPreferencesManager @Inject constructor(
     fun setImageCompressionEnabled(enabled: Boolean) {
         prefs.edit().putBoolean(KEY_IMAGE_COMPRESSION_ENABLED, enabled).apply()
         _imageCompressionEnabled.value = enabled
+    }
+
+    fun setCalendarTimeZone(timeZoneId: String) {
+        prefs.edit().putString(KEY_CALENDAR_TIMEZONE, timeZoneId).apply()
+        _calendarTimeZone.value = timeZoneId
     }
 
     fun saveDraft(text: String, imageUris: List<String>) {
@@ -216,6 +227,7 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_IMAGE_COMPRESSION_ENABLED = "key_image_compression_enabled"
         private const val KEY_DRAFT_TEXT = "key_draft_text"
         private const val KEY_DRAFT_IMAGE_URIS = "key_draft_image_uris"
+        private const val KEY_CALENDAR_TIMEZONE = "key_calendar_timezone"
         private const val KEY_PURGED_SYNC_IDS = "key_purged_sync_ids"
 
         // WebDAV keys

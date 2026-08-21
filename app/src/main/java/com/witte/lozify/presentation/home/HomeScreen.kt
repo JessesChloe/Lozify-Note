@@ -893,10 +893,11 @@ fun HomeScreen(
         )
     }
 
-    // Stage 22: Activity & Punchcard Calendar Detail Bottom Sheet
+    // Stage 22 & 57: Activity & Punchcard Calendar Detail Bottom Sheet (with timezone support)
     if (showActivityCalendar) {
         ActivityCalendarBottomSheet(
-            allNotes = uiState.notes,
+            allNotes = uiState.allActiveNotes.ifEmpty { uiState.notes },
+            timeZoneId = uiState.calendarTimeZone,
             onDismiss = { showActivityCalendar = false }
         )
     }

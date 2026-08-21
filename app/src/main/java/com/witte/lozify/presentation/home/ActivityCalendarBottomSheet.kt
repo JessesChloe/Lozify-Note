@@ -47,23 +47,34 @@ enum class CalendarViewMode {
 @Composable
 fun ActivityCalendarBottomSheet(
     allNotes: List<Note>,
+    timeZoneId: String = "",
     sheetState: SheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
     onDismiss: () -> Unit
 ) {
     var selectedMode by remember { mutableStateOf(CalendarViewMode.MONTH) }
-    val zoneId = remember { ZoneId.systemDefault() }
-    val today = remember { LocalDate.now() }
+    val resolvedZoneId = remember(timeZoneId) {
+        if (timeZoneId.isBlank()) {
+            ZoneId.systemDefault()
+        } else {
+            try {
+                ZoneId.of(timeZoneId)
+            } catch (e: Exception) {
+                ZoneId.systemDefault()
+            }
+        }
+    }
+    val today = remember(allNotes, resolvedZoneId) { LocalDate.now(resolvedZoneId) }
 
     // Group notes by LocalDate
-    val notesByDate = remember(allNotes) {
-        allNotes.groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
+    val notesByDate = remember(allNotes, resolvedZoneId) {
+        allNotes.groupBy { it.createdAt.atZone(resolvedZoneId).toLocalDate() }
     }
 
     // Determine months to display (from current month back to oldest note or at least last 6 months)
-    val monthsToDisplay = remember(allNotes, today) {
+    val monthsToDisplay = remember(allNotes, today, resolvedZoneId) {
         val currentMonth = YearMonth.from(today)
         val oldestMonth = if (allNotes.isNotEmpty()) {
-            val earliest = allNotes.minOf { it.createdAt }.atZone(zoneId).toLocalDate()
+            val earliest = allNotes.minOf { it.createdAt }.atZone(resolvedZoneId).toLocalDate()
             YearMonth.from(earliest)
         } else {
             currentMonth.minusMonths(5)

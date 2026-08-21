@@ -67,6 +67,7 @@ class HomeViewModel @Inject constructor(
      */
     data class HomeUiState(
         val notes: List<Note> = emptyList(),
+        val allActiveNotes: List<Note> = emptyList(),
         val allTags: List<Tag> = emptyList(),
         val pinnedTags: List<Tag> = emptyList(),
         val selectedTag: Tag? = null,
@@ -74,6 +75,7 @@ class HomeViewModel @Inject constructor(
         val searchQuery: String = "",
         val userStats: UserStats = UserStats(),
         val heatmapData: Map<LocalDate, Int> = emptyMap(),
+        val calendarTimeZone: String = "",
         val maxCollapseLines: Int = 5,
         val sortOrder: NoteSortOrder = NoteSortOrder.CREATED_DESC,
         val pullSyncState: PullSyncState = PullSyncState.IDLE,
@@ -120,6 +122,18 @@ class HomeViewModel @Inject constructor(
         val statusText: String?
     )
 
+    private fun getResolvedZoneId(tzString: String): ZoneId {
+        return if (tzString.isBlank()) {
+            ZoneId.systemDefault()
+        } else {
+            try {
+                ZoneId.of(tzString)
+            } catch (e: Exception) {
+                ZoneId.systemDefault()
+            }
+        }
+    }
+
     /**
      * Reactive state flow combining notes, tags, filter state, search query, sort order, and pull-sync status.
      */
@@ -133,11 +147,12 @@ class HomeViewModel @Inject constructor(
             BaseHomeData(allNotes, allTags, selectedTagId, searchQuery)
         },
         preferencesManager.maxCollapseLines,
+        preferencesManager.calendarTimeZone,
         _sortOrder,
         combine(_pullSyncState, _pullSyncStatusText) { state, text ->
             PullSyncData(state, text)
         }
-    ) { base, maxCollapseLines, sortOrder, pullSync ->
+    ) { base, maxCollapseLines, calendarTimeZone, sortOrder, pullSync ->
         val allNotes = base.allNotes
         val allTags = base.allTags.filter { it.usageCount > 0 || it.isPinned }
         val selectedTagId = base.selectedTagId
@@ -181,13 +196,15 @@ class HomeViewModel @Inject constructor(
             )
         }
 
+        val zoneId = getResolvedZoneId(calendarTimeZone)
+
         // Stage 14: Calculate user stats
         val totalNotesCount = allNotes.size
         val totalTagsCount = allTags.size
         val daysCount = if (allNotes.isNotEmpty()) {
             val oldestNoteTime = allNotes.minOfOrNull { it.createdAt } ?: Instant.now()
-            val oldestDate = oldestNoteTime.atZone(ZoneId.systemDefault()).toLocalDate()
-            val today = LocalDate.now()
+            val oldestDate = oldestNoteTime.atZone(zoneId).toLocalDate()
+            val today = LocalDate.now(zoneId)
             (ChronoUnit.DAYS.between(oldestDate, today) + 1).coerceAtLeast(1).toInt()
         } else {
             1
@@ -198,9 +215,9 @@ class HomeViewModel @Inject constructor(
             daysCount = daysCount
         )
 
-        // Stage 15: Calculate heatmap data (note count per day for last 8 weeks)
+        // Stage 15 & 57: Calculate heatmap data (note count per day for last 8 weeks)
         val heatmapData = allNotes
-            .map { it.createdAt.atZone(ZoneId.systemDefault()).toLocalDate() }
+            .map { it.createdAt.atZone(zoneId).toLocalDate() }
             .groupingBy { it }
             .eachCount()
 
@@ -208,6 +225,7 @@ class HomeViewModel @Inject constructor(
 
         HomeUiState(
             notes = filteredNotes,
+            allActiveNotes = allNotes,
             allTags = allTags,
             pinnedTags = pinnedTags,
             selectedTag = allTags.find { it.id == selectedTagId },
@@ -215,6 +233,7 @@ class HomeViewModel @Inject constructor(
             searchQuery = searchQuery,
             userStats = userStats,
             heatmapData = heatmapData,
+            calendarTimeZone = calendarTimeZone,
             maxCollapseLines = maxCollapseLines,
             sortOrder = sortOrder,
             pullSyncState = pullSync.state,
@@ -340,19 +359,21 @@ class HomeViewModel @Inject constructor(
     )
 
     /**
-     * Stage 14: Dedicated StateFlow for contribution heatmap data (LocalDate -> note count).
+     * Stage 14 & 57: Dedicated StateFlow for contribution heatmap data (LocalDate -> note count).
      */
-    val heatmapData: StateFlow<Map<LocalDate, Int>> = noteRepository.getAllNotes()
-        .combine(MutableStateFlow(Unit)) { allNotes, _ ->
-            val zoneId = ZoneId.systemDefault()
-            allNotes
-                .groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
-                .mapValues { it.value.size }
-        }.stateIn(
-            scope = viewModelScope,
-            started = SharingStarted.WhileSubscribed(5000),
-            initialValue = emptyMap()
-        )
+    val heatmapData: StateFlow<Map<LocalDate, Int>> = combine(
+        noteRepository.getAllNotes(),
+        preferencesManager.calendarTimeZone
+    ) { allNotes, tzString ->
+        val zoneId = getResolvedZoneId(tzString)
+        allNotes
+            .groupBy { it.createdAt.atZone(zoneId).toLocalDate() }
+            .mapValues { it.value.size }
+    }.stateIn(
+        scope = viewModelScope,
+        started = SharingStarted.WhileSubscribed(5000),
+        initialValue = emptyMap()
+    )
 
     /**
      * Expose allTags for navigation and tag edit screen.

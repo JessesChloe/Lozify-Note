@@ -48,7 +48,7 @@ fun ContributionHeatmap(
     onClick: (() -> Unit)? = null
 ) {
     val density = LocalDensity.current
-    val today = remember { LocalDate.now() }
+    val today = remember(dailyCounts) { LocalDate.now() }
     val numDaysInWeek = 7
 
     // End date: Sunday of the week containing the end of the current month

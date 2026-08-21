@@ -20,6 +20,7 @@ data class SettingsUiState(
     val maxCollapseLines: Int = 5,
     val isDraftPersistenceEnabled: Boolean = true,
     val isImageCompressionEnabled: Boolean = true,
+    val calendarTimeZone: String = "",
     val isCheckingUpdate: Boolean = false,
     val updateInfo: AppUpdateInfo? = null,
     val updateMessage: String? = null
@@ -39,15 +40,21 @@ class SettingsViewModel @Inject constructor(
     )
 
     val uiState: StateFlow<SettingsUiState> = combine(
-        preferencesManager.maxCollapseLines,
-        preferencesManager.isDraftPersistenceEnabled,
-        preferencesManager.imageCompressionEnabled,
+        combine(
+            preferencesManager.maxCollapseLines,
+            preferencesManager.isDraftPersistenceEnabled,
+            preferencesManager.imageCompressionEnabled,
+            preferencesManager.calendarTimeZone
+        ) { maxLines, isDraftEnabled, isImageCompressionEnabled, timeZone ->
+            Tuple4(maxLines, isDraftEnabled, isImageCompressionEnabled, timeZone)
+        },
         _updateState
-    ) { maxLines, isDraftEnabled, isImageCompressionEnabled, updateState ->
+    ) { tuple, updateState ->
         SettingsUiState(
-            maxCollapseLines = maxLines,
-            isDraftPersistenceEnabled = isDraftEnabled,
-            isImageCompressionEnabled = isImageCompressionEnabled,
+            maxCollapseLines = tuple.a,
+            isDraftPersistenceEnabled = tuple.b,
+            isImageCompressionEnabled = tuple.c,
+            calendarTimeZone = tuple.d,
             isCheckingUpdate = updateState.first,
             updateInfo = updateState.second,
             updateMessage = updateState.third
@@ -57,6 +64,12 @@ class SettingsViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = SettingsUiState()
     )
+
+    private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+
+    fun setCalendarTimeZone(timeZoneId: String) {
+        preferencesManager.setCalendarTimeZone(timeZoneId)
+    }
 
     fun setMaxCollapseLines(lines: Int) {
         preferencesManager.setMaxCollapseLines(lines)

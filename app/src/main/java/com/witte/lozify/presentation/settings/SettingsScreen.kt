@@ -65,6 +65,83 @@ fun SettingsScreen(
         )
     }
 
+    var showTimeZoneDialog by remember { mutableStateOf(false) }
+    val timeZoneOptions = remember {
+        listOf(
+            "" to "跟随系统默认时区 (当前: ${java.time.ZoneId.systemDefault().id})",
+            "Asia/Shanghai" to "中国标准时间 / 北京时间 (Asia/Shanghai, UTC+8)",
+            "UTC" to "协调世界时 (UTC, GMT+0)",
+            "Asia/Tokyo" to "日本标准时间 (Asia/Tokyo, UTC+9)",
+            "America/New_York" to "美国东部时间 (America/New_York, UTC-5/UTC-4)",
+            "America/Los_Angeles" to "美国太平洋时间 (America/Los_Angeles, UTC-8/UTC-7)",
+            "Europe/London" to "欧洲西部时间 (Europe/London, UTC+0/UTC+1)",
+            "Europe/Berlin" to "欧洲中部时间 (Europe/Berlin, UTC+1/UTC+2)"
+        )
+    }
+
+    if (showTimeZoneDialog) {
+        AlertDialog(
+            onDismissRequest = { showTimeZoneDialog = false },
+            title = {
+                Text(
+                    text = "选择打卡日历时区",
+                    fontSize = 17.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Color(0xFF222222)
+                )
+            },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Text(
+                        text = "若跨设备（如真机与模拟器/平板）使用坚果云同步，固定统一时区可确保两端打卡日历的绿色方块完全一致。",
+                        fontSize = 12.sp,
+                        color = Color(0xFF888888),
+                        lineHeight = 16.sp,
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    timeZoneOptions.forEach { (tzId, tzName) ->
+                        val isSelected = uiState.calendarTimeZone == tzId
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(8.dp))
+                                .clickable {
+                                    viewModel.setCalendarTimeZone(tzId)
+                                    showTimeZoneDialog = false
+                                }
+                                .padding(vertical = 10.dp, horizontal = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween
+                        ) {
+                            Text(
+                                text = tzName,
+                                fontSize = 14.sp,
+                                color = if (isSelected) Color(0xFF00C853) else Color(0xFF333333),
+                                fontWeight = if (isSelected) FontWeight.Medium else FontWeight.Normal,
+                                modifier = Modifier.weight(1f)
+                            )
+                            if (isSelected) {
+                                Icon(
+                                    imageVector = Icons.Default.Check,
+                                    contentDescription = null,
+                                    tint = Color(0xFF00C853),
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = { showTimeZoneDialog = false }) {
+                    Text("取消", color = Color(0xFF666666))
+                }
+            },
+            containerColor = Color.White,
+            shape = RoundedCornerShape(16.dp)
+        )
+    }
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -212,6 +289,18 @@ fun SettingsScreen(
                                 }
                             }
                         }
+
+                        HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
+
+                        // Stage 57: Calendar Timezone Row
+                        val currentTzName = timeZoneOptions.find { it.first == uiState.calendarTimeZone }?.second
+                            ?: if (uiState.calendarTimeZone.isBlank()) "跟随系统 (${java.time.ZoneId.systemDefault().id})" else uiState.calendarTimeZone
+                        SettingsClickableRow(
+                            icon = Icons.Outlined.Schedule,
+                            title = "打卡日历时区",
+                            subtitle = currentTzName,
+                            onClick = { showTimeZoneDialog = true }
+                        )
                     }
                 }
             }
