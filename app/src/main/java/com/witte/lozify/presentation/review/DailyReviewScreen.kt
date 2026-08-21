@@ -7,6 +7,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
@@ -355,14 +356,69 @@ private fun ReviewCard(
                     }
                 }
 
-                // Images Grid
+                // Sequential Full-Width Images (article mode)
                 if (imageAttachments.isNotEmpty() && filesDir != null) {
+                    val allImageFiles = imageAttachments.map { File(filesDir, it.filePath) }
+                    imageAttachments.forEachIndexed { index, attachment ->
+                        item {
+                            val imageFile = File(filesDir, attachment.filePath)
+                            val imageModel: Any = if (imageFile.exists()) imageFile else if (attachment.filePath.startsWith("content://")) android.net.Uri.parse(attachment.filePath) else imageFile
+
+                            val imageRequest = remember(attachment.filePath) {
+                                coil.request.ImageRequest.Builder(context)
+                                    .data(imageModel)
+                                    .crossfade(true)
+                                    .build()
+                            }
+
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(10.dp))
+                                    .background(Color(0xFFF5F5F5))
+                                    .clickable { onImageClick(index, allImageFiles) }
+                            ) {
+                                coil.compose.AsyncImage(
+                                    model = imageRequest,
+                                    contentDescription = "笔记图片",
+                                    contentScale = androidx.compose.ui.layout.ContentScale.FillWidth,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(10.dp))
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // File attachments
+                val fileAttachments = note.attachments.filter { it.isFile() }
+                if (fileAttachments.isNotEmpty()) {
                     item {
-                        AttachmentGrid(
-                            attachments = imageAttachments,
-                            filesDir = filesDir,
-                            onImageClick = onImageClick
-                        )
+                        Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            fileAttachments.forEach { fileAtt ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    color = Color(0xFFF7F8FA),
+                                    border = BorderStroke(0.8.dp, Color(0xFFE0E0E0)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        Text("📎", fontSize = 14.sp)
+                                        Text(
+                                            text = fileAtt.getDisplayName(),
+                                            fontSize = 12.sp,
+                                            color = Color(0xFF555555),
+                                            maxLines = 1
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
             }
