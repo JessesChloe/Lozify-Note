@@ -1,41 +1,45 @@
 package com.witte.lozify.presentation.review
 
 import android.widget.Toast
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.ArrowForwardIos
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.*
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
+import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.ContentCopy
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import coil.compose.AsyncImage
-import coil.request.ImageRequest
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.core.common.TagUtils
 import com.witte.lozify.domain.model.Note
+import com.witte.lozify.presentation.components.ImageLightboxDialog
+import com.witte.lozify.presentation.home.AttachmentGrid
+import com.witte.lozify.presentation.share.ShareCardScreen
 import kotlinx.coroutines.launch
 import java.io.File
 import java.time.ZoneId
@@ -44,6 +48,7 @@ import java.util.Locale
 
 /**
  * DailyReviewScreen - Fullscreen interactive time-machine daily review pager.
+ * Features ultra-smooth nested LazyColumn scrolling, multi-image AttachmentGrid and lightbox preview.
  *
  * Stage 59: Daily Review feature.
  */
@@ -51,7 +56,6 @@ import java.util.Locale
 @Composable
 fun DailyReviewScreen(
     onNavigateBack: () -> Unit,
-    onNavigateToShareCard: (Long) -> Unit = {},
     viewModel: DailyReviewViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -59,9 +63,11 @@ fun DailyReviewScreen(
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
 
-    val totalPages = remember(uiState.reviewCards) {
-        if (uiState.reviewCards.isEmpty()) 1 else uiState.reviewCards.size + 1
-    }
+    var sharingNote by remember { mutableStateOf<Note?>(null) }
+    var activeLightbox by remember { mutableStateOf<Pair<Int, List<File>>?>(null) }
+
+    val cards = uiState.reviewCards
+    val totalPages = if (cards.isEmpty()) 1 else cards.size + 1
     val pagerState = rememberPagerState(pageCount = { totalPages })
 
     Scaffold(
@@ -93,7 +99,7 @@ fun DailyReviewScreen(
                     }
                 },
                 actions = {
-                    if (uiState.reviewCards.isNotEmpty() && pagerState.currentPage < uiState.reviewCards.size) {
+                    if (cards.isNotEmpty() && pagerState.currentPage < cards.size) {
                         Box(
                             modifier = Modifier
                                 .padding(end = 16.dp)
@@ -102,7 +108,7 @@ fun DailyReviewScreen(
                                 .padding(horizontal = 10.dp, vertical = 4.dp)
                         ) {
                             Text(
-                                text = "${pagerState.currentPage + 1} / ${uiState.reviewCards.size}",
+                                text = "${pagerState.currentPage + 1} / ${cards.size}",
                                 fontSize = 12.sp,
                                 fontWeight = FontWeight.Bold,
                                 color = Color(0xFF00C853)
@@ -114,165 +120,131 @@ fun DailyReviewScreen(
             )
         }
     ) { paddingValues ->
-        if (uiState.isLoading) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                CircularProgressIndicator(color = Color(0xFF00C853))
-            }
-        } else if (uiState.reviewCards.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues),
-                contentAlignment = Alignment.Center
-            ) {
-                Column(
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues)
+        ) {
+            if (cards.isEmpty()) {
+                // Empty state
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Icon(
-                        imageVector = Icons.Outlined.AutoAwesome,
-                        contentDescription = null,
-                        tint = Color(0xFFBDBDBD),
-                        modifier = Modifier.size(48.dp)
-                    )
-                    Text(
-                        text = "暂无可回顾的便签",
-                        fontSize = 15.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Color(0xFF666666)
-                    )
-                    Text(
-                        text = "多记录一些想法，时光机会为您自动唤醒记忆！",
-                        fontSize = 13.sp,
-                        color = Color(0xFF999999)
-                    )
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        verticalArrangement = Arrangement.spacedBy(16.dp),
+                        modifier = Modifier.padding(32.dp)
+                    ) {
+                        Text(text = "🌿", fontSize = 48.sp)
+                        Text(
+                            text = "暂无需要回顾的笔记",
+                            fontSize = 17.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF333333)
+                        )
+                        Text(
+                            text = "多记录一些日常碎片与灵感，时光机会在特定的日子为您带来惊喜与回顾。",
+                            fontSize = 13.sp,
+                            color = Color(0xFF888888),
+                            textAlign = TextAlign.Center,
+                            lineHeight = 20.sp
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Button(
+                            onClick = onNavigateBack,
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
+                            shape = RoundedCornerShape(12.dp)
+                        ) {
+                            Text("返回主页写笔记", color = Color.White, fontWeight = FontWeight.Bold)
+                        }
+                    }
                 }
-            }
-        } else {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(paddingValues)
-            ) {
+            } else {
                 HorizontalPager(
                     state = pagerState,
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxWidth(),
+                    modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 16.dp),
                     pageSpacing = 16.dp
                 ) { page ->
-                    if (page < uiState.reviewCards.size) {
-                        val cardItem = uiState.reviewCards[page]
+                    if (page < cards.size) {
+                        val cardItem = cards[page]
                         ReviewCard(
                             item = cardItem,
                             onCopy = {
                                 clipboardManager.setText(AnnotatedString(RichTextUtils.stripFormatting(cardItem.note.content)))
-                                Toast.makeText(context, "正文已复制", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(context, "已复制笔记内容到剪贴板", Toast.LENGTH_SHORT).show()
                             },
                             onShare = {
-                                onNavigateToShareCard(cardItem.note.id)
+                                sharingNote = cardItem.note
                             },
                             onNext = {
                                 scope.launch {
                                     pagerState.animateScrollToPage(page + 1)
                                 }
-                            }
-                        )
-                    } else {
-                        // Final completion celebration page
-                        ReviewCompletedCard(
-                            totalCount = uiState.reviewCards.size,
-                            onFinish = onNavigateBack
-                        )
-                    }
-                }
-
-                // Bottom Page Indicators & Action Bar
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(horizontal = 24.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Page Indicator Dots
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        repeat(totalPages) { index ->
-                            val isSelected = pagerState.currentPage == index
-                            Box(
-                                modifier = Modifier
-                                    .size(if (isSelected) 8.dp else 6.dp)
-                                    .clip(CircleShape)
-                                    .background(if (isSelected) Color(0xFF00C853) else Color(0xFFDDDDDD))
-                            )
-                        }
-                    }
-
-                    // Next button
-                    if (pagerState.currentPage < totalPages - 1) {
-                        Button(
-                            onClick = {
-                                scope.launch {
-                                    pagerState.animateScrollToPage(pagerState.currentPage + 1)
-                                }
                             },
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
-                            shape = RoundedCornerShape(20.dp),
-                            contentPadding = PaddingValues(horizontal = 18.dp, vertical = 6.dp)
-                        ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(4.dp)
-                            ) {
-                                Text(
-                                    text = if (pagerState.currentPage == totalPages - 2) "完成回顾" else "下一篇",
-                                    fontSize = 13.sp,
-                                    fontWeight = FontWeight.SemiBold,
-                                    color = Color.White
-                                )
-                                Icon(
-                                    imageVector = Icons.AutoMirrored.Filled.ArrowForwardIos,
-                                    contentDescription = null,
-                                    tint = Color.White,
-                                    modifier = Modifier.size(12.dp)
-                                )
+                            onImageClick = { index, files ->
+                                activeLightbox = Pair(index, files)
                             }
-                        }
+                        )
                     } else {
-                        Button(
-                            onClick = onNavigateBack,
-                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
-                            shape = RoundedCornerShape(20.dp),
-                            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 6.dp)
-                        ) {
-                            Text("返回首页", fontSize = 13.sp, fontWeight = FontWeight.Bold, color = Color.White)
-                        }
+                        // Celebration Finished Card
+                        ReviewCompletionCard(
+                            totalReviewed = cards.size,
+                            onFinish = onNavigateBack,
+                            onRestart = {
+                                scope.launch {
+                                    pagerState.animateScrollToPage(0)
+                                }
+                            }
+                        )
                     }
                 }
             }
         }
     }
+
+    // Fullscreen Image Lightbox Preview
+    activeLightbox?.let { (initialIndex, files) ->
+        ImageLightboxDialog(
+            images = files,
+            initialIndex = initialIndex,
+            onDismiss = { activeLightbox = null }
+        )
+    }
+
+    // Share Card Modal Dialog
+    sharingNote?.let { note ->
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { sharingNote = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            ShareCardScreen(
+                note = note,
+                totalNotesCount = cards.size,
+                earliestNoteTimestamp = note.createdAt,
+                authorName = "Lozify 用户",
+                filesDir = context.filesDir,
+                onBackClick = { sharingNote = null }
+            )
+        }
+    }
 }
 
 /**
- * Individual Time-Machine Review Card
+ * ReviewCard - Individual time-machine review card.
+ * Uses LazyColumn for silky smooth scrolling on arbitrary long texts and multi-image attachments.
  */
 @Composable
 private fun ReviewCard(
     item: ReviewCardItem,
     onCopy: () -> Unit,
     onShare: () -> Unit,
-    onNext: () -> Unit
+    onNext: () -> Unit,
+    onImageClick: (Int, List<File>) -> Unit
 ) {
     val note = item.note
     val context = LocalContext.current
@@ -306,7 +278,7 @@ private fun ReviewCard(
                 .fillMaxSize()
                 .padding(20.dp)
         ) {
-            // 1. Time Machine Milestone Badge
+            // 1. Time Machine Milestone Badge Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -326,21 +298,23 @@ private fun ReviewCard(
                     )
                 }
 
-                Text(
-                    text = "${item.daysAgo} 天前",
-                    fontSize = 12.sp,
-                    color = Color(0xFF9E9E9E),
-                    fontWeight = FontWeight.Medium
-                )
+                if (item.daysAgo > 0) {
+                    Text(
+                        text = "${item.daysAgo} 天前",
+                        fontSize = 12.sp,
+                        color = Color(0xFF9E9E9E),
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
 
-            Spacer(modifier = Modifier.height(14.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // 2. Note Tags (if any)
             if (tags.isNotEmpty()) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.padding(bottom = 10.dp)
+                    modifier = Modifier.padding(bottom = 8.dp)
                 ) {
                     tags.forEach { tag ->
                         Box(
@@ -360,47 +334,40 @@ private fun ReviewCard(
                 }
             }
 
-            // 3. Scrollable Note Body & Images
-            Column(
+            // 3. Scrollable Note Body & Images with LazyColumn for high-performance fluid scroll
+            LazyColumn(
                 modifier = Modifier
                     .weight(1f)
-                    .fillMaxWidth()
-                    .verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                    .fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+                contentPadding = PaddingValues(vertical = 4.dp)
             ) {
-                Text(
-                    text = cleanText,
-                    fontSize = 16.sp,
-                    color = Color(0xFF222222),
-                    lineHeight = 26.sp,
-                    fontWeight = FontWeight.Normal
-                )
+                // Text Content
+                if (cleanText.isNotBlank()) {
+                    item {
+                        Text(
+                            text = cleanText,
+                            fontSize = 16.sp,
+                            color = Color(0xFF222222),
+                            lineHeight = 26.sp,
+                            fontWeight = FontWeight.Normal
+                        )
+                    }
+                }
 
-                // Images
+                // Images Grid
                 if (imageAttachments.isNotEmpty() && filesDir != null) {
-                    imageAttachments.forEach { attachment ->
-                        val imageFile = File(filesDir, attachment.filePath)
-                        if (imageFile.exists()) {
-                            val request = remember(attachment.filePath) {
-                                ImageRequest.Builder(context)
-                                    .data(imageFile)
-                                    .crossfade(true)
-                                    .build()
-                            }
-                            AsyncImage(
-                                model = request,
-                                contentDescription = null,
-                                contentScale = ContentScale.FillWidth,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(8.dp))
-                            )
-                        }
+                    item {
+                        AttachmentGrid(
+                            attachments = imageAttachments,
+                            filesDir = filesDir,
+                            onImageClick = onImageClick
+                        )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             HorizontalDivider(color = Color(0xFFF5F5F5), thickness = 1.dp)
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -416,29 +383,56 @@ private fun ReviewCard(
                     color = Color(0xFF9E9E9E)
                 )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Copy
                     IconButton(
                         onClick = onCopy,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.ContentCopy,
+                            imageVector = Icons.Default.ContentCopy,
                             contentDescription = "复制",
                             tint = Color(0xFF666666),
-                            modifier = Modifier.size(17.dp)
+                            modifier = Modifier.size(18.dp)
                         )
                     }
 
+                    // Share Card
                     IconButton(
                         onClick = onShare,
-                        modifier = Modifier.size(32.dp)
+                        modifier = Modifier.size(36.dp)
                     ) {
                         Icon(
-                            imageVector = Icons.Outlined.Share,
-                            contentDescription = "分享",
-                            tint = Color(0xFF00C853),
-                            modifier = Modifier.size(17.dp)
+                            imageVector = Icons.Default.Share,
+                            contentDescription = "分享卡片",
+                            tint = Color(0xFF666666),
+                            modifier = Modifier.size(18.dp)
                         )
+                    }
+
+                    // Next Button
+                    Button(
+                        onClick = onNext,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp),
+                        modifier = Modifier.height(34.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp)
+                        ) {
+                            Text("下一篇", fontSize = 12.sp, color = Color.White, fontWeight = FontWeight.Bold)
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = Color.White,
+                                modifier = Modifier.size(14.dp)
+                            )
+                        }
                     }
                 }
             }
@@ -447,12 +441,13 @@ private fun ReviewCard(
 }
 
 /**
- * Review Completed Celebration Card
+ * ReviewCompletionCard - Shown on the last page after reviewing all notes.
  */
 @Composable
-private fun ReviewCompletedCard(
-    totalCount: Int,
-    onFinish: () -> Unit
+private fun ReviewCompletionCard(
+    totalReviewed: Int,
+    onFinish: () -> Unit,
+    onRestart: () -> Unit
 ) {
     Card(
         modifier = Modifier.fillMaxSize(),
@@ -470,7 +465,7 @@ private fun ReviewCompletedCard(
         ) {
             Box(
                 modifier = Modifier
-                    .size(68.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
                     .background(Color(0xFFE8F5E9)),
                 contentAlignment = Alignment.Center
@@ -479,15 +474,15 @@ private fun ReviewCompletedCard(
                     imageVector = Icons.Default.Check,
                     contentDescription = null,
                     tint = Color(0xFF00C853),
-                    modifier = Modifier.size(36.dp)
+                    modifier = Modifier.size(40.dp)
                 )
             }
 
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
             Text(
                 text = "今日回顾已完成！",
-                fontSize = 20.sp,
+                fontSize = 22.sp,
                 fontWeight = FontWeight.Bold,
                 color = Color(0xFF222222)
             )
@@ -495,11 +490,11 @@ private fun ReviewCompletedCard(
             Spacer(modifier = Modifier.height(8.dp))
 
             Text(
-                text = "共重温了 $totalCount 条历史灵感与记忆。\n重温旧思考，记录新日常。明天见！",
+                text = "您已重温了 $totalReviewed 条珍贵的历史灵感与随想。温故而知新，继续保持记录的好习惯吧！",
                 fontSize = 14.sp,
                 color = Color(0xFF666666),
-                lineHeight = 22.sp,
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center
+                textAlign = TextAlign.Center,
+                lineHeight = 22.sp
             )
 
             Spacer(modifier = Modifier.height(32.dp))
@@ -508,14 +503,45 @@ private fun ReviewCompletedCard(
                 onClick = onFinish,
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00C853)),
                 shape = RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth(0.7f)
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
             ) {
                 Text(
-                    text = "回到首页",
+                    text = "完成回顾，回到主页",
                     fontSize = 15.sp,
                     fontWeight = FontWeight.Bold,
                     color = Color.White
                 )
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            OutlinedButton(
+                onClick = onRestart,
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, Color(0xFFE0E0E0)),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(48.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = null,
+                        tint = Color(0xFF666666),
+                        modifier = Modifier.size(16.dp)
+                    )
+                    Text(
+                        text = "再看一遍",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Color(0xFF444444)
+                    )
+                }
             }
         }
     }

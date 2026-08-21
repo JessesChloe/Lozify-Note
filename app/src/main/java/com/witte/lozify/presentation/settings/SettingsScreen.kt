@@ -607,8 +607,8 @@ fun SettingsScreen(
                         HorizontalDivider(color = Color(0xFFF7F8FA), thickness = 1.dp)
                         FlomoSettingsRow(
                             icon = Icons.Outlined.Lock,
-                            title = "密码锁",
-                            tagBadge = "PRO",
+                            title = "密码锁与指纹",
+                            tagBadge = "限免体验",
                             subtitle = if (uiState.isAppLockEnabled) "已启用 (PIN/指纹)" else "已关闭",
                             onClick = { showAppLockDialog = true }
                         )

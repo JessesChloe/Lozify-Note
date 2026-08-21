@@ -240,22 +240,10 @@ fun RandomStrollBottomSheet(
                                     )
 
                                     if (imageAttachments.isNotEmpty() && filesDir != null) {
-                                        imageAttachments.forEach { attachment ->
-                                            val imageFile = File(filesDir, attachment.filePath)
-                                            if (imageFile.exists()) {
-                                                val req = remember(attachment.filePath) {
-                                                    ImageRequest.Builder(context).data(imageFile).crossfade(true).build()
-                                                }
-                                                AsyncImage(
-                                                    model = req,
-                                                    contentDescription = null,
-                                                    contentScale = ContentScale.FillWidth,
-                                                    modifier = Modifier
-                                                        .fillMaxWidth()
-                                                        .clip(RoundedCornerShape(8.dp))
-                                                )
-                                            }
-                                        }
+                                        com.witte.lozify.presentation.home.AttachmentGrid(
+                                            attachments = imageAttachments,
+                                            filesDir = filesDir
+                                        )
                                     }
                                 }
                             }

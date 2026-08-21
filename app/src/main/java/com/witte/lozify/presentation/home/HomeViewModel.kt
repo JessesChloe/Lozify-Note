@@ -112,6 +112,11 @@ class HomeViewModel @Inject constructor(
     private val _appUpdateInfo = MutableStateFlow<AppUpdateInfo?>(null)
     val appUpdateInfo: StateFlow<AppUpdateInfo?> = _appUpdateInfo
 
+    // Stage 59: App Lock state
+    val isAppLockEnabled: StateFlow<Boolean> = preferencesManager.isAppLockEnabled
+    val appLockPin: StateFlow<String> = preferencesManager.appLockPin
+    val isBiometricEnabled: StateFlow<Boolean> = preferencesManager.isBiometricEnabled
+
     private data class BaseHomeData(
         val allNotes: List<Note>,
         val allTags: List<Tag>,
