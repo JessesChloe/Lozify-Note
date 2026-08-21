@@ -72,7 +72,6 @@ import androidx.compose.material3.rememberDrawerState
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.rememberSwipeToDismissBoxState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -133,23 +132,8 @@ fun HomeScreen(
     val appLockPin by homeViewModel.appLockPin.collectAsState()
     val isBiometricEnabled by homeViewModel.isBiometricEnabled.collectAsState()
 
-    var isLocked by remember {
+    var isLocked by remember(isAppLockEnabled, appLockPin) {
         mutableStateOf(isAppLockEnabled && appLockPin.isNotEmpty())
-    }
-
-    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
-    DisposableEffect(lifecycleOwner, isAppLockEnabled, appLockPin) {
-        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
-            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
-                if (isAppLockEnabled && appLockPin.isNotEmpty()) {
-                    isLocked = true
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
     }
 
     // Stage 31: Silent on-launch update check
