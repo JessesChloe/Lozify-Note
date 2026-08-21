@@ -116,6 +116,7 @@ fun HomeScreen(
     onNavigateToHelp: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToPro: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -388,6 +389,8 @@ fun HomeScreen(
                 selectedTag = uiState.selectedTag,
                 stats = uiState.userStats,
                 dailyCounts = uiState.heatmapData,
+                userName = uiState.userName,
+                isProUser = uiState.isProUser,
                 onTagSelected = { tagId ->
                     homeViewModel.selectTag(tagId)
                 },
@@ -403,6 +406,7 @@ fun HomeScreen(
                 onNavigateToHelp = onNavigateToHelp,
                 onNavigateToBackup = onNavigateToBackup,
                 onNavigateToSettings = onNavigateToSettings,
+                onNavigateToPro = onNavigateToPro,
                 onOpenCalendarDetail = {
                     scope.launch {
                         drawerState.close()

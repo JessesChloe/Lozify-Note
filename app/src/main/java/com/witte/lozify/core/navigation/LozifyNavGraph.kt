@@ -50,6 +50,9 @@ fun LozifyNavGraph(
                 },
                 onNavigateToSettings = {
                     navController.navigate(Routes.SETTINGS)
+                },
+                onNavigateToPro = {
+                    navController.navigate(Routes.PRO)
                 }
             )
         }
@@ -91,6 +94,17 @@ fun LozifyNavGraph(
                 },
                 onNavigateToWebDavSync = {
                     navController.navigate(Routes.WEBDAV_SYNC)
+                },
+                onNavigateToPro = {
+                    navController.navigate(Routes.PRO)
+                }
+            )
+        }
+
+        composable(Routes.PRO) {
+            com.witte.lozify.presentation.pro.ProMembershipScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

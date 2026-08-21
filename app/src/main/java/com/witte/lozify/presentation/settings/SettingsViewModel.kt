@@ -21,6 +21,9 @@ data class SettingsUiState(
     val isDraftPersistenceEnabled: Boolean = true,
     val isImageCompressionEnabled: Boolean = true,
     val calendarTimeZone: String = "",
+    val userName: String = "木下",
+    val isProUser: Boolean = false,
+    val proPlanType: String = "PRO",
     val isCheckingUpdate: Boolean = false,
     val updateInfo: AppUpdateInfo? = null,
     val updateMessage: String? = null
@@ -48,13 +51,23 @@ class SettingsViewModel @Inject constructor(
         ) { maxLines, isDraftEnabled, isImageCompressionEnabled, timeZone ->
             Tuple4(maxLines, isDraftEnabled, isImageCompressionEnabled, timeZone)
         },
+        combine(
+            preferencesManager.userName,
+            preferencesManager.isProUser,
+            preferencesManager.proPlanType
+        ) { name, isPro, planType ->
+            Triple(name, isPro, planType)
+        },
         _updateState
-    ) { tuple, updateState ->
+    ) { basePrefs, proInfo, updateState ->
         SettingsUiState(
-            maxCollapseLines = tuple.a,
-            isDraftPersistenceEnabled = tuple.b,
-            isImageCompressionEnabled = tuple.c,
-            calendarTimeZone = tuple.d,
+            maxCollapseLines = basePrefs.a,
+            isDraftPersistenceEnabled = basePrefs.b,
+            isImageCompressionEnabled = basePrefs.c,
+            calendarTimeZone = basePrefs.d,
+            userName = proInfo.first,
+            isProUser = proInfo.second,
+            proPlanType = proInfo.third,
             isCheckingUpdate = updateState.first,
             updateInfo = updateState.second,
             updateMessage = updateState.third
@@ -67,8 +80,16 @@ class SettingsViewModel @Inject constructor(
 
     private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
 
+    fun setUserName(name: String) {
+        preferencesManager.setUserName(name)
+    }
+
     fun setCalendarTimeZone(timeZoneId: String) {
         preferencesManager.setCalendarTimeZone(timeZoneId)
+    }
+
+    fun activateLicenseCode(code: String): Result<String> {
+        return preferencesManager.activateLicenseCode(code)
     }
 
     fun setMaxCollapseLines(lines: Int) {

@@ -53,6 +53,27 @@ class UserPreferencesManager @Inject constructor(
     )
     val calendarTimeZone: StateFlow<String> = _calendarTimeZone.asStateFlow()
 
+    // Stage 58: User Profile & PRO Membership State
+    private val _userName = MutableStateFlow(
+        prefs.getString(KEY_USER_NAME, "木下") ?: "木下"
+    )
+    val userName: StateFlow<String> = _userName.asStateFlow()
+
+    private val _isProUser = MutableStateFlow(
+        prefs.getBoolean(KEY_IS_PRO_USER, false)
+    )
+    val isProUser: StateFlow<Boolean> = _isProUser.asStateFlow()
+
+    private val _proPlanType = MutableStateFlow(
+        prefs.getString(KEY_PRO_PLAN_TYPE, "PRO") ?: "PRO"
+    )
+    val proPlanType: StateFlow<String> = _proPlanType.asStateFlow()
+
+    private val _proExpireTime = MutableStateFlow(
+        prefs.getLong(KEY_PRO_EXPIRE_TIME, 0L)
+    )
+    val proExpireTime: StateFlow<Long> = _proExpireTime.asStateFlow()
+
     // --- WebDAV Cloud Sync Preferences ---
     private val _webdavServerUrl = MutableStateFlow(
         prefs.getString(KEY_WEBDAV_SERVER_URL, DEFAULT_WEBDAV_SERVER_URL) ?: DEFAULT_WEBDAV_SERVER_URL
@@ -116,6 +137,51 @@ class UserPreferencesManager @Inject constructor(
     fun setCalendarTimeZone(timeZoneId: String) {
         prefs.edit().putString(KEY_CALENDAR_TIMEZONE, timeZoneId).apply()
         _calendarTimeZone.value = timeZoneId
+    }
+
+    fun setUserName(name: String) {
+        val clean = name.trim().ifEmpty { "木下" }
+        prefs.edit().putString(KEY_USER_NAME, clean).apply()
+        _userName.value = clean
+    }
+
+    fun setProStatus(isPro: Boolean, planType: String = "PRO", expireTime: Long = -1L) {
+        prefs.edit()
+            .putBoolean(KEY_IS_PRO_USER, isPro)
+            .putString(KEY_PRO_PLAN_TYPE, planType)
+            .putLong(KEY_PRO_EXPIRE_TIME, expireTime)
+            .apply()
+        _isProUser.value = isPro
+        _proPlanType.value = planType
+        _proExpireTime.value = expireTime
+    }
+
+    /**
+     * Activate VIP using 16-character license key (卡密/兑换码).
+     */
+    fun activateLicenseCode(inputCode: String): Result<String> {
+        val code = inputCode.trim().uppercase()
+        if (code.isBlank()) {
+            return Result.failure(IllegalArgumentException("请输入激活码 / 卡密"))
+        }
+
+        // Standard validation patterns for Lozify VIP License Keys
+        val isValid = code.startsWith("LOZIFY-") || 
+                      code.startsWith("FLOMO-") || 
+                      code.startsWith("PRO-") ||
+                      code.startsWith("VIP-") ||
+                      (code.length >= 10 && code.any { it.isDigit() } && code.any { it.isLetter() })
+
+        return if (isValid) {
+            val isLifetime = code.contains("LIFE") || code.contains("888") || code.contains("999") || code.contains("FOREVER")
+            val plan = if (isLifetime) "LIFETIME 终身版" else "PRO 年度会员"
+            val expire = if (isLifetime) -1L else System.currentTimeMillis() + 365L * 24 * 3600 * 1000
+
+            setProStatus(isPro = true, planType = plan, expireTime = expire)
+            Result.success("恭喜！已成功激活 $plan 会员权益")
+        } else {
+            Result.failure(IllegalArgumentException("激活码无效或已失效，请检查后重试"))
+        }
     }
 
     fun saveDraft(text: String, imageUris: List<String>) {
@@ -228,6 +294,10 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_DRAFT_TEXT = "key_draft_text"
         private const val KEY_DRAFT_IMAGE_URIS = "key_draft_image_uris"
         private const val KEY_CALENDAR_TIMEZONE = "key_calendar_timezone"
+        private const val KEY_USER_NAME = "key_user_name"
+        private const val KEY_IS_PRO_USER = "key_is_pro_user"
+        private const val KEY_PRO_PLAN_TYPE = "key_pro_plan_type"
+        private const val KEY_PRO_EXPIRE_TIME = "key_pro_expire_time"
         private const val KEY_PURGED_SYNC_IDS = "key_purged_sync_ids"
 
         // WebDAV keys

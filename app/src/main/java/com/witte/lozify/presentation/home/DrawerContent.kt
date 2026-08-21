@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
@@ -20,6 +21,11 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.PushPin
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.outlined.AccountTree
+import androidx.compose.material.icons.outlined.AutoAwesome
+import androidx.compose.material.icons.outlined.DeleteOutline
+import androidx.compose.material.icons.outlined.Explore
+import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material.icons.outlined.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -79,12 +85,15 @@ fun DrawerContent(
     selectedTag: Tag?,
     stats: UserStats = UserStats(),
     dailyCounts: Map<LocalDate, Int> = emptyMap(),
+    userName: String = "木下",
+    isProUser: Boolean = false,
     onTagSelected: (Long?) -> Unit,
     onCloseDrawer: () -> Unit,
     onNavigateToTrash: () -> Unit = {},
     onNavigateToHelp: () -> Unit = {},
     onNavigateToBackup: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
+    onNavigateToPro: () -> Unit = {},
     onOpenCalendarDetail: () -> Unit = {},
     onTogglePinTag: (Long, Boolean) -> Unit = { _, _ -> },
     onEditTag: (Tag) -> Unit = {},
@@ -116,10 +125,14 @@ fun DrawerContent(
                 .fillMaxSize()
                 .windowInsetsPadding(WindowInsets.statusBars)
         ) {
-            // Header Section (with horizontal padding)
-            Box(modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 20.dp, bottom = 12.dp)) {
+            // Header Section: User Name + ⚡ 升级PRO + 🔔 + ⚙️ (1:1 Flomo 图一)
+            Box(modifier = Modifier.padding(start = 20.dp, end = 16.dp, top = 16.dp, bottom = 12.dp)) {
                 DrawerHeader(
+                    userName = userName,
+                    isProUser = isProUser,
+                    onNavigateToPro = onNavigateToPro,
                     onNavigateToSettings = onNavigateToSettings,
+                    onNavigateToHelp = onNavigateToHelp,
                     onCloseDrawer = onCloseDrawer
                 )
             }
@@ -152,7 +165,7 @@ fun DrawerContent(
                     .padding(horizontal = 20.dp),
                 verticalArrangement = Arrangement.spacedBy(4.dp)
             ) {
-                // "全部笔记" - Show All Notes (always at top, no section)
+                // 1. "全部笔记" - Show All Notes (Flomo 经典高亮翡翠绿全宽大胶囊按钮)
                 item {
                     DrawerAllNotesItem(
                         isSelected = selectedTag == null,
@@ -163,13 +176,58 @@ fun DrawerContent(
                     )
                 }
 
+                // 2. Feature Menu Entries (1:1 Flomo 图一功能列表)
                 item {
-                    Spacer(modifier = Modifier.height(16.dp))
+                    DrawerFeatureItem(
+                        icon = Icons.Outlined.AutoAwesome,
+                        label = "每日回顾",
+                        onClick = {
+                            onNavigateToHelp()
+                            onCloseDrawer()
+                        }
+                    )
                 }
 
-                // "置顶标签" Section
                 item {
-                    DrawerSectionTitle(title = "置顶标签")
+                    DrawerFeatureItem(
+                        icon = Icons.Outlined.Explore,
+                        label = "随机漫步",
+                        onClick = {
+                            onTagSelected(null)
+                            onCloseDrawer()
+                        }
+                    )
+                }
+
+                item {
+                    DrawerFeatureItem(
+                        icon = Icons.Outlined.AccountTree,
+                        label = "认知地图",
+                        onClick = {
+                            onNavigateToHelp()
+                            onCloseDrawer()
+                        }
+                    )
+                }
+
+                item {
+                    DrawerFeatureItem(
+                        icon = Icons.Outlined.DeleteOutline,
+                        label = "回收站",
+                        onClick = {
+                            onNavigateToTrash()
+                            onCloseDrawer()
+                        }
+                    )
+                }
+
+                item {
+                    Spacer(modifier = Modifier.height(14.dp))
+                }
+
+                // "置顶标签" Section (1:1 Flomo 浅棕金黄色置顶标题)
+                item {
+                    DrawerSectionTitle(title = "置顶标签", titleColor = Color(0xFFC28416))
                 }
                 if (pinnedTags.isEmpty()) {
                     item {
@@ -429,11 +487,15 @@ fun DrawerContent(
 }
 
 /**
- * DrawerHeader - Minimal branding header with settings gear on top right.
+ * DrawerHeader - 1:1 Flomo Header with User Name, PRO Capsule Badge, Notifications Bell & Settings Gear.
  */
 @Composable
 private fun DrawerHeader(
+    userName: String,
+    isProUser: Boolean,
+    onNavigateToPro: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToHelp: () -> Unit,
     onCloseDrawer: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -442,21 +504,154 @@ private fun DrawerHeader(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        LozifyLogo(sizeDp = 26.dp)
+        // Left: User Name + PRO badge button
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Text(
+                text = userName,
+                fontSize = 20.sp,
+                fontWeight = FontWeight.Bold,
+                color = Color(0xFF222222)
+            )
 
-        IconButton(
-            onClick = {
-                onNavigateToSettings()
-                onCloseDrawer()
-            },
-            modifier = Modifier.size(36.dp)
+            // ⚡ 升级PRO / PRO Badge
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(if (isProUser) Color(0xFFE8F5E9) else Color(0xFFFEF3D6))
+                    .clickable {
+                        onNavigateToPro()
+                        onCloseDrawer()
+                    }
+                    .padding(horizontal = 6.dp, vertical = 2.dp)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    if (!isProUser) {
+                        Text(text = "⚡", fontSize = 10.sp)
+                        Text(
+                            text = "升级PRO",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFFC28416)
+                        )
+                    } else {
+                        Text(
+                            text = "PRO",
+                            fontSize = 11.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color(0xFF00C853)
+                        )
+                    }
+                }
+            }
+        }
+
+        // Right: 🔔 Notifications + ⚙️ Settings
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(2.dp)
+        ) {
+            // Notification Bell Button
+            IconButton(
+                onClick = {
+                    onNavigateToHelp()
+                    onCloseDrawer()
+                },
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "通知",
+                    tint = Color(0xFF666666),
+                    modifier = Modifier.size(22.dp)
+                )
+            }
+
+            // Settings Gear Button (with red dot)
+            Box {
+                IconButton(
+                    onClick = {
+                        onNavigateToSettings()
+                        onCloseDrawer()
+                    },
+                    modifier = Modifier.size(36.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.Settings,
+                        contentDescription = "设置",
+                        tint = Color(0xFF666666),
+                        modifier = Modifier.size(22.dp)
+                    )
+                }
+                Box(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-6).dp, y = 6.dp)
+                        .size(6.dp)
+                        .clip(CircleShape)
+                        .background(Color(0xFFFF5252))
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Flomo-styled Feature Menu Item (e.g. 每日回顾, 随机漫步, 认知地图)
+ */
+@Composable
+private fun DrawerFeatureItem(
+    icon: ImageVector,
+    label: String,
+    tagBadge: String? = null,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(8.dp))
+            .clickable(onClick = onClick)
+            .padding(horizontal = 12.dp, vertical = 9.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(10.dp)
         ) {
             Icon(
-                imageVector = Icons.Outlined.Settings,
-                contentDescription = "设置",
-                tint = Color(0xFF666666),
-                modifier = Modifier.size(20.dp)
+                imageVector = icon,
+                contentDescription = label,
+                tint = Color(0xFF333333),
+                modifier = Modifier.size(18.dp)
             )
+            Text(
+                text = label,
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Color(0xFF333333)
+            )
+            if (tagBadge != null) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(Color(0xFFEEEEEE))
+                        .padding(horizontal = 4.dp, vertical = 1.dp)
+                ) {
+                    Text(
+                        text = tagBadge,
+                        fontSize = 9.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color(0xFF888888)
+                    )
+                }
+            }
         }
     }
 }
@@ -535,6 +730,7 @@ private fun DrawerStatItem(
 @Composable
 private fun DrawerSectionTitle(
     title: String,
+    titleColor: Color = Color(0xFF9E9E9E),
     showSortIcon: Boolean = false,
     onSortClick: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -550,7 +746,7 @@ private fun DrawerSectionTitle(
             text = title,
             fontSize = 11.sp,
             fontWeight = FontWeight.Medium,
-            color = Color(0xFF9E9E9E),
+            color = titleColor,
             letterSpacing = 0.5.sp
         )
 

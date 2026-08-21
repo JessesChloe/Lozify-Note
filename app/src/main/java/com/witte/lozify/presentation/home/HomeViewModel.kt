@@ -76,6 +76,8 @@ class HomeViewModel @Inject constructor(
         val userStats: UserStats = UserStats(),
         val heatmapData: Map<LocalDate, Int> = emptyMap(),
         val calendarTimeZone: String = "",
+        val userName: String = "木下",
+        val isProUser: Boolean = false,
         val maxCollapseLines: Int = 5,
         val sortOrder: NoteSortOrder = NoteSortOrder.CREATED_DESC,
         val pullSyncState: PullSyncState = PullSyncState.IDLE,
@@ -122,6 +124,8 @@ class HomeViewModel @Inject constructor(
         val statusText: String?
     )
 
+    private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+
     private fun getResolvedZoneId(tzString: String): ZoneId {
         return if (tzString.isBlank()) {
             ZoneId.systemDefault()
@@ -146,17 +150,27 @@ class HomeViewModel @Inject constructor(
         ) { allNotes, allTags, selectedTagId, searchQuery ->
             BaseHomeData(allNotes, allTags, selectedTagId, searchQuery)
         },
-        preferencesManager.maxCollapseLines,
-        preferencesManager.calendarTimeZone,
+        combine(
+            preferencesManager.maxCollapseLines,
+            preferencesManager.calendarTimeZone,
+            preferencesManager.userName,
+            preferencesManager.isProUser
+        ) { maxLines, timeZone, userName, isPro ->
+            Tuple4(maxLines, timeZone, userName, isPro)
+        },
         _sortOrder,
         combine(_pullSyncState, _pullSyncStatusText) { state, text ->
             PullSyncData(state, text)
         }
-    ) { base, maxCollapseLines, calendarTimeZone, sortOrder, pullSync ->
+    ) { base, userPrefs, sortOrder, pullSync ->
         val allNotes = base.allNotes
         val allTags = base.allTags.filter { it.usageCount > 0 || it.isPinned }
         val selectedTagId = base.selectedTagId
         val searchQuery = base.searchQuery
+        val maxCollapseLines = userPrefs.a
+        val calendarTimeZone = userPrefs.b
+        val userName = userPrefs.c
+        val isProUser = userPrefs.d
 
         // Stage 4: Filter by tag
         var filteredNotes = if (selectedTagId == null) {
@@ -234,6 +248,8 @@ class HomeViewModel @Inject constructor(
             userStats = userStats,
             heatmapData = heatmapData,
             calendarTimeZone = calendarTimeZone,
+            userName = userName,
+            isProUser = isProUser,
             maxCollapseLines = maxCollapseLines,
             sortOrder = sortOrder,
             pullSyncState = pullSync.state,
