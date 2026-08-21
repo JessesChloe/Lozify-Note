@@ -31,10 +31,19 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.outlined.AttachFile
+import androidx.compose.material.icons.outlined.AudioFile
+import androidx.compose.material.icons.outlined.Code
 import androidx.compose.material.icons.outlined.ContentCopy
+import androidx.compose.material.icons.outlined.Description
 import androidx.compose.material.icons.outlined.FileDownload
+import androidx.compose.material.icons.outlined.FolderZip
 import androidx.compose.material.icons.outlined.Layers
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Share
+import androidx.compose.material.icons.outlined.Slideshow
+import androidx.compose.material.icons.outlined.TableChart
+import androidx.compose.material.icons.outlined.VideoFile
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -61,10 +70,13 @@ import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import coil.compose.AsyncImage
+import coil.request.ImageRequest
+import com.witte.lozify.core.common.FileUtils
 import com.witte.lozify.core.common.RichTextUtils
 import com.witte.lozify.core.common.ShareCardExporter
 import com.witte.lozify.core.common.TagUtils
@@ -124,9 +136,12 @@ fun ShareCardScreen(
         formatter.format(note.createdAt)
     }
 
-    // Filter image attachments
+    // Filter image attachments and file attachments
     val imageAttachments = remember(note.attachments) {
         note.attachments.filter { it.isImage() }
+    }
+    val fileAttachments = remember(note.attachments) {
+        note.attachments.filter { it.isFile() }
     }
 
     // Extract tags
@@ -298,6 +313,7 @@ fun ShareCardScreen(
                                             totalNotesCount = totalNotesCount,
                                             daysCount = daysCount,
                                             imageAttachments = imageAttachments,
+                                            fileAttachments = fileAttachments,
                                             filesDir = filesDir
                                         )
                                     }
@@ -316,6 +332,7 @@ fun ShareCardScreen(
                                         totalNotesCount = totalNotesCount,
                                         daysCount = daysCount,
                                         imageAttachments = imageAttachments,
+                                        fileAttachments = fileAttachments,
                                         filesDir = filesDir
                                     )
                                 }
@@ -437,6 +454,7 @@ private fun ShareCardContent(
     totalNotesCount: Int,
     daysCount: Int,
     imageAttachments: List<Attachment>,
+    fileAttachments: List<Attachment>,
     filesDir: File?
 ) {
     when (templateType) {
@@ -449,6 +467,7 @@ private fun ShareCardContent(
                 totalNotesCount = totalNotesCount,
                 daysCount = daysCount,
                 imageAttachments = imageAttachments,
+                fileAttachments = fileAttachments,
                 filesDir = filesDir
             )
         }
@@ -461,6 +480,7 @@ private fun ShareCardContent(
                 totalNotesCount = totalNotesCount,
                 daysCount = daysCount,
                 imageAttachments = imageAttachments,
+                fileAttachments = fileAttachments,
                 filesDir = filesDir
             )
         }
@@ -472,6 +492,7 @@ private fun ShareCardContent(
                 authorName = authorName,
                 totalNotesCount = totalNotesCount,
                 imageAttachments = imageAttachments,
+                fileAttachments = fileAttachments,
                 filesDir = filesDir
             )
         }
@@ -490,6 +511,7 @@ private fun ClassicWhiteTemplate(
     totalNotesCount: Int,
     daysCount: Int,
     imageAttachments: List<Attachment>,
+    fileAttachments: List<Attachment>,
     filesDir: File?
 ) {
     val cleanText = remember(note.content) {
@@ -562,10 +584,20 @@ private fun ClassicWhiteTemplate(
                 fontWeight = FontWeight.Normal
             )
 
-            // Images (if any)
+            // Images (All images rendered as large full-width cards with software bitmap support)
             if (imageAttachments.isNotEmpty() && filesDir != null) {
                 Spacer(modifier = Modifier.height(14.dp))
-                ShareImageAttachmentGrid(attachments = imageAttachments, filesDir = filesDir)
+                ShareImageAttachmentList(attachments = imageAttachments, filesDir = filesDir)
+            }
+
+            // File Attachments (Documents, Audio, Archives, etc.)
+            if (fileAttachments.isNotEmpty() && filesDir != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                ShareFileAttachmentList(
+                    attachments = fileAttachments,
+                    templateType = ShareTemplateType.CLASSIC_WHITE,
+                    filesDir = filesDir
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -611,6 +643,7 @@ private fun VintagePeachTemplate(
     totalNotesCount: Int,
     daysCount: Int,
     imageAttachments: List<Attachment>,
+    fileAttachments: List<Attachment>,
     filesDir: File?
 ) {
     val cleanText = remember(note.content) {
@@ -705,10 +738,20 @@ private fun VintagePeachTemplate(
                 fontWeight = FontWeight.Normal
             )
 
-            // Images (if any)
+            // Images
             if (imageAttachments.isNotEmpty() && filesDir != null) {
                 Spacer(modifier = Modifier.height(14.dp))
-                ShareImageAttachmentGrid(attachments = imageAttachments, filesDir = filesDir)
+                ShareImageAttachmentList(attachments = imageAttachments, filesDir = filesDir)
+            }
+
+            // File Attachments
+            if (fileAttachments.isNotEmpty() && filesDir != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                ShareFileAttachmentList(
+                    attachments = fileAttachments,
+                    templateType = ShareTemplateType.VINTAGE_PEACH,
+                    filesDir = filesDir
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -760,6 +803,7 @@ private fun WarmJournalTemplate(
     authorName: String,
     totalNotesCount: Int,
     imageAttachments: List<Attachment>,
+    fileAttachments: List<Attachment>,
     filesDir: File?
 ) {
     val cleanText = remember(note.content) {
@@ -835,10 +879,20 @@ private fun WarmJournalTemplate(
                 fontWeight = FontWeight.Normal
             )
 
-            // Images (if any)
+            // Images
             if (imageAttachments.isNotEmpty() && filesDir != null) {
                 Spacer(modifier = Modifier.height(14.dp))
-                ShareImageAttachmentGrid(attachments = imageAttachments, filesDir = filesDir)
+                ShareImageAttachmentList(attachments = imageAttachments, filesDir = filesDir)
+            }
+
+            // File Attachments
+            if (fileAttachments.isNotEmpty() && filesDir != null) {
+                Spacer(modifier = Modifier.height(14.dp))
+                ShareFileAttachmentList(
+                    attachments = fileAttachments,
+                    templateType = ShareTemplateType.WARM_JOURNAL,
+                    filesDir = filesDir
+                )
             }
 
             Spacer(modifier = Modifier.height(28.dp))
@@ -897,37 +951,185 @@ private fun FlomoHeatmapMatrix() {
 }
 
 /**
- * Image attachment grid for share cards.
+ * Image attachment list for share cards.
+ * Renders all images as full-width natural cards, disabling hardware bitmaps
+ * to prevent "Software rendering doesn't support hardware bitmaps" on canvas capture.
  */
 @Composable
-private fun ShareImageAttachmentGrid(
+private fun ShareImageAttachmentList(
     attachments: List<Attachment>,
     filesDir: File
 ) {
-    val displayImages = attachments.take(3)
-    Row(
+    val context = LocalContext.current
+    Column(
         modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(6.dp)
+        verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
-        displayImages.forEach { attachment ->
+        attachments.forEach { attachment ->
             val imageFile = File(filesDir, attachment.filePath)
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .aspectRatio(1.2f)
-                    .clip(RoundedCornerShape(6.dp))
-                    .background(Color(0xFFF0F0F0))
-            ) {
-                AsyncImage(
-                    model = imageFile,
-                    contentDescription = null,
-                    contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize()
-                )
+            if (imageFile.exists()) {
+                val imageRequest = remember(attachment.filePath) {
+                    ImageRequest.Builder(context)
+                        .data(imageFile)
+                        .allowHardware(false) // Fix "Software rendering doesn't support hardware bitmaps"
+                        .crossfade(false)
+                        .build()
+                }
+
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Color(0xFFF0F0F0))
+                ) {
+                    AsyncImage(
+                        model = imageRequest,
+                        contentDescription = null,
+                        contentScale = ContentScale.FillWidth,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(RoundedCornerShape(8.dp))
+                    )
+                }
             }
         }
     }
 }
+
+/**
+ * File attachment list for share cards (Documents, Audio, Zip, Video, etc.).
+ * Displays clean badges with file icons, names, and sizes matching the template theme.
+ */
+@Composable
+private fun ShareFileAttachmentList(
+    attachments: List<Attachment>,
+    templateType: ShareTemplateType,
+    filesDir: File
+) {
+    val theme = when (templateType) {
+        ShareTemplateType.CLASSIC_WHITE -> ShareColorTheme(
+            cardBgColor = Color(0xFFF7F8FA),
+            borderColor = Color(0xFFEEEEEE),
+            textColor = Color(0xFF333333),
+            badgeBgColor = Color(0xFFE8F5E9),
+            badgeTextColor = Color(0xFF2E7D32)
+        )
+        ShareTemplateType.VINTAGE_PEACH -> ShareColorTheme(
+            cardBgColor = Color(0xFFF5DDD3),
+            borderColor = Color(0xFFE5C0B3),
+            textColor = Color(0xFF4A352F),
+            badgeBgColor = Color(0xFFEBD1C6),
+            badgeTextColor = Color(0xFF9E5E4E)
+        )
+        ShareTemplateType.WARM_JOURNAL -> ShareColorTheme(
+            cardBgColor = Color(0xFFF9F2DD),
+            borderColor = Color(0xFFE9DCBD),
+            textColor = Color(0xFF3C362A),
+            badgeBgColor = Color(0xFFF2E6C7),
+            badgeTextColor = Color(0xFFC28416)
+        )
+    }
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        attachments.forEach { attachment ->
+            val localFile = File(filesDir, attachment.filePath)
+            val fileSizeStr = if (localFile.exists()) {
+                val sizeBytes = localFile.length()
+                if (sizeBytes < 1024) "$sizeBytes B"
+                else if (sizeBytes < 1024 * 1024) String.format(Locale.US, "%.1f KB", sizeBytes / 1024.0)
+                else String.format(Locale.US, "%.1f MB", sizeBytes / (1024.0 * 1024.0))
+            } else {
+                attachment.getFormattedFileSize()
+            }
+
+            val category = FileUtils.getFileCategory(attachment.filePath, attachment.mimeType)
+            val (icon, categoryLabel) = when (category) {
+                FileUtils.FileCategory.AUDIO -> Pair(Icons.Outlined.AudioFile, "音频")
+                FileUtils.FileCategory.PDF -> Pair(Icons.Outlined.PictureAsPdf, "PDF")
+                FileUtils.FileCategory.DOCUMENT -> Pair(Icons.Outlined.Description, "文档")
+                FileUtils.FileCategory.SPREADSHEET -> Pair(Icons.Outlined.TableChart, "表格")
+                FileUtils.FileCategory.PRESENTATION -> Pair(Icons.Outlined.Slideshow, "演示")
+                FileUtils.FileCategory.ARCHIVE -> Pair(Icons.Outlined.FolderZip, "压缩包")
+                FileUtils.FileCategory.VIDEO -> Pair(Icons.Outlined.VideoFile, "视频")
+                FileUtils.FileCategory.CODE -> Pair(Icons.Outlined.Code, "代码")
+                FileUtils.FileCategory.OTHER -> Pair(Icons.Outlined.AttachFile, "附件")
+            }
+
+            Card(
+                shape = RoundedCornerShape(8.dp),
+                colors = CardDefaults.cardColors(containerColor = theme.cardBgColor),
+                border = androidx.compose.foundation.BorderStroke(0.8.dp, theme.borderColor),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 12.dp, vertical = 10.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(34.dp)
+                            .clip(RoundedCornerShape(6.dp))
+                            .background(theme.badgeBgColor),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = theme.badgeTextColor,
+                            modifier = Modifier.size(18.dp)
+                        )
+                    }
+
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(2.dp)
+                    ) {
+                        Text(
+                            text = attachment.getDisplayName(),
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = theme.textColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text(
+                                text = "[$categoryLabel]",
+                                fontSize = 11.sp,
+                                color = theme.badgeTextColor,
+                                fontWeight = FontWeight.Normal
+                            )
+                            if (fileSizeStr.isNotBlank()) {
+                                Text(
+                                    text = "·  $fileSizeStr",
+                                    fontSize = 11.sp,
+                                    color = theme.textColor.copy(alpha = 0.6f)
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private data class ShareColorTheme(
+    val cardBgColor: Color,
+    val borderColor: Color,
+    val textColor: Color,
+    val badgeBgColor: Color,
+    val badgeTextColor: Color
+)
 
 /**
  * 模板缩略图卡片 (带选中绿勾指示)
