@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.ClickableText
@@ -31,6 +32,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.PushPin
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.CheckboxDefaults
 import androidx.compose.material3.DropdownMenu
@@ -106,6 +108,7 @@ import java.io.File
 private val CHECKBOX_LINE_REGEX = Regex("""^- \[([ x])\] (.+)$""")
 private val CHECKBOX_MATCH_REGEX = Regex("""^- \[([ x])\] .+$""")
 
+@OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
 @Composable
 fun NoteCard(
     noteId: Long,
@@ -128,6 +131,8 @@ fun NoteCard(
     onMentionClick: ((Long) -> Unit)? = null,
     onRelationsClick: ((List<NoteRelation>, String) -> Unit)? = null,
     onImageClick: ((index: Int, images: List<File>) -> Unit)? = null,
+    onLongClick: (() -> Unit)? = null,
+    onShareClick: (() -> Unit)? = null,
     searchQuery: String = "",
     maxCollapsedLines: Int = 5,
     hideOperations: Boolean = false,
@@ -217,6 +222,16 @@ fun NoteCard(
             .fillMaxWidth()
             .clip(RoundedCornerShape(12.dp))
             .background(if (isHighlighted) Color(0xFFF0F7FF) else Color.White)
+            .combinedClickable(
+                onClick = {
+                    if (!isExpanded && hasVisualOverflow) {
+                        isExpanded = true
+                    }
+                },
+                onLongClick = {
+                    onLongClick?.invoke()
+                }
+            )
     ) {
         Column(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp)
@@ -361,7 +376,7 @@ fun NoteCard(
 
                                 HorizontalDivider(color = Color(0xFFF0F0F0), thickness = 1.dp)
 
-                                // 2. 中间功能列表 (设为置顶 / 取消置顶)
+                                // 2. 中间功能列表 (设为置顶 / 取消置顶 + 生成分享图)
                                 DropdownMenuItem(
                                     text = {
                                         Row(
@@ -384,6 +399,31 @@ fun NoteCard(
                                     onClick = {
                                         showMenu = false
                                         onTogglePinClick()
+                                    }
+                                )
+
+                                DropdownMenuItem(
+                                    text = {
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Share,
+                                                contentDescription = "生成分享图",
+                                                tint = Color(0xFF666666),
+                                                modifier = Modifier.size(18.dp)
+                                            )
+                                            Text(
+                                                text = "生成分享图",
+                                                fontSize = 14.sp,
+                                                color = Color(0xFF333333)
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        showMenu = false
+                                        onShareClick?.invoke()
                                     }
                                 )
 
@@ -482,7 +522,7 @@ fun NoteCard(
                         },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .pointerInput(parsedRichText.annotatedString) {
+                            .pointerInput(parsedRichText.annotatedString, effectiveExpanded, hasVisualOverflow) {
                                 detectTapGestures(
                                     onTap = { offset ->
                                         textLayoutResultState?.let { layoutResult ->
@@ -500,8 +540,20 @@ fun NoteCard(
                                                 } catch (e: Exception) {
                                                     android.widget.Toast.makeText(context, "无法打开链接: $url", android.widget.Toast.LENGTH_SHORT).show()
                                                 }
+                                            } else {
+                                                // 点击非链接正文区域：若卡片处于折叠且需要展开状态，点击正文直接展开全文
+                                                if (!effectiveExpanded && hasVisualOverflow) {
+                                                    isExpanded = true
+                                                }
+                                            }
+                                        } ?: run {
+                                            if (!effectiveExpanded && hasVisualOverflow) {
+                                                isExpanded = true
                                             }
                                         }
+                                    },
+                                    onLongPress = {
+                                        onLongClick?.invoke()
                                     }
                                 )
                             }

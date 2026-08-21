@@ -1,5 +1,6 @@
 package com.witte.lozify.presentation.home
 
+import com.witte.lozify.domain.model.Note
 import com.witte.lozify.presentation.components.LozifyLogo
 import com.witte.lozify.presentation.components.ImageLightboxDialog
 import java.io.File
@@ -124,6 +125,7 @@ fun HomeScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val listState = rememberLazyListState()
+    val context = androidx.compose.ui.platform.LocalContext.current
 
     // Stage 31: Silent on-launch update check
     LaunchedEffect(Unit) {
@@ -158,6 +160,11 @@ fun HomeScreen(
     var editingNoteContent by remember { mutableStateOf<String?>(null) }
     var editingNoteAttachments by remember { mutableStateOf<List<com.witte.lozify.domain.model.Attachment>>(emptyList()) }
     val editorSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+
+    // Stage 56: Long press action menu & Share card generator state
+    var longPressedNote by remember { mutableStateOf<Note?>(null) }
+    var sharingNote by remember { mutableStateOf<Note?>(null) }
+    val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
     var shouldScrollToTopOnNewNote by remember { mutableStateOf(false) }
@@ -754,6 +761,12 @@ fun HomeScreen(
                                 onImageClick = { imgIndex, images ->
                                     activeLightbox = Pair(imgIndex, images)
                                 },
+                                onLongClick = {
+                                    longPressedNote = note
+                                },
+                                onShareClick = {
+                                    sharingNote = note
+                                },
                                 searchQuery = uiState.searchQuery
                             )
                         }
@@ -904,6 +917,55 @@ fun HomeScreen(
                 context.startActivity(intent)
             }
         )
+    }
+    // Stage 56: Long Press Action Bottom Sheet (Flomo style: 编辑, 分享, 复制, 删除, 取消)
+    longPressedNote?.let { note ->
+        NoteActionBottomSheet(
+            note = note,
+            onDismiss = { longPressedNote = null },
+            onEdit = {
+                editingNoteId = note.id
+                editingNoteContent = note.content
+                editingNoteAttachments = note.attachments
+                showEditor = true
+            },
+            onShare = {
+                sharingNote = note
+            },
+            onCopy = {
+                clipboardManager.setText(androidx.compose.ui.text.AnnotatedString(note.content))
+                android.widget.Toast.makeText(context, "已复制到剪贴板", android.widget.Toast.LENGTH_SHORT).show()
+            },
+            onDelete = {
+                homeViewModel.deleteNote(note.id)
+                scope.launch {
+                    snackbarHostState.showSnackbar("笔记已删除")
+                }
+            }
+        )
+    }
+
+    // Stage 56: Generate Share Card Screen Modal Dialog (3 Flomo-style templates)
+    sharingNote?.let { note ->
+        val earliestTime = remember(uiState.notes) {
+            uiState.notes.minOfOrNull { it.createdAt } ?: note.createdAt
+        }
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { sharingNote = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                usePlatformDefaultWidth = false,
+                decorFitsSystemWindows = false
+            )
+        ) {
+            com.witte.lozify.presentation.share.ShareCardScreen(
+                note = note,
+                totalNotesCount = uiState.notes.size,
+                earliestNoteTimestamp = earliestTime,
+                authorName = "Lozify 用户",
+                filesDir = context.filesDir,
+                onBackClick = { sharingNote = null }
+            )
+        }
     }
     }
 }

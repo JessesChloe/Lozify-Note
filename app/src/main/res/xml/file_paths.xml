@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
-    <!-- Allow FileProvider to share files from context.filesDir -->
+    <!-- Allow FileProvider to share files from context.filesDir and cacheDir -->
     <files-path name="internal_files" path="." />
+    <cache-path name="shared_images" path="shared_images" />
+    <cache-path name="cache" path="." />
 </paths>
