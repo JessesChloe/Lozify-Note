@@ -1,6 +1,7 @@
 package com.witte.lozify.presentation.main
 
 import android.os.Bundle
+import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -8,43 +9,37 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
-import androidx.fragment.app.FragmentActivity
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.navigation.compose.rememberNavController
 import com.witte.lozify.core.navigation.LozifyNavGraph
-import com.witte.lozify.core.preferences.UserPreferencesManager
 import com.witte.lozify.presentation.lock.AppLockOverlayScreen
 import dagger.hilt.android.AndroidEntryPoint
-import javax.inject.Inject
 
 /**
  * Main entry point for Lozify application.
  * Single-activity architecture using Jetpack Compose with Navigation.
- *
- * Stage 59: App Lock & Biometrics support via FragmentActivity.
  */
 @AndroidEntryPoint
-class MainActivity : FragmentActivity() {
-
-    @Inject
-    lateinit var preferencesManager: UserPreferencesManager
-
+class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContent {
-            LozifyApp(preferencesManager = preferencesManager)
+            LozifyApp()
         }
     }
 }
 
 @Composable
-fun LozifyApp(preferencesManager: UserPreferencesManager) {
+fun LozifyApp(
+    mainViewModel: MainViewModel = hiltViewModel()
+) {
     val navController = rememberNavController()
-    val isAppLockEnabled by preferencesManager.isAppLockEnabled.collectAsState()
-    val appLockPin by preferencesManager.appLockPin.collectAsState()
-    val isBiometricEnabled by preferencesManager.isBiometricEnabled.collectAsState()
+    val isAppLockEnabled by mainViewModel.isAppLockEnabled.collectAsState()
+    val appLockPin by mainViewModel.appLockPin.collectAsState()
+    val isBiometricEnabled by mainViewModel.isBiometricEnabled.collectAsState()
 
     var isLocked by remember {
         mutableStateOf(isAppLockEnabled && appLockPin.isNotEmpty())

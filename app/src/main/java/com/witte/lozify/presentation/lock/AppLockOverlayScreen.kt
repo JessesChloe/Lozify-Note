@@ -1,8 +1,9 @@
 package com.witte.lozify.presentation.lock
 
+import android.content.Context
+import android.os.Build
+import android.os.CancellationSignal
 import android.widget.Toast
-import androidx.biometric.BiometricManager
-import androidx.biometric.BiometricPrompt
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -25,11 +26,10 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.core.content.ContextCompat
-import androidx.fragment.app.FragmentActivity
 
 /**
  * AppLockOverlayScreen - Fullscreen biometric & PIN code lock interceptor.
+ * Safe native Android biometrics implementation without crashing or theme requirements.
  *
  * Stage 59: App Lock & Biometrics feature.
  */
@@ -44,38 +44,37 @@ fun AppLockOverlayScreen(
     var isError by remember { mutableStateOf(false) }
 
     fun triggerBiometric() {
-        val activity = context as? FragmentActivity ?: return
-        val biometricManager = BiometricManager.from(context)
-        val canAuth = biometricManager.canAuthenticate(
-            BiometricManager.Authenticators.BIOMETRIC_STRONG or BiometricManager.Authenticators.BIOMETRIC_WEAK
-        )
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            try {
+                val cancellationSignal = CancellationSignal()
+                val prompt = android.hardware.biometrics.BiometricPrompt.Builder(context)
+                    .setTitle("解锁 Lozify")
+                    .setSubtitle("验证指纹或面容以访问您的便签")
+                    .setNegativeButton("使用 PIN 码", context.mainExecutor) { _, _ -> }
+                    .build()
 
-        if (canAuth == BiometricManager.BIOMETRIC_SUCCESS) {
-            val executor = ContextCompat.getMainExecutor(context)
-            val callback = object : BiometricPrompt.AuthenticationCallback() {
-                override fun onAuthenticationSucceeded(result: BiometricPrompt.AuthenticationResult) {
-                    super.onAuthenticationSucceeded(result)
-                    onUnlock()
-                }
+                prompt.authenticate(
+                    cancellationSignal,
+                    context.mainExecutor,
+                    object : android.hardware.biometrics.BiometricPrompt.AuthenticationCallback() {
+                        override fun onAuthenticationSucceeded(result: android.hardware.biometrics.BiometricPrompt.AuthenticationResult?) {
+                            super.onAuthenticationSucceeded(result)
+                            onUnlock()
+                        }
 
-                override fun onAuthenticationError(errorCode: Int, errString: CharSequence) {
-                    super.onAuthenticationError(errorCode, errString)
-                }
+                        override fun onAuthenticationError(errorCode: Int, errString: CharSequence?) {
+                            super.onAuthenticationError(errorCode, errString)
+                        }
 
-                override fun onAuthenticationFailed() {
-                    super.onAuthenticationFailed()
-                    isError = true
-                }
+                        override fun onAuthenticationFailed() {
+                            super.onAuthenticationFailed()
+                            isError = true
+                        }
+                    }
+                )
+            } catch (e: Throwable) {
+                // If biometric hardware or permission is unavailable, fallback smoothly to PIN
             }
-
-            val promptInfo = BiometricPrompt.PromptInfo.Builder()
-                .setTitle("解锁 Lozify")
-                .setSubtitle("验证指纹或面容以访问您的便签")
-                .setNegativeButtonText("使用 PIN 码")
-                .build()
-
-            val biometricPrompt = BiometricPrompt(activity, executor, callback)
-            biometricPrompt.authenticate(promptInfo)
         }
     }
 
