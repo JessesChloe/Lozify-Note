@@ -1,9 +1,9 @@
 {
-  "versionCode": 7,
-  "versionName": "1.2.5",
-  "releaseDate": "2026-08-20",
-  "changelog": "📎 1. 通用文件附件与按需云同步：支持 PDF/Word/Excel/PPT/ZIP/音视频等多格式附件，WebDAV 按需流式懒加载，省流极速同步\n🎵 2. 原生轻量卡片音乐播放器：音频附件 40dp 极简卡片，内嵌播放/暂停/停止控制与 2dp 动态呼吸进度线\n🔗 3. 双链详情页重构：极简单卡片聚焦呈现，底部新增渐进式关系胶囊区，已删除卡片双链自动动态隐去\n✏️ 4. 智能编辑器交互升级：旧卡片编辑光标自动吸底；格式图标防重 Toggle；符号内按回车直接跳出不换行；支持已有图片与附件回显与增删\n🗑️ 5. 回收站多端同步清空：顶部新增一键清空，配合墓碑协议实现跨设备同步彻底销毁绝不死灰复燃",
-  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.5/Lozify-v1.2.5.apk",
-  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.5/Lozify-v1.2.5.apk",
+  "versionCode": 8,
+  "versionName": "1.2.6",
+  "releaseDate": "2026-08-21",
+  "changelog": "📖 1. 点击卡片正文直接展开：长文段卡片无需精确点击展开按钮，点击任意正文区域即可丝滑展开或收起\n🔘 2. 长按卡片弹出快捷操作半窗：长按卡片即刻呼出【编辑、分享、复制、删除】快捷操作菜单\n🎨 3. Flomo 同款三套雅致分享图模板：支持经典白、复古桃粉、暖木手账三套精美分享图，搭配二段式抽屉更换模板，一键保存相册或系统分享\n📅 4. 侧边栏打卡日历跨设备时区对齐与动态同步：修复多端时区差异导致的打卡热力图方块错位问题，支持自定义时区，同步即时响应刷新",
+  "downloadUrl": "https://gitee.com/muxsans/lozify-note/releases/download/v1.2.6/Lozify-v1.2.6.apk",
+  "githubDownloadUrl": "https://github.com/JessesChloe/Lozify-Note/releases/download/v1.2.6/Lozify-v1.2.6.apk",
   "isForceUpdate": false
 }
