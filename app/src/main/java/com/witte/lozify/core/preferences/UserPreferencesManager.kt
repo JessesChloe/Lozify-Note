@@ -22,112 +22,112 @@ class UserPreferencesManager @Inject constructor(
     private val prefs: SharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     private val _maxCollapseLines = MutableStateFlow(
-        prefs.getInt(KEY_MAX_COLLAPSE_LINES, DEFAULT_MAX_COLLAPSE_LINES)
+        try { prefs.getInt(KEY_MAX_COLLAPSE_LINES, DEFAULT_MAX_COLLAPSE_LINES) } catch (e: Exception) { DEFAULT_MAX_COLLAPSE_LINES }
     )
     val maxCollapseLines: StateFlow<Int> = _maxCollapseLines.asStateFlow()
 
     private val _isDraftPersistenceEnabled = MutableStateFlow(
-        prefs.getBoolean(KEY_DRAFT_PERSISTENCE_ENABLED, true)
+        try { prefs.getBoolean(KEY_DRAFT_PERSISTENCE_ENABLED, true) } catch (e: Exception) { true }
     )
     val isDraftPersistenceEnabled: StateFlow<Boolean> = _isDraftPersistenceEnabled.asStateFlow()
 
     // Stage 37: Image Compression Preference (Default: true)
     private val _imageCompressionEnabled = MutableStateFlow(
-        prefs.getBoolean(KEY_IMAGE_COMPRESSION_ENABLED, true)
+        try { prefs.getBoolean(KEY_IMAGE_COMPRESSION_ENABLED, true) } catch (e: Exception) { true }
     )
     val imageCompressionEnabled: StateFlow<Boolean> = _imageCompressionEnabled.asStateFlow()
 
     private val _draftText = MutableStateFlow(
-        prefs.getString(KEY_DRAFT_TEXT, "") ?: ""
+        try { prefs.getString(KEY_DRAFT_TEXT, "") ?: "" } catch (e: Exception) { "" }
     )
     val draftText: StateFlow<String> = _draftText.asStateFlow()
 
     private val _draftImageUris = MutableStateFlow(
-        prefs.getStringSet(KEY_DRAFT_IMAGE_URIS, emptySet())?.toList() ?: emptyList()
+        try { prefs.getStringSet(KEY_DRAFT_IMAGE_URIS, emptySet())?.toList() ?: emptyList() } catch (e: Exception) { emptyList() }
     )
     val draftImageUris: StateFlow<List<String>> = _draftImageUris.asStateFlow()
 
     // Stage 57: Calendar Timezone (Default: empty string for system default ZoneId)
     private val _calendarTimeZone = MutableStateFlow(
-        prefs.getString(KEY_CALENDAR_TIMEZONE, "") ?: ""
+        try { prefs.getString(KEY_CALENDAR_TIMEZONE, "") ?: "" } catch (e: Exception) { "" }
     )
     val calendarTimeZone: StateFlow<String> = _calendarTimeZone.asStateFlow()
 
     // Stage 58: User Profile & PRO Membership State
     private val _userName = MutableStateFlow(
-        prefs.getString(KEY_USER_NAME, "木下") ?: "木下"
+        try { prefs.getString(KEY_USER_NAME, "木下") ?: "木下" } catch (e: Exception) { "木下" }
     )
     val userName: StateFlow<String> = _userName.asStateFlow()
 
     private val _isProUser = MutableStateFlow(
-        prefs.getBoolean(KEY_IS_PRO_USER, false)
+        try { prefs.getBoolean(KEY_IS_PRO_USER, false) } catch (e: Exception) { false }
     )
     val isProUser: StateFlow<Boolean> = _isProUser.asStateFlow()
 
     private val _proPlanType = MutableStateFlow(
-        prefs.getString(KEY_PRO_PLAN_TYPE, "PRO") ?: "PRO"
+        try { prefs.getString(KEY_PRO_PLAN_TYPE, "PRO") ?: "PRO" } catch (e: Exception) { "PRO" }
     )
     val proPlanType: StateFlow<String> = _proPlanType.asStateFlow()
 
     private val _proExpireTime = MutableStateFlow(
-        prefs.getLong(KEY_PRO_EXPIRE_TIME, 0L)
+        try { prefs.getLong(KEY_PRO_EXPIRE_TIME, 0L) } catch (e: Exception) { 0L }
     )
     val proExpireTime: StateFlow<Long> = _proExpireTime.asStateFlow()
 
     // --- App Lock & Biometrics (PRO Feature) ---
     private val _isAppLockEnabled = MutableStateFlow(
-        prefs.getBoolean(KEY_IS_APP_LOCK_ENABLED, false)
+        try { prefs.getBoolean(KEY_IS_APP_LOCK_ENABLED, false) } catch (e: Exception) { false }
     )
     val isAppLockEnabled: StateFlow<Boolean> = _isAppLockEnabled.asStateFlow()
 
     private val _appLockPin = MutableStateFlow(
-        prefs.getString(KEY_APP_LOCK_PIN, "") ?: ""
+        try { prefs.getString(KEY_APP_LOCK_PIN, "") ?: "" } catch (e: Exception) { "" }
     )
     val appLockPin: StateFlow<String> = _appLockPin.asStateFlow()
 
     private val _isBiometricEnabled = MutableStateFlow(
-        prefs.getBoolean(KEY_IS_BIOMETRIC_ENABLED, true)
+        try { prefs.getBoolean(KEY_IS_BIOMETRIC_ENABLED, true) } catch (e: Exception) { true }
     )
     val isBiometricEnabled: StateFlow<Boolean> = _isBiometricEnabled.asStateFlow()
 
     // --- WebDAV Cloud Sync Preferences ---
     private val _webdavServerUrl = MutableStateFlow(
-        prefs.getString(KEY_WEBDAV_SERVER_URL, DEFAULT_WEBDAV_SERVER_URL) ?: DEFAULT_WEBDAV_SERVER_URL
+        try { prefs.getString(KEY_WEBDAV_SERVER_URL, DEFAULT_WEBDAV_SERVER_URL) ?: DEFAULT_WEBDAV_SERVER_URL } catch (e: Exception) { DEFAULT_WEBDAV_SERVER_URL }
     )
     val webdavServerUrl: StateFlow<String> = _webdavServerUrl.asStateFlow()
 
     private val _webdavUsername = MutableStateFlow(
-        prefs.getString(KEY_WEBDAV_USERNAME, "") ?: ""
+        try { prefs.getString(KEY_WEBDAV_USERNAME, "") ?: "" } catch (e: Exception) { "" }
     )
     val webdavUsername: StateFlow<String> = _webdavUsername.asStateFlow()
 
     private val _webdavPassword = MutableStateFlow(
-        prefs.getString(KEY_WEBDAV_PASSWORD, "") ?: ""
+        try { prefs.getString(KEY_WEBDAV_PASSWORD, "") ?: "" } catch (e: Exception) { "" }
     )
     val webdavPassword: StateFlow<String> = _webdavPassword.asStateFlow()
 
     private val _webdavRemoteDir = MutableStateFlow(
-        prefs.getString(KEY_WEBDAV_REMOTE_DIR, DEFAULT_WEBDAV_REMOTE_DIR) ?: DEFAULT_WEBDAV_REMOTE_DIR
+        try { prefs.getString(KEY_WEBDAV_REMOTE_DIR, DEFAULT_WEBDAV_REMOTE_DIR) ?: DEFAULT_WEBDAV_REMOTE_DIR } catch (e: Exception) { DEFAULT_WEBDAV_REMOTE_DIR }
     )
     val webdavRemoteDir: StateFlow<String> = _webdavRemoteDir.asStateFlow()
 
     private val _webdavAutoSync = MutableStateFlow(
-        prefs.getBoolean(KEY_WEBDAV_AUTO_SYNC, false)
+        try { prefs.getBoolean(KEY_WEBDAV_AUTO_SYNC, false) } catch (e: Exception) { false }
     )
     val webdavAutoSync: StateFlow<Boolean> = _webdavAutoSync.asStateFlow()
 
     private val _webdavLastSyncTime = MutableStateFlow(
-        prefs.getLong(KEY_WEBDAV_LAST_SYNC_TIME, 0L)
+        try { prefs.getLong(KEY_WEBDAV_LAST_SYNC_TIME, 0L) } catch (e: Exception) { 0L }
     )
     val webdavLastSyncTime: StateFlow<Long> = _webdavLastSyncTime.asStateFlow()
 
     private val _webdavEncryptionEnabled = MutableStateFlow(
-        prefs.getBoolean(KEY_WEBDAV_ENCRYPTION_ENABLED, false)
+        try { prefs.getBoolean(KEY_WEBDAV_ENCRYPTION_ENABLED, false) } catch (e: Exception) { false }
     )
     val webdavEncryptionEnabled: StateFlow<Boolean> = _webdavEncryptionEnabled.asStateFlow()
 
     private val _webdavEncryptionPassword = MutableStateFlow(
-        prefs.getString(KEY_WEBDAV_ENCRYPTION_PASSWORD, "") ?: ""
+        try { prefs.getString(KEY_WEBDAV_ENCRYPTION_PASSWORD, "") ?: "" } catch (e: Exception) { "" }
     )
     val webdavEncryptionPassword: StateFlow<String> = _webdavEncryptionPassword.asStateFlow()
 
