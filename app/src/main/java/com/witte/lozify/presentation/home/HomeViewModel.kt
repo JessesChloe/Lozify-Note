@@ -400,7 +400,6 @@ class HomeViewModel @Inject constructor(
      * Expose allTags for navigation and tag edit screen.
      */
     val allTags: StateFlow<List<Tag>> = tagRepository.getAllTags()
-        .map { tags -> tags.filter { it.usageCount > 0 || it.isPinned } }
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
