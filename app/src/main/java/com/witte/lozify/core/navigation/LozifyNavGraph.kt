@@ -53,6 +53,17 @@ fun LozifyNavGraph(
                 },
                 onNavigateToPro = {
                     navController.navigate(Routes.PRO)
+                },
+                onNavigateToDailyReview = {
+                    navController.navigate(Routes.DAILY_REVIEW)
+                }
+            )
+        }
+
+        composable(Routes.DAILY_REVIEW) {
+            com.witte.lozify.presentation.review.DailyReviewScreen(
+                onNavigateBack = {
+                    navController.popBackStack()
                 }
             )
         }

@@ -24,6 +24,9 @@ data class SettingsUiState(
     val userName: String = "木下",
     val isProUser: Boolean = false,
     val proPlanType: String = "PRO",
+    val isAppLockEnabled: Boolean = false,
+    val appLockPin: String = "",
+    val isBiometricEnabled: Boolean = true,
     val isCheckingUpdate: Boolean = false,
     val updateInfo: AppUpdateInfo? = null,
     val updateMessage: String? = null
@@ -58,8 +61,15 @@ class SettingsViewModel @Inject constructor(
         ) { name, isPro, planType ->
             Triple(name, isPro, planType)
         },
+        combine(
+            preferencesManager.isAppLockEnabled,
+            preferencesManager.appLockPin,
+            preferencesManager.isBiometricEnabled
+        ) { isLock, pin, isBio ->
+            Triple(isLock, pin, isBio)
+        },
         _updateState
-    ) { basePrefs, proInfo, updateState ->
+    ) { basePrefs, proInfo, lockInfo, updateState ->
         SettingsUiState(
             maxCollapseLines = basePrefs.a,
             isDraftPersistenceEnabled = basePrefs.b,
@@ -68,6 +78,9 @@ class SettingsViewModel @Inject constructor(
             userName = proInfo.first,
             isProUser = proInfo.second,
             proPlanType = proInfo.third,
+            isAppLockEnabled = lockInfo.first,
+            appLockPin = lockInfo.second,
+            isBiometricEnabled = lockInfo.third,
             isCheckingUpdate = updateState.first,
             updateInfo = updateState.second,
             updateMessage = updateState.third
@@ -79,6 +92,20 @@ class SettingsViewModel @Inject constructor(
     )
 
     private data class Tuple4<A, B, C, D>(val a: A, val b: B, val c: C, val d: D)
+
+    fun setAppLock(enabled: Boolean, pin: String, biometric: Boolean) {
+        preferencesManager.setAppLockEnabled(enabled)
+        preferencesManager.setAppLockPin(pin)
+        preferencesManager.setBiometricEnabled(biometric)
+    }
+
+    fun disableAppLock() {
+        preferencesManager.setAppLockEnabled(false)
+    }
+
+    fun verifyPin(pin: String): Boolean {
+        return preferencesManager.verifyAppLockPin(pin)
+    }
 
     fun setUserName(name: String) {
         preferencesManager.setUserName(name)

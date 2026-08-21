@@ -74,6 +74,22 @@ class UserPreferencesManager @Inject constructor(
     )
     val proExpireTime: StateFlow<Long> = _proExpireTime.asStateFlow()
 
+    // --- App Lock & Biometrics (PRO Feature) ---
+    private val _isAppLockEnabled = MutableStateFlow(
+        prefs.getBoolean(KEY_IS_APP_LOCK_ENABLED, false)
+    )
+    val isAppLockEnabled: StateFlow<Boolean> = _isAppLockEnabled.asStateFlow()
+
+    private val _appLockPin = MutableStateFlow(
+        prefs.getString(KEY_APP_LOCK_PIN, "") ?: ""
+    )
+    val appLockPin: StateFlow<String> = _appLockPin.asStateFlow()
+
+    private val _isBiometricEnabled = MutableStateFlow(
+        prefs.getBoolean(KEY_IS_BIOMETRIC_ENABLED, true)
+    )
+    val isBiometricEnabled: StateFlow<Boolean> = _isBiometricEnabled.asStateFlow()
+
     // --- WebDAV Cloud Sync Preferences ---
     private val _webdavServerUrl = MutableStateFlow(
         prefs.getString(KEY_WEBDAV_SERVER_URL, DEFAULT_WEBDAV_SERVER_URL) ?: DEFAULT_WEBDAV_SERVER_URL
@@ -286,6 +302,25 @@ class UserPreferencesManager @Inject constructor(
         return _purgedSyncIds.value
     }
 
+    fun setAppLockEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_IS_APP_LOCK_ENABLED, enabled).apply()
+        _isAppLockEnabled.value = enabled
+    }
+
+    fun setAppLockPin(pin: String) {
+        prefs.edit().putString(KEY_APP_LOCK_PIN, pin).apply()
+        _appLockPin.value = pin
+    }
+
+    fun setBiometricEnabled(enabled: Boolean) {
+        prefs.edit().putBoolean(KEY_IS_BIOMETRIC_ENABLED, enabled).apply()
+        _isBiometricEnabled.value = enabled
+    }
+
+    fun verifyAppLockPin(pin: String): Boolean {
+        return _appLockPin.value.isNotEmpty() && _appLockPin.value == pin
+    }
+
     companion object {
         private const val PREFS_NAME = "lozify_user_preferences"
         private const val KEY_MAX_COLLAPSE_LINES = "key_max_collapse_lines"
@@ -298,6 +333,9 @@ class UserPreferencesManager @Inject constructor(
         private const val KEY_IS_PRO_USER = "key_is_pro_user"
         private const val KEY_PRO_PLAN_TYPE = "key_pro_plan_type"
         private const val KEY_PRO_EXPIRE_TIME = "key_pro_expire_time"
+        private const val KEY_IS_APP_LOCK_ENABLED = "key_is_app_lock_enabled"
+        private const val KEY_APP_LOCK_PIN = "key_app_lock_pin"
+        private const val KEY_IS_BIOMETRIC_ENABLED = "key_is_biometric_enabled"
         private const val KEY_PURGED_SYNC_IDS = "key_purged_sync_ids"
 
         // WebDAV keys

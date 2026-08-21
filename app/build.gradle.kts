@@ -99,6 +99,9 @@ dependencies {
     // OkHttp for WebDAV Cloud Sync
     implementation(libs.okhttp)
 
+    // Biometric Authentication for PRO App Lock
+    implementation(libs.androidx.biometric)
+
     // Testing
     testImplementation(libs.junit)
     testImplementation("org.json:json:20240303")

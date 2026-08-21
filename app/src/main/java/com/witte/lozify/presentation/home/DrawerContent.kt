@@ -94,6 +94,8 @@ fun DrawerContent(
     onNavigateToBackup: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToPro: () -> Unit = {},
+    onNavigateToDailyReview: () -> Unit = {},
+    onNavigateToRandomStroll: () -> Unit = {},
     onOpenCalendarDetail: () -> Unit = {},
     onTogglePinTag: (Long, Boolean) -> Unit = { _, _ -> },
     onEditTag: (Tag) -> Unit = {},
@@ -182,7 +184,7 @@ fun DrawerContent(
                         icon = Icons.Outlined.AutoAwesome,
                         label = "每日回顾",
                         onClick = {
-                            onNavigateToHelp()
+                            onNavigateToDailyReview()
                             onCloseDrawer()
                         }
                     )
@@ -193,7 +195,7 @@ fun DrawerContent(
                         icon = Icons.Outlined.Explore,
                         label = "随机漫步",
                         onClick = {
-                            onTagSelected(null)
+                            onNavigateToRandomStroll()
                             onCloseDrawer()
                         }
                     )

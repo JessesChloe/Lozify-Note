@@ -117,6 +117,7 @@ fun HomeScreen(
     onNavigateToBackup: () -> Unit = {},
     onNavigateToSettings: () -> Unit = {},
     onNavigateToPro: () -> Unit = {},
+    onNavigateToDailyReview: () -> Unit = {},
     homeViewModel: HomeViewModel = hiltViewModel(),
     editorViewModel: EditorViewModel = hiltViewModel(),
     modifier: Modifier = Modifier
@@ -165,6 +166,7 @@ fun HomeScreen(
     // Stage 56: Long press action menu & Share card generator state
     var longPressedNote by remember { mutableStateOf<Note?>(null) }
     var sharingNote by remember { mutableStateOf<Note?>(null) }
+    var showRandomStrollSheet by remember { mutableStateOf(false) }
     val clipboardManager = androidx.compose.ui.platform.LocalClipboardManager.current
 
     // Stage 22: Ensure list scrolls to the brand-new note at index 0 after room emits
@@ -407,6 +409,11 @@ fun HomeScreen(
                 onNavigateToBackup = onNavigateToBackup,
                 onNavigateToSettings = onNavigateToSettings,
                 onNavigateToPro = onNavigateToPro,
+                onNavigateToDailyReview = onNavigateToDailyReview,
+                onNavigateToRandomStroll = {
+                    scope.launch { drawerState.close() }
+                    showRandomStrollSheet = true
+                },
                 onOpenCalendarDetail = {
                     scope.launch {
                         drawerState.close()
@@ -971,6 +978,23 @@ fun HomeScreen(
                 onBackClick = { sharingNote = null }
             )
         }
+    }
+
+    // Stage 59: Random Stroll Bottom Sheet
+    if (showRandomStrollSheet) {
+        com.witte.lozify.presentation.stroll.RandomStrollBottomSheet(
+            allNotes = uiState.notes,
+            onDismiss = { showRandomStrollSheet = false },
+            onEditNote = { note ->
+                editingNoteId = note.id
+                editingNoteContent = note.content
+                editingNoteAttachments = note.attachments
+                showEditor = true
+            },
+            onShareNote = { noteId ->
+                sharingNote = uiState.notes.find { it.id == noteId }
+            }
+        )
     }
     }
 }

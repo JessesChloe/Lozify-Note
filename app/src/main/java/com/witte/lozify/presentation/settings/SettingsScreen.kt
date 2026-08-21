@@ -57,6 +57,7 @@ fun SettingsScreen(
 
     var showPreferencesDialog by remember { mutableStateOf(false) }
     var showTimeZoneDialog by remember { mutableStateOf(false) }
+    var showAppLockDialog by remember { mutableStateOf(false) }
 
     val timeZoneOptions = remember {
         listOf(
@@ -94,6 +95,20 @@ fun SettingsScreen(
     }
 
     // 1. Edit User Name Dialog
+    if (showAppLockDialog) {
+        AppLockSettingsDialog(
+            isAppLockEnabled = uiState.isAppLockEnabled,
+            currentPin = uiState.appLockPin,
+            isBiometricEnabled = uiState.isBiometricEnabled,
+            isProUser = uiState.isProUser,
+            onSave = { enabled, pin, biometric ->
+                viewModel.setAppLock(enabled, pin, biometric)
+            },
+            onNavigateToPro = onNavigateToPro,
+            onDismiss = { showAppLockDialog = false }
+        )
+    }
+
     if (showEditNameDialog) {
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
@@ -594,9 +609,8 @@ fun SettingsScreen(
                             icon = Icons.Outlined.Lock,
                             title = "密码锁",
                             tagBadge = "PRO",
-                            onClick = {
-                                Toast.makeText(context, "密码锁与手势识别功能正在开发中", Toast.LENGTH_SHORT).show()
-                            }
+                            subtitle = if (uiState.isAppLockEnabled) "已启用 (PIN/指纹)" else "已关闭",
+                            onClick = { showAppLockDialog = true }
                         )
                     }
                 }

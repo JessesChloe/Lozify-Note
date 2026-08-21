@@ -34,12 +34,18 @@ exifinterface = "1.3.7"
 # OkHttp for WebDAV Cloud Sync
 okhttp = "4.12.0"
 
+# Biometric authentication
+biometric = "1.2.0-alpha05"
+
 # Testing
 junit = "4.13.2"
 androidx-test-ext-junit = "1.1.5"
 espresso-core = "3.5.1"
 
 [libraries]
+# Biometric
+androidx-biometric = { group = "androidx.biometric", name = "biometric", version.ref = "biometric" }
+
 # OkHttp
 okhttp = { group = "com.squareup.okhttp3", name = "okhttp", version.ref = "okhttp" }
 
